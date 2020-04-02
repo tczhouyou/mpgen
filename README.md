@@ -1,15 +1,10 @@
-# MDMP
+To be able to use the code, pip and tensorflow are needed. 
 
-A project about mixture-density-based movement primitive generalization
+The codes are tested under tensorflow version = 1.14. 
 
-Develop Log:
+Regarding how to install tensorflow, please refer 
+[https://www.tensorflow.org/install/pip](https://www.tensorflow.org/install/pip)
 
-26.03.2020
+Please run the command to install other required packages.
 
-created the project for MDMP. 
-In this project, different methods using mixture density are implemented for 
-movement primitive generalization or motion generation
-
-The project is based on Tensorflow and Keras.
-
-1) Mixture Density Loss
+> pip install --upgrade matplotlib numpy tflearn sklearn shapely tensorflow-probability 
