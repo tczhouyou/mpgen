@@ -5,4 +5,6 @@ The codes are tested under tensorflow version = 1.14.
 Regarding how to install tensorflow, please refer 
 [https://www.tensorflow.org/install/pip](https://www.tensorflow.org/install/pip)
 
-pip install --upgrade matplotlib numpy tflearn joblib sklearn shapely tensorflow-probability
+Please run the command to install other required packages.
+
+> pip install --upgrade matplotlib numpy tflearn sklearn shapely tensorflow-probability 
