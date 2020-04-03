@@ -47,15 +47,15 @@ srates = np.zeros(shape=(2, len(nsamples)))
 
 nn_structure = {'d_feat': 20,
                 'feat_layers': [40],
-                'mean_layers': [40],
-                'scale_layers': [40],
-                'mixing_layers': [40]}
+                'mean_layers': [60],
+                'scale_layers': [60],
+                'mixing_layers': [60]}
 
 for k in range(len(use_new_cost)):
     mdnmp = MDNMP(n_comps=nmodel, d_input=6, d_output=knum, nn_structure=nn_structure, scaling=1)
 
     if use_new_cost[k]:
-        mdnmp.lratio['entropy'] = 100
+        mdnmp.lratio['entropy'] = 200
     else:
         mdnmp.lratio['entropy'] = 0
 
@@ -63,7 +63,7 @@ for k in range(len(use_new_cost)):
 
     for expId in range(MAX_EXPNUM):
         trdata, tdata, trvmps, tvmps = train_test_split(data, vmps, test_size=0.3, random_state=rstates[expId])
-        trdata, _, trvmps, _ = train_test_split(trdata, trvmps, test_size=0.8, random_state=rstates[expId])
+        trdata, _, trvmps, _ = train_test_split(trdata, trvmps, test_size=0.7, random_state=rstates[expId])
         print("use {} data for training and {} data for testing".format(np.shape(trdata)[0], np.shape(tdata)[0]))
         print("======== Exp: {} with {} ========".format(expId, mdn_names[k]))
 
@@ -71,9 +71,9 @@ for k in range(len(use_new_cost)):
         train_weights = np.copy(weights)
 
         trqueries = trdata[:,0:6]
-        mdnmp.build_mdn(learning_rate=0.0001)
+        mdnmp.build_mdn(learning_rate=0.00005)
         mdnmp.init_train()
-        mdnmp.train(trqueries, trvmps, train_weights, max_epochs=5000, is_load=False, is_save=False)
+        mdnmp.train(trqueries, trvmps, train_weights, max_epochs=10000, is_load=False, is_save=False)
         tqueries = tdata[:, 0:6]
 
         for i in range(len(nsamples)):
@@ -92,7 +92,7 @@ fig, ax = plt.subplots()
 width = 0.35
 rects1 = ax.bar(x- width/2, srates[0,:], width, label=mdn_names[0])
 rects2 = ax.bar(x + width/2, srates[1,:], width, label=mdn_names[1])
-ax.set_ylabel('Success rate')
+ax.set_ylabel('Success rate - MDNMP')
 ax.set_title('Sample Number')
 ax.set_xticks(x)
 ax.set_xticklabels(nsamples)
