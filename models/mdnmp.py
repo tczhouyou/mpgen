@@ -49,9 +49,12 @@ class MDNMP(basicModel):
 
         nll = gmm_nll_cost(self.target, mean, scale, mc, self.is_positive)
         entropy_loss = model_entropy_cost(self.n_comps, mc, self.is_positive, eps=1e-20)
-        floss = 0 #failure_cost(self.target, mean, mc, 1-self.is_positive, neg_scale=0.1)
+        floss = failure_cost(self.target, mean, mc, 1-self.is_positive, neg_scale=0.1)
 
-        cost = self.lratio['likelihood'] * nll + self.lratio['entropy'] * entropy_loss + self.lratio['regularization'] * reg_loss
+        cost = self.lratio['likelihood'] * nll + \
+               self.lratio['entropy'] * entropy_loss + \
+               self.lratio['regularization'] * reg_loss + \
+               self.lratio['failure'] * floss
 
         self.opt_all = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=var_list)
         self.opt_mean = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=mean_var_list)
@@ -88,19 +91,18 @@ class MDNMP(basicModel):
                 batch_target = target
                 batch_ispos = is_positive
 
-
             feed_dict = {self.input: batch_input, self.target: batch_target, self.is_positive: batch_ispos}
-            _, nll, eloss, cost = self.sess.run([self.opt_all, self.loss_dict['nll'], self.loss_dict['eloss'],
-                                                 self.loss_dict['cost']],
-                                                       feed_dict=feed_dict)
+            _, nll, eloss, cost, floss = self.sess.run([self.opt_all, self.loss_dict['nll'], self.loss_dict['eloss'],
+                                                        self.loss_dict['cost'], self.loss_dict['floss']],
+                                                        feed_dict=feed_dict)
 
             if i != 0 and i % 1000 == 0 and is_save:
                 self.save(self.sess, self.saver, checkpoint_dir, model_dir, model_name)
                 self.global_step = self.global_step + 1
 
-            print("epoch: %1d, cost: %.3f, nll: %.3f, entropy_loss: %.3f" % (i, cost, nll, eloss), end='\r')
+            print("epoch: %1d, cost: %.3f, nll: %.3f, entropy_loss: %.3f, floss: %.3f" % (i, cost, nll, eloss, floss), end='\r')
 
-        print("Training Result: %1d, cost: %.3f, nll: %.3f, entropy_loss: %.3f" % (i, cost, nll, eloss), end='\n')
+        print("Training Result: %1d, cost: %.3f, nll: %.3f, entropy_loss: %.3f, floss: %.3f" % (i, cost, nll, eloss, floss), end='\n')
 
     def predict(self, cinput, n_samples=1):
         mean, scale, mc = self.sess.run([self.outputs['mean'], self.outputs['scale'], self.outputs['mc']],

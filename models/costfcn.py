@@ -30,7 +30,7 @@ def failure_cost(samples, vec_mus, mixing_coeffs, sample_invalid, neg_scale=0.1)
     n_comp = mixing_coeffs.get_shape().as_list()[1]
     n_dim = samples.get_shape().as_list()[1]
     mus = tf.split(vec_mus, num_or_size_splits=n_comp, axis=1)
-    smat = tf.eye(n_dim) * neg_scale
+    smat = tf.ones(shape=(1,n_dim)) * neg_scale
     gmm_comps = [tfd.MultivariateNormalDiag(loc=mu, scale_diag=smat) for mu in mus]
     gmm = tfd.Mixture(cat=tfd.Categorical(probs=mixing_coeffs), components=gmm_comps)
     loss = gmm.log_prob(samples)
