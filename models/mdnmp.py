@@ -100,7 +100,7 @@ class MDNMP(basicModel):
                 self.save(self.sess, self.saver, checkpoint_dir, model_dir, model_name)
                 self.global_step = self.global_step + 1
 
-            print("epoch: %1d, cost: %.3f, nll: %.3f, entropy_loss: %.3f, floss: %.3f" % (i, cost, nll, eloss, floss), end='\r')
+            print("epoch: %1d, cost: %.3f, nll: %.3f, entropy_loss: %.3f, floss: %.3f" % (i, cost, nll, eloss, floss), end='\r', flush=True)
 
         print("Training Result: %1d, cost: %.3f, nll: %.3f, entropy_loss: %.3f, floss: %.3f" % (i, cost, nll, eloss, floss), end='\n')
 

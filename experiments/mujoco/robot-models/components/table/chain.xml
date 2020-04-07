@@ -1,0 +1,14 @@
+<!-- ======================================================
+    Model: Table
+    Mujoco Version: 2.0.x
+	Author: Jianfeng Gao
+====================================================== -->
+<mujocoinclude>
+	<!--<geom contype="1" conaffinity="1" type="plane" material="table2d" pos="0 0 0" size=".5 .5 .025"/>-->
+	<!--	<geom contype="1" conaffinity="1" type="box" material="tablecube" pos="0 0 -0.025" size=".8 .5 .025"/>-->
+	<geom contype="1" conaffinity="1" type="box" material="tablewood" pos="0 0 -0.025" size="1.2 .5 .025"/>
+	<geom contype="0" conaffinity="0" type="cylinder" fromto=".8 .4 -1.001 .8 .4 -0.001" size="0.04"/>
+	<geom contype="0" conaffinity="0" type="cylinder" fromto="-.8 .4 -1.001 -.8 .4 -0.001" size="0.04"/>
+	<geom contype="0" conaffinity="0" type="cylinder" fromto=".8 -.4 -1.001 .8 -.4 -0.001" size="0.04"/>
+	<geom contype="0" conaffinity="0" type="cylinder" fromto="-.8 -.4 -1.001 -.8 -.4 -0.001" size="0.04"/>
+</mujocoinclude>

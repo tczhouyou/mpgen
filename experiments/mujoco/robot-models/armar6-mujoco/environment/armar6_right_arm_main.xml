@@ -1,0 +1,11 @@
+<!-- ======================================================
+    Model: Armar6 in Empty World
+    Mujoco Version: 2.0.x
+	Author: Jianfeng Gao
+====================================================== -->
+<mujoco model="Armar6">
+    <size njmax="8000" nconmax="4000"/>
+    <include file="../../world.xml"/>
+    <compiler angle="radian" coordinate="local" balanceinertia="true" inertiafromgeom="auto" settotalmass="2.3"/>
+    <include file="../robot/Armar6-SH-Right-Arm-Only.xml"/>
+</mujoco>
