@@ -33,7 +33,7 @@ def sample_baseline(wmeans, nsamples, sig=0.001):
     wouts = np.zeros(shape=(np.shape(wmeans)[0], nsamples, np.shape(wmeans)[1]))
     cSig = np.diag(np.ones(np.shape(wmeans)[1]) * sig)
 
-    for i in range(len(np.shape(wmeans)[0])):
+    for i in range(np.shape(wmeans)[0]):
         wmean = wmeans[i, :]
         for j in range(nsamples):
             wouts[i, j, :] = np.random.multivariate_normal(wmean, cSig)
