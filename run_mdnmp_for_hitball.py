@@ -55,7 +55,7 @@ def run_mdnmp_for_hitball(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True
             mdnmp.build_mdn(learning_rate=0.0001)
             mdnmp.init_train()
 
-            trdata, tdata, trvmps, tvmps = train_test_split(inputs, vmps, test_size=0.8, random_state=rstates[expId])
+            trdata, tdata, trvmps, tvmps = train_test_split(inputs, vmps, test_size=0.9, random_state=rstates[expId])
             print("use {} data for training and {} data for testing".format(np.shape(trdata)[0], np.shape(tdata)[0]))
             print("======== Exp: {} with {} ========".format(expId, model_names[modelId]))
 

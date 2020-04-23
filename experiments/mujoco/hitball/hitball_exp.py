@@ -16,8 +16,10 @@ from gym import utils
 import progressbar
 from optparse import OptionParser
 
+mpgen_dir = os.environ['MPGEN_DIR']
 
-hitball_env_path = "/Users/zhou/Research/mpgen/experiments/mujoco/robot-models/armar6-mujoco/environment/hitball_exp.xml"
+
+hitball_env_path = mpgen_dir + '/experiments/mujoco/robot-models/armar6-mujoco/environment/hitball_exp.xml'
 init_ball_pos = np.array([0.5, 0.8, 0.9])
 raw_data_dir = 'hitball_dataset'
 mp_data_dir = 'hitball_mpdata'
@@ -37,7 +39,7 @@ class Armar6GymEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
 class Armar6HitBallExp:
     def __init__(self, low_ctrl, high_ctrl, env_path=hitball_env_path,
-                 low_ctrl_config=None, arm_name="RightArm", desired_joints=None):
+                 low_ctrl_config=None, arm_name="RightArm", desired_joints=None, isdraw = False):
         self.world = mujoco_py.load_model_from_path(env_path)
         self.sim = mujoco_py.MjSim(self.world)
 
@@ -46,13 +48,15 @@ class Armar6HitBallExp:
         self.high_ctrl.low_ctrl = low_ctrl(model=self.world, sim=self.sim, config=low_ctrl_config, \
                                            arm_name=arm_name, desired_joints=desired_joints)
 
-        self.viewer = mujoco_py.MjViewer(self.sim)
-        self.viewer._paused = True
+        self.isdraw = isdraw
+        if self.isdraw:
+            self.viewer = mujoco_py.MjViewer(self.sim)
+            self.viewer._paused = True
+
         self.joint_ctrl = JointController(model=self.world, sim=self.sim, arm_name=arm_name, ctrl_mode="Torque")
 
         self.init_joints = np.array([0, -0.2, 0, 0, 1.8, 3.14, 0, 0])
         self.is_ball_pos_change = False
-        self.render=True
 
     def run(self, stop_sim_after=True):
         start_time = self.sim.data.time
@@ -96,7 +100,7 @@ class Armar6HitBallExp:
                 is_error = True
                 break
 
-            if self.render:
+            if self.isdraw:
                 self.viewer.render()
 
         ts_traj = np.stack(ts_traj)
@@ -153,7 +157,7 @@ class Armar6HitBallExp:
 
         self.sim.set_state(states)
         self.sim.forward()
-        if self.render:
+        if self.isdraw:
             self.viewer.render()
 
         tcp_xpos = self.sim.data.get_site_xpos(self.high_ctrl.low_ctrl.tcp_name)
@@ -169,8 +173,7 @@ def evaluate_hitball(mp, wout, queries, starts, goals, isdraw=False):
     # wout: N x S x dim, N: number of experiments, S: number of samples, dim: dimension of MP
 
     high_ctrl = TaskSpacePositionVMPController(mp)
-    env = Armar6HitBallExp(low_ctrl=TaskSpaceImpedanceController, high_ctrl=high_ctrl)
-    env.render = isdraw
+    env = Armar6HitBallExp(low_ctrl=TaskSpaceImpedanceController, high_ctrl=high_ctrl, isdraw=isdraw)
 
     srate = 0.0
     for i in range(np.shape(wout)[0]):
