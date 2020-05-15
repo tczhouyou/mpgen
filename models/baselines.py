@@ -29,7 +29,7 @@ class MultiDimSkRegressor(BaseEstimator):
         return np.transpose(np.vstack(Y))
 
 
-def sample_baseline(wmeans, nsamples, sig=0.001):
+def sample_baseline(wmeans, nsamples, sig=0.01):
     wouts = np.zeros(shape=(np.shape(wmeans)[0], nsamples, np.shape(wmeans)[1]))
     cSig = np.diag(np.ones(np.shape(wmeans)[1]) * sig)
 

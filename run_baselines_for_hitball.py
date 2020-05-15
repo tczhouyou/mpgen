@@ -45,12 +45,13 @@ def run_baselines_for_hitball(MAX_EXPNUM=20, nsamples=[1, 10, 30, 50], model_nam
     n_test = 100
 
     srates = {}
+    allres = np.zeros(shape=(len(model_names), MAX_EXPNUM, len(nsamples)))
     for modelId in range(len(model_names)):
         model = models[model_names[modelId]]
         csrates = np.zeros(shape=(MAX_EXPNUM,len(nsamples)))
 
         for expId in range(MAX_EXPNUM):
-            trdata, tdata, trvmps, tvmps = train_test_split(inputs, vmps, test_size=0.8, random_state=rstates[expId])
+            trdata, tdata, trvmps, tvmps = train_test_split(inputs, vmps, test_size=0.9, random_state=rstates[expId])
             print("use {} data for training and {} data for testing".format(np.shape(trdata)[0], np.shape(tdata)[0]))
             print("======== Exp: {} with {} ========".format(expId, model_names[modelId]))
             trqueries = trdata[:, 0:d_input]
@@ -70,43 +71,21 @@ def run_baselines_for_hitball(MAX_EXPNUM=20, nsamples=[1, 10, 30, 50], model_nam
 
                 srate = evaluate_hitball(mp, wouts, tqueries, tstarts, tgoals)
                 csrates[expId, sampleId] = srate
+                allres[modelId, expId, sampleId] = srate
 
         srates[model_names[modelId]] = np.mean(csrates, axis=0)
 
-    return srates
+    return srates, allres
 
 
 if __name__ == '__main__':
-    MAX_EXPNUM = 1
-    nsamples = [1,10, 30, 50]
-    model_names = ['Uniform', 'SVR', 'GPR']
-    srates = run_baselines_for_hitball(MAX_EXPNUM, nsamples, model_names)
+    MAX_EXPNUM = 5
+    nsamples = [10, 30, 50, 70]
+    model_names = ['GPR']
+    srates, allres = run_baselines_for_hitball(MAX_EXPNUM, nsamples, model_names)
 
-    print(srates)
-    # import matplotlib.pyplot as plt
-    # x = np.arange(len(nsamples))
-    # fig, ax = plt.subplots()
-    # width = 0.35
-    # rects1 = ax.bar(x - width / 2, srates[model_names[0]], width, label=model_names[0])
-    # rects2 = ax.bar(x + width / 2, srates[model_names[1]], width, label=model_names[1])
-    # ax.set_ylabel('Success Rate - MDNMP for Docking')
-    # ax.set_title('Sample Number')
-    # ax.set_xticks(x)
-    # ax.set_xticklabels(nsamples)
-    # ax.legend()
-    #
-    # def autolabel(rects):
-    #     """Attach a text label above each bar in *rects*, displaying its height."""
-    #     for rect in rects:
-    #         height = rect.get_height()
-    #         ax.annotate('%.2f' % (height),
-    #                     xy=(rect.get_x() + rect.get_width() / 2, height),
-    #                     xytext=(0, 3),  # 3 points vertical offset
-    #                     textcoords="offset points",
-    #                     ha='center', va='bottom')
-    #
-    #
-    # autolabel(rects1)
-    # autolabel(rects2)
-    # fig.tight_layout()
-    # plt.show()
+    res_file = open("result_baseline", 'a')
+    for modelId in range(len(model_names)):
+        res_file.write(model_names[modelId] + '\n')
+        np.savetxt(res_file, np.array(allres[modelId, :, :]), delimiter=',')
+        np.savetxt(res_file, np.array(srates[model_names[modelId]]), delimiter=',')
