@@ -6,7 +6,6 @@ os.sys.path.insert(0, currentdir)
 os.sys.path.insert(0, '..')
 os.sys.path.insert(0, '../mp')
 from models.mdnmp import MDNMP
-from mp.vmp import VMP
 import sys
 from optparse import OptionParser
 import numpy as np

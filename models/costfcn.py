@@ -21,7 +21,7 @@ def model_entropy_cost(n_comps, mixing_coeffs, sample_valid, eps=1e-5):
 
     pos_mc = tf.multiply(mixing_coeffs, tf.tile(sample_valid, [1, n_comps]))
     prob = tf.divide(tf.reduce_sum(pos_mc, axis=0), tf.reduce_sum(sample_valid, axis=0))
-    model_entropy = - tf.reduce_sum(tf.multiply(tf.log(prob + eps), prob))
+    model_entropy = - tf.reduce_sum(tf.multiply(tf.math.log(prob + eps), prob))
     loss = max_entropy - model_entropy
     return loss
 

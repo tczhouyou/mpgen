@@ -2,7 +2,6 @@ import os, inspect
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 os.sys.path.insert(0, current_dir)
 import tensorflow as tf
-import tflearn
 from tensorflow.python.util import deprecation
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
@@ -11,6 +10,8 @@ import basic_nn
 from util import sample_gmm
 from basic_model import basicModel
 from costfcn import gmm_nll_cost, model_entropy_cost, failure_cost
+
+tf.compat.v1.disable_eager_execution()
 
 
 class MDNMP(basicModel):
@@ -36,11 +37,11 @@ class MDNMP(basicModel):
 
     def build_mdn(self, learning_rate=0.001, nn_type='v1'):
         self.create_network(nn_type=nn_type)
-        var_list = [v for v in tf.trainable_variables()]
-        mean_var_list = [v for v in tf.trainable_variables() if 'scale' not in v.name]
-        scale_var_list = [v for v in tf.trainable_variables() if 'mean' not in v.name]
+        var_list = [v for v in tf.compat.v1.trainable_variables()]
+        mean_var_list = [v for v in tf.compat.v1.trainable_variables() if 'scale' not in v.name]
+        scale_var_list = [v for v in tf.compat.v1.trainable_variables() if 'mean' not in v.name]
 
-        reg_loss = [tf.nn.l2_loss(v) for v in tf.trainable_variables()]
+        reg_loss = [tf.nn.l2_loss(v) for v in tf.compat.v1.trainable_variables()]
         reg_loss = self.lratio['regularization'] * tf.reduce_sum(reg_loss) / len(var_list)
 
         mean = self.outputs['mean']
@@ -65,9 +66,9 @@ class MDNMP(basicModel):
 
     def init_train(self, logfile='mdnmp_log'):
         tf.compat.v1.random.set_random_seed(self.seed)
-        self.sess = tf.Session()
-        self.sess.run(tf.global_variables_initializer())
-        self.writer = tf.summary.FileWriter(logfile, self.sess.graph)
+        self.sess = tf.compat.v1.Session()
+        self.sess.run(tf.compat.v1.global_variables_initializer())
+        self.writer = tf.compat.v1.summary.FileWriter(logfile, self.sess.graph)
 
     def train(self, input, target, is_positive, max_epochs=1000, is_load=True, is_save=True, checkpoint_dir='mdnmp_checkpoint',
               model_dir='mdnmp_model', model_name='mdnmp'):
