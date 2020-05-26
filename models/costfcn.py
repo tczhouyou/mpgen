@@ -38,3 +38,50 @@ def failure_cost(samples, vec_mus, mixing_coeffs, sample_invalid, neg_scale=0.1)
     return loss
 
 
+def simplex_coordinates( m ):
+    # This function is adopted from the Simplex Coordinates library
+    # https://people.sc.fsu.edu/~jburkardt/py_src/simplex_coordinates/simplex_coordinates.html
+    x = np.zeros ( [ m, m + 1 ] )
+
+    for j in range ( 0, m ):
+        x[j,j] = 1.0
+
+    a = ( 1.0 - np.sqrt ( float ( 1 + m ) ) ) / float ( m )
+
+    for i in range ( 0, m ):
+        x[i,m] = a
+    c = np.zeros ( m )
+    for i in range ( 0, m ):
+        s = 0.0
+        for j in range ( 0, m + 1 ):
+            s = s + x[i,j]
+        c[i] = s / float ( m + 1 )
+
+    for j in range ( 0, m + 1 ):
+        for i in range ( 0, m ):
+            x[i,j] = x[i,j] - c[i]
+    s = 0.0
+    for i in range ( 0, m ):
+        s = s + x[i,0] ** 2
+        s = np.sqrt ( s )
+
+    for j in range ( 0, m + 1 ):
+        for i in range ( 0, m ):
+            x[i,j] = x[i,j] / s
+
+    ves = []
+    for j in range(m+1):
+        ves.append(x[:,j])
+
+    return ves
+
+
+def gmm_nll_simplex_cost(samples, odim):
+    mu_s = simplex_coordinates(odim)
+    scale = np.ones(odim) * .25
+    ngmm = odim + 1
+    mixing_coeffs = (np.ones(ngmm) / ngmm).astype('float32')
+    gmm_comps = [tfd.MultivariateNormalDiag(loc=mu, scale_diag=scale) for mu in mu_s]
+    gmm = tfd.Mixture(cat=tfd.Categorical(probs=mixing_coeffs), components=gmm_comps)
+    loss = tf.negative(gmm.log_prob(samples))
+    return loss
