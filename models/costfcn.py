@@ -41,7 +41,7 @@ def failure_cost(samples, vec_mus, mixing_coeffs, sample_invalid, neg_scale=0.1)
 def simplex_coordinates( m ):
     # This function is adopted from the Simplex Coordinates library
     # https://people.sc.fsu.edu/~jburkardt/py_src/simplex_coordinates/simplex_coordinates.html
-    x = np.zeros ( [ m, m + 1 ] )
+    x = np.zeros ( [ m, m + 1 ], dtype=np.float32)
 
     for j in range ( 0, m ):
         x[j,j] = 1.0
@@ -76,12 +76,13 @@ def simplex_coordinates( m ):
     return ves
 
 
-def gmm_nll_simplex_cost(samples, odim):
+def gmm_likelihood_simplex(samples, odim):
     mu_s = simplex_coordinates(odim)
-    scale = np.ones(odim) * .25
+    scale = np.ones(odim, dtype=np.float32) * .25
     ngmm = odim + 1
-    mixing_coeffs = (np.ones(ngmm) / ngmm).astype('float32')
+    mixing_coeffs = np.ones(ngmm, dtype=np.float32) / ngmm
     gmm_comps = [tfd.MultivariateNormalDiag(loc=mu, scale_diag=scale) for mu in mu_s]
     gmm = tfd.Mixture(cat=tfd.Categorical(probs=mixing_coeffs), components=gmm_comps)
-    loss = tf.negative(gmm.log_prob(samples))
+    loss = gmm.prob(samples)
     return loss
+
