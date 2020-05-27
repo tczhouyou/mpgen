@@ -34,25 +34,26 @@ vmp = VMP(2, kernel_num=int(knum / dim), use_outrange_kernel=False)
 
 train_goals = np.copy(goals)
 train_ws = np.copy(vmps)
-train_data = np.concatenate([train_ws, train_goals], axis=1)
 
 fig, axe = plt.subplots(nrows=1, ncols=1)
 
 nn_structure = {'generator': [40,40],
-                'discriminator': [40,20],
-                'lambda': [10]}
+                'discriminator': [10],
+                'lambda': [10], 'd_response': [40,5], 'd_context': [10,5]}
 
-mdgan = cMDGAN(n_comps=2, input_dim=2, out_dim=20, rand_input_dim=1, nn_structure=nn_structure)
+mdgan = cMDGAN(n_comps=2, context_dim=2, response_dim=20, noise_dim=1, nn_structure=nn_structure)
 
-mdgan.gen_lrate = 0.0001
-mdgan.dis_lrate = 0.0001
+mdgan.gen_lrate = 0.0002
+mdgan.dis_lrate = 0.0002
 
 mdgan.create_network(num_real_data=n_data)
 mdgan.init_train()
-mdgan.train(input=testgoals, real_data=train_data, max_epochs=10000, is_load=False, is_save=False)
 
-rand_input = np.random.normal(size=(np.shape(testgoals)[0], 1), scale=0.001)
-wout = mdgan.generate(testgoals, rand_input)
+train_input = np.random.uniform(low=np.min(train_goals, axis=0), high=np.max(train_goals, axis=0),
+                                size=(1000, np.shape(train_goals)[1]))
+mdgan.train(train_context=train_input, real_context=train_goals, real_response=train_ws, max_epochs=20000, is_load=False, is_save=False)
+
+wout = mdgan.generate(testgoals)
 for k in range(np.shape(wout)[0]):
     axe.set_ylim([-2, 2])
     axe.set_xlim([-2.5, 2.5])

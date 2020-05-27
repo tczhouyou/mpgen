@@ -210,18 +210,19 @@ def evaluate_docking(mpweights, testqueries, teststarts, testgoals, knum=10,mua=
                     axes[ax, ay].set_xticklabels([])
                     axes[ax, ay].set_aspect('equal')
                     axes[ax, ay].tick_params(length=0)
-                    axes[ax, ay].axhline(linewidth=2)
-                    axes[ax, ay].axvline(linewidth=2)
+                    # axes[ax, ay].axhline(linewidth=2)
+                    # axes[ax, ay].axvline(linewidth=2)
                     env.plot(axes[ax, ay])
 
-                    axes[ax, ay].plot(traj[0, 1], traj[0, 2], 'r.')
-                    axes[ax, ay].plot(traj[-1, 1], traj[-1, 2], 'b.')
+                    axes[ax, ay].plot(start[0], start[1], 'r.')
+                    axes[ax, ay].plot(goal[0], goal[1], 'b.')
                     axes[ax, ay].plot(traj[:, 1], traj[:, 2], 'k-', linewidth=2)
 
-                    for mid in range(np.shape(mua)[2]):
-                        vmp.set_weights(mua[i, :, mid])
-                        traj = vmp.roll(start, goal)
-                        axes[ax, ay].plot(traj[:, 1], traj[:, 2], '-.', color=colors[mid], linewidth=2)
+                    if mua is not None:
+                        for mid in range(np.shape(mua)[2]):
+                            vmp.set_weights(mua[i, :, mid])
+                            traj = vmp.roll(start, goal)
+                            axes[ax, ay].plot(traj[:, 1], traj[:, 2], '-.', color=colors[mid], linewidth=2)
 
                     k = k + 1
 
