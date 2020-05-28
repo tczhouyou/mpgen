@@ -101,9 +101,11 @@ def entropy_discriminator_cost(simplex_gmm, d_real_output):
         gmm_comp = gmm_comps[i]
         data_probs.append(gmm_comp.prob(d_real_output))
 
-    prob_mat = tf.concat(data_probs, axis=1)
+    prob_mat = tf.stack(data_probs, axis=1)
     prob_sum = tf.reduce_sum(prob_mat, axis=1)
-    prob_mat = tf.divide(prob_mat, tf.repeat(prob_sum, repeats=len(gmm_comps), axis=1))
-    mixing_coeffs = tf.reduce_mean(prob_mat)
+    prob_sum = tf.expand_dims(prob_sum, axis=1)
+    prob_sum = tf.tile(prob_sum, multiples=tf.constant([1, len(gmm_comps)], tf.int32))
+    prob_mat = tf.math.divide(prob_mat, prob_sum)
+    mixing_coeffs = tf.reduce_mean(prob_mat, axis=0)
     neg_entropy = tf.reduce_sum(tf.multiply(tf.math.log(mixing_coeffs + 1e-8), mixing_coeffs))
     return neg_entropy

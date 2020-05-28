@@ -6,16 +6,17 @@ from tensorflow.python.util import deprecation
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 import numpy as np
-from basic_nn import fully_connected_nn
+from basic_nn import fully_connected_nn, sigmoid_act, tanh_act, leaky_relu_act, w_init
 from basic_model import basicModel
-from costfcn import gmm_likelihood_simplex
+from costfcn import gmm_likelihood_simplex, entropy_discriminator_cost
 
 tf.compat.v1.disable_eager_execution()
+
 
 class cMDGAN(basicModel):
     def __init__(self, n_comps, context_dim, response_dim, noise_dim, nn_structure,
                  batch_size=None, using_batch_norm=False, seed=42, eps=1e-20,
-                 gen_learning_rate=0.001, dis_learning_rate=0.001):
+                 gen_learning_rate=0.001, dis_learning_rate=0.001, entropy_ratio=0):
         basicModel.__init__(self, batch_size, using_batch_norm, seed, eps)
         self.n_comps = n_comps
         self.context_dim = context_dim
@@ -26,36 +27,41 @@ class cMDGAN(basicModel):
         self.nn_structure = nn_structure
         self.gen_lrate = gen_learning_rate
         self.dis_lrate = dis_learning_rate
+        self.entropy_ratio = entropy_ratio
 
     def create_generator(self):
         self.g_input = tf.concat([self.context, self.noise], axis=1)
-        self.response = fully_connected_nn(self.g_input, self.nn_structure['generator'], self.response_dim,
-                                                latent_activation=tf.nn.leaky_relu, scope='generator')
+        self.response = fully_connected_nn(self.g_input, self.nn_structure['generator'], self.response_dim, w_init=w_init,
+                                           scope='generator', out_activation=tanh_act)
+
         self.gen_vars = [v for v in tf.compat.v1.trainable_variables() if 'generator' in v.name]
 
     def create_simple_discriminator(self):
         self.d_fake_input = tf.concat([self.response, self.context], axis=1)
         self.d_real_input = tf.concat([self.real_response, self.real_context], axis=1)
         self.d_input = tf.concat([self.d_real_input, self.d_fake_input], axis=0)
-        self.d_output = fully_connected_nn(self.d_input, self.nn_structure['discriminator'], self.latent_dim,
-                                           latent_activation=tf.nn.leaky_relu, scope='discriminator')
+        self.d_output = fully_connected_nn(self.d_input, self.nn_structure['discriminator'], self.latent_dim, w_init=w_init,
+                                           out_activation=sigmoid_act, scope='discriminator')
 
+        self.d_output = self.d_output * 5 - 2.5
         self.dis_vars = [v for v in tf.compat.v1.trainable_variables() if 'discriminator' in v.name]
 
     def create_discriminator(self):
         self.d_response = tf.concat([self.real_response, self.response], axis=0)
         self.d_hidden_response = fully_connected_nn(self.d_response, self.nn_structure['d_response'][:-1],
-                                                    self.nn_structure['d_response'][-1], latent_activation=tf.nn.leaky_relu,
+                                                    self.nn_structure['d_response'][-1], w_init=w_init, out_activation=None,
                                                     scope='discriminator_response')
 
         self.d_context = tf.concat([self.real_context, self.context], axis=0)
         self.d_hidden_context = fully_connected_nn(self.d_context, self.nn_structure['d_context'][:-1],
-                                                   self.nn_structure['d_context'][-1], latent_activation=tf.nn.leaky_relu,
+                                                   self.nn_structure['d_context'][-1], w_init=w_init, out_activation=None,
                                                    scope='discriminator_context')
 
         self.d_hidden_input = tf.concat([self.d_hidden_response, self.d_hidden_context], axis=1)
-        self.d_output = fully_connected_nn(self.d_hidden_input, self.nn_structure['discriminator'], self.latent_dim,
-                                           latent_activation=tf.nn.leaky_relu, scope='discriminator')
+        self.d_output = fully_connected_nn(self.d_hidden_input, self.nn_structure['discriminator'], self.latent_dim, w_init=w_init,
+                                           out_activation=sigmoid_act, scope='discriminator')
+
+        self.d_output = self.d_output * 5 - 2.5
 
         self.dis_vars = [v for v in tf.compat.v1.trainable_variables() if 'discriminator' in v.name]
 
@@ -95,11 +101,13 @@ class cMDGAN(basicModel):
         self.fake_likelihood, _ = gmm_likelihood_simplex(self.d_fake_output, self.latent_dim)
         self.real_likelihood, simplex_gmm = gmm_likelihood_simplex(self.d_real_output, self.latent_dim)
 
-        gen_cost_logit = self.lamb - self.fake_likelihood + 1e-8
-        dis_cost_logit = self.real_likelihood + 1e-8
-        self.gen_cost = tf.reduce_mean(tf.math.log(gen_cost_logit))
-        self.dis_cost = tf.negative(tf.reduce_mean(tf.math.log(dis_cost_logit))
-                                    + tf.reduce_mean(tf.math.log(gen_cost_logit)))
+        self.gen_cost = tf.reduce_mean(tf.math.log(self.lamb - self.fake_likelihood + 1e-8))
+        self.dis_real_cost = tf.negative(tf.reduce_mean(tf.math.log(self.real_likelihood + 1e-8)))
+        self.dis_fake_cost = tf.negative(tf.reduce_mean(tf.math.log(self.lamb - self.fake_likelihood + 1e-8)))
+        self.dis_cost = self.dis_real_cost + self.dis_fake_cost
+
+        self.entropy_cost = entropy_discriminator_cost(simplex_gmm, self.d_real_output)
+        self.dis_cost = self.dis_cost + self.entropy_ratio * self.entropy_cost
 
         self.real_likelihood_mean = tf.reduce_mean(self.real_likelihood)
         self.fake_likelihood_mean = tf.reduce_mean(self.fake_likelihood)
@@ -148,16 +156,22 @@ class cMDGAN(basicModel):
                          self.lamb: lamb, self.real_context: real_context, self.real_response: real_response}
 
             _, gen_cost = self.sess.run([self.gen_opt, self.gen_cost], feed_dict=feed_dict)
-            _, dis_cost, rlm, flm = self.sess.run([self.dis_opt, self.dis_cost, self.real_likelihood_mean, self.fake_likelihood_mean], feed_dict=feed_dict)
+            _, dis_cost, rlm, flm, entropy_cost = \
+                self.sess.run([self.dis_opt, self.dis_cost,
+                               self.real_likelihood_mean, self.fake_likelihood_mean,
+                               self.entropy_cost], feed_dict=feed_dict)
 
             if i != 0 and i % 1000 == 0 and is_save:
                 self.save(self.sess, self.saver, checkpoint_dir, model_dir, model_name)
                 self.global_step = self.global_step + 1
 
-            print("epoch: %1d, gen_cost: %.3f, dis_cost: %.3f, real_liklihood: %.3f, fake_likelihood: %.3f" % (i, gen_cost, dis_cost, rlm, flm), end='\r', flush=True)
+            print("epoch: %1d, gen_cost: %.3f, dis_cost: %.3f, real_liklihood: %.3f, "
+                  "fake_likelihood: %.3f, entropy_cost: %.3f" %
+                  (i, gen_cost, dis_cost, rlm, flm, entropy_cost), end='\r', flush=True)
 
-        print("epoch: %1d, gen_cost: %.3f, dis_cost: %.3f, real_liklihood: %.3f, fake_likelihood: %.3f" % (max_epochs, gen_cost, dis_cost, rlm, flm), end='\n')
-
+        print("epoch: %1d, gen_cost: %.3f, dis_cost: %.3f, real_liklihood: %.3f, "
+              "fake_likelihood: %.3f, entropy_cost: %.3f" %
+              (max_epochs, gen_cost, dis_cost, rlm, flm, entropy_cost), end='\n')
 
     def generate(self, context):
         n_data = np.shape(context)[0]

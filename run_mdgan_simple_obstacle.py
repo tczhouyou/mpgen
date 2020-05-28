@@ -1,4 +1,6 @@
 import os, inspect
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 os.sys.path.insert(0, currentdir)
 
@@ -45,13 +47,14 @@ mdgan = cMDGAN(n_comps=2, context_dim=2, response_dim=20, noise_dim=1, nn_struct
 
 mdgan.gen_lrate = 0.0002
 mdgan.dis_lrate = 0.0002
+mdgan.entropy_ratio = 0.0
 
 mdgan.create_network(num_real_data=n_data)
 mdgan.init_train()
 
 train_input = np.random.uniform(low=np.min(train_goals, axis=0), high=np.max(train_goals, axis=0),
                                 size=(1000, np.shape(train_goals)[1]))
-mdgan.train(train_context=train_input, real_context=train_goals, real_response=train_ws, max_epochs=20000, is_load=False, is_save=False)
+mdgan.train(train_context=train_input, real_context=train_goals, real_response=train_ws, max_epochs=50000, is_load=False, is_save=False)
 
 wout = mdgan.generate(testgoals)
 for k in range(np.shape(wout)[0]):
