@@ -226,8 +226,8 @@ def evaluate_docking(mpweights, testqueries, teststarts, testgoals, knum=10,mua=
 
                     k = k + 1
 
+    print('success_num: %1d, ndata: %1d, success_rate: %.3f' % (success_num, ndata, success_num/ndata))
     if isdraw:
-        print('success_num: {}, ndata: {}'.format(success_num, ndata))
         plt.subplots_adjust(hspace=0.05, wspace=0.05)
         plt.draw()
         plt.pause(0.001)

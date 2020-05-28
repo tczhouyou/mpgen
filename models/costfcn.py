@@ -1,6 +1,7 @@
 import tensorflow as tf
 from tensorflow_probability import distributions as tfd
 import numpy as np
+# import tensorflow_addons as tfa
 
 
 def gmm_nll_cost(samples, vec_mus, vec_scales, mixing_coeffs, sample_valid):
@@ -37,7 +38,7 @@ def failure_cost(samples, vec_mus, mixing_coeffs, sample_invalid, neg_scale=0.1)
     loss = tf.reduce_sum(tf.multiply(loss, sample_invalid))
     return loss
 
-
+# simplex cost refers to "Mixture Density Generative Adversarial Networks" Hamid et al. 2020
 def simplex_coordinates( m ):
     # This function is adopted from the Simplex Coordinates library
     # https://people.sc.fsu.edu/~jburkardt/py_src/simplex_coordinates/simplex_coordinates.html
@@ -75,7 +76,7 @@ def simplex_coordinates( m ):
 
     return ves
 
-
+# simplex cost refers to "Mixture Density Generative Adversarial Networks" Hamid et al. 2020
 def gmm_likelihood_simplex(samples, odim):
     mu_s = simplex_coordinates(odim)
     scale = np.ones(odim, dtype=np.float32) * .25
@@ -84,5 +85,25 @@ def gmm_likelihood_simplex(samples, odim):
     gmm_comps = [tfd.MultivariateNormalDiag(loc=mu, scale_diag=scale) for mu in mu_s]
     gmm = tfd.Mixture(cat=tfd.Categorical(probs=mixing_coeffs), components=gmm_comps)
     loss = gmm.prob(samples)
-    return loss
+    return loss, gmm
 
+
+# this cost refers to "DIVERSITY-SENSITIVE CONDITIONAL GENERATIVE ADVERSARIAL NETWORKS" Dingdong et al. 2019
+# def ds_generator_cost(noise, fake_samples):
+#     loss_mat = tfa.losses.metric_learning.pairwise_distance(fake_samples)
+#     noise_mat = tfa.losses.metric_learning.pairwise_distance(noise)
+#     # loss = tf.
+
+def entropy_discriminator_cost(simplex_gmm, d_real_output):
+    gmm_comps = simplex_gmm.components
+    data_probs = []
+    for i in range(len(gmm_comps)):
+        gmm_comp = gmm_comps[i]
+        data_probs.append(gmm_comp.prob(d_real_output))
+
+    prob_mat = tf.concat(data_probs, axis=1)
+    prob_sum = tf.reduce_sum(prob_mat, axis=1)
+    prob_mat = tf.divide(prob_mat, tf.repeat(prob_sum, repeats=len(gmm_comps), axis=1))
+    mixing_coeffs = tf.reduce_mean(prob_mat)
+    neg_entropy = tf.reduce_sum(tf.multiply(tf.math.log(mixing_coeffs + 1e-8), mixing_coeffs))
+    return neg_entropy

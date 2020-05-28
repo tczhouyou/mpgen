@@ -1,5 +1,4 @@
 import os, inspect
-import shutil
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 os.sys.path.insert(0, currentdir)
@@ -13,6 +12,21 @@ from sklearn.model_selection import train_test_split
 from experiments.evaluate_exps import evaluate_docking, evaluate_docking_for_all_models
 import matplotlib.pyplot as plt
 
+
+def train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, max_epochs):
+    train_input = np.random.uniform(low=np.min(trqueries, axis=0), high=np.max(trqueries, axis=0),
+                                    size=(10000, np.shape(trqueries)[1]))
+    mdgan.create_network(num_real_data=np.shape(trqueries)[0])
+    mdgan.init_train()
+    mdgan.train(train_context=train_input, real_context=trqueries, real_response=trvmps, max_epochs=max_epochs,
+                is_load=False, is_save=False)
+
+    tqueries = tdata[:, 0:6]
+    starts = tdata[:, 6:8]
+    goals = tdata[:, 8:10]
+    wout = mdgan.generate_multi(tqueries, 1)
+    srate, _ = evaluate_docking(wout, tqueries, starts, goals)
+    return srate
 
 def run_mdgan_for_docking(nmodel=3, MAX_EXPNUM=1, nsamples=[1, 10, 30, 50], num_train_input=1000):
     queries = np.loadtxt('data/docking_queries.csv', delimiter=',')
@@ -39,22 +53,22 @@ def run_mdgan_for_docking(nmodel=3, MAX_EXPNUM=1, nsamples=[1, 10, 30, 50], num_
     train_input = np.random.uniform(low=np.min(queries, axis=0), high=np.max(queries, axis=0), size=(num_train_input, np.shape(queries)[1]))
 
     for expId in range(MAX_EXPNUM):
-        trdata, tdata, trvmps, tvmps = train_test_split(data, vmps, test_size=0.1, random_state=rstates[expId])
-        trdata, _, trvmps, _ = train_test_split(trdata, trvmps, test_size=0.5, random_state=rstates[expId])
+        trdata, tdata, trvmps, tvmps = train_test_split(data, vmps, test_size=0.3, random_state=rstates[expId])
+        trdata, _, trvmps, _ = train_test_split(trdata, trvmps, test_size=0.3, random_state=rstates[expId])
         print("use {} data for training and {} data for testing".format(np.shape(trdata)[0], np.shape(tdata)[0]))
         print("======== Exp: {} ========".format(expId))
         trqueries = trdata[:,0:6]
 
         mdgan.create_network(num_real_data=np.shape(trdata)[0])
         mdgan.init_train()
-        mdgan.train(train_context=train_input, real_context=trqueries, real_response=trvmps, max_epochs=20000, is_load=False, is_save=False)
+        mdgan.train(train_context=train_input, real_context=trqueries, real_response=trvmps, max_epochs=150000, is_load=False, is_save=False)
 
         tqueries = tdata[:, 0:6]
         for i in range(len(nsamples)):
             wout = mdgan.generate_multi(tqueries, nsamples[i])
             starts = tdata[:, 6:8]
             goals = tdata[:, 8:10]
-            srate, _ = evaluate_docking(wout, tqueries, starts, goals, isdraw=True, onlySuccess=False)
+            srate, _ = evaluate_docking(wout, tqueries, starts, goals)
             csrates[expId, i] = srate
 
     srates = np.mean(csrates, axis=0)
@@ -62,8 +76,8 @@ def run_mdgan_for_docking(nmodel=3, MAX_EXPNUM=1, nsamples=[1, 10, 30, 50], num_
 
 
 if __name__ == '__main__':
-    nsamples = [1]
-    MAX_EXPNUM = 1
+    nsamples = [1, 10, 30, 50, 70]
+    MAX_EXPNUM = 5
 
     parser = OptionParser()
     parser.add_option("-m", "--nmodel", dest="nmodel", type="int", default=None)
@@ -78,7 +92,7 @@ if __name__ == '__main__':
     x = np.arange(len(nsamples))
     fig, ax = plt.subplots()
     width = 0.35
-    rects1 = ax.bar(x - width / 2, srates, width, label='MDGAN')
+    rects1 = ax.bar(x , srates, width, label='MDGAN')
     ax.set_ylabel('Success Rate - MDGAN for Docking')
     ax.set_title('Sample Number')
     ax.set_xticks(x)

@@ -14,6 +14,25 @@ from experiments.evaluate_exps import evaluate_docking, evaluate_docking_for_all
 import matplotlib.pyplot as plt
 
 
+def train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, use_entropy=True, max_epochs=20000):
+    if use_entropy:
+        mdnmp.lratio['entropy'] = 200
+    else:
+        mdnmp.lratio['entropy'] = 0
+
+    weights = np.ones(shape=(np.shape(trvmps)[0], 1))
+    train_weights = np.copy(weights)
+    mdnmp.build_mdn(learning_rate=0.00005)
+    mdnmp.init_train()
+    mdnmp.train(trqueries, trvmps, train_weights, max_epochs=max_epochs, is_load=False, is_save=False)
+
+    tqueries = tdata[:, 0:6]
+    wout, _ = mdnmp.predict(tqueries, 1)
+    starts = tdata[:, 6:8]
+    goals = tdata[:, 8:10]
+    srate, _ = evaluate_docking(wout, tqueries, starts, goals)
+    return srate
+
 def run_mdnmp_for_docking(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True], model_names=["Original MDN", "Entropy MDN"], nsamples=[1, 10, 30, 50, 70]):
     queries = np.loadtxt('data/docking_queries.csv', delimiter=',')
     vmps = np.loadtxt('data/docking_weights.csv', delimiter=',')
@@ -49,7 +68,7 @@ def run_mdnmp_for_docking(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True
 
         for expId in range(MAX_EXPNUM):
             trdata, tdata, trvmps, tvmps = train_test_split(data, vmps, test_size=0.3, random_state=rstates[expId])
-            trdata, _, trvmps, _ = train_test_split(trdata, trvmps, test_size=0.7, random_state=rstates[expId])
+            trdata, _, trvmps, _ = train_test_split(trdata, trvmps, test_size=0.3, random_state=rstates[expId])
             print("use {} data for training and {} data for testing".format(np.shape(trdata)[0], np.shape(tdata)[0]))
             print("======== Exp: {} with {} ========".format(expId, model_names[k]))
 
@@ -59,7 +78,7 @@ def run_mdnmp_for_docking(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True
             trqueries = trdata[:,0:6]
             mdnmp.build_mdn(learning_rate=0.00005)
             mdnmp.init_train()
-            mdnmp.train(trqueries, trvmps, train_weights, max_epochs=10000, is_load=False, is_save=False)
+            mdnmp.train(trqueries, trvmps, train_weights, max_epochs=20000, is_load=False, is_save=False)
             tqueries = tdata[:, 0:6]
 
             for i in range(len(nsamples)):
@@ -78,7 +97,7 @@ if __name__ == '__main__':
     use_entropy_cost = [False, True]
     model_names = ["Original MDN", "Entropy MDN"]
     nsamples = [1, 10, 30, 50, 70]
-    MAX_EXPNUM = 20
+    MAX_EXPNUM = 5
 
     parser = OptionParser()
     parser.add_option("-m", "--nmodel", dest="nmodel", type="int", default=None)

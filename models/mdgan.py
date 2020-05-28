@@ -11,7 +11,6 @@ from basic_model import basicModel
 from costfcn import gmm_likelihood_simplex
 
 tf.compat.v1.disable_eager_execution()
-np.random.seed(1234)
 
 class cMDGAN(basicModel):
     def __init__(self, n_comps, context_dim, response_dim, noise_dim, nn_structure,
@@ -64,7 +63,7 @@ class cMDGAN(basicModel):
         self.lambda_input = tf.compat.v1.placeholder(tf.float32, shape=[None, 1], name='lambda_input')
         self.lambda_output = fully_connected_nn(self.lambda_input, self.nn_structure['lambda'], self.latent_dim,
                                                 latent_activation=tf.nn.leaky_relu, scope='lambda')
-        self.lambval = gmm_likelihood_simplex(self.lambda_output, self.latent_dim)
+        self.lambval, _ = gmm_likelihood_simplex(self.lambda_output, self.latent_dim)
         self.lamb_cost = tf.negative(tf.math.log(1e-8 + tf.reduce_sum(self.lambval)))
         self.lamb_vars = [v for v in tf.compat.v1.trainable_variables() if 'lambda' in v.name]
         self.lamb_opt = tf.compat.v1.train.AdamOptimizer(learning_rate=0.001).minimize(self.lamb_cost,
@@ -93,8 +92,8 @@ class cMDGAN(basicModel):
         self.create_lambda_network()
 
         self.lamb = tf.compat.v1.placeholder(tf.float32, shape=[None, 1], name='lambda')
-        self.fake_likelihood = gmm_likelihood_simplex(self.d_fake_output, self.latent_dim)
-        self.real_likelihood = gmm_likelihood_simplex(self.d_real_output, self.latent_dim)
+        self.fake_likelihood, _ = gmm_likelihood_simplex(self.d_fake_output, self.latent_dim)
+        self.real_likelihood, simplex_gmm = gmm_likelihood_simplex(self.d_real_output, self.latent_dim)
 
         gen_cost_logit = self.lamb - self.fake_likelihood + 1e-8
         dis_cost_logit = self.real_likelihood + 1e-8
@@ -157,6 +156,8 @@ class cMDGAN(basicModel):
 
             print("epoch: %1d, gen_cost: %.3f, dis_cost: %.3f, real_liklihood: %.3f, fake_likelihood: %.3f" % (i, gen_cost, dis_cost, rlm, flm), end='\r', flush=True)
 
+        print("epoch: %1d, gen_cost: %.3f, dis_cost: %.3f, real_liklihood: %.3f, fake_likelihood: %.3f" % (max_epochs, gen_cost, dis_cost, rlm, flm), end='\n')
+
 
     def generate(self, context):
         n_data = np.shape(context)[0]
@@ -175,3 +176,4 @@ class cMDGAN(basicModel):
             out[:,i,:] = self.sess.run(self.response, feed_dict=feed_dict)
 
         return out
+
