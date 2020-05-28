@@ -1,4 +1,5 @@
 import os, inspect
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 os.sys.path.insert(0, currentdir)
@@ -13,7 +14,12 @@ from experiments.evaluate_exps import evaluate_docking, evaluate_docking_for_all
 import matplotlib.pyplot as plt
 
 
-def train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, max_epochs):
+def train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000):
+    if use_entropy:
+        mdgan.entropy_ratio = 0.5
+    else:
+        mdgan.entropy_ratio = 0.0
+
     train_input = np.random.uniform(low=np.min(trqueries, axis=0), high=np.max(trqueries, axis=0),
                                     size=(10000, np.shape(trqueries)[1]))
     mdgan.create_network(num_real_data=np.shape(trqueries)[0])
@@ -47,6 +53,7 @@ def run_mdgan_for_docking(nmodel=3, MAX_EXPNUM=1, nsamples=[1, 10, 30, 50], num_
     mdgan = cMDGAN(n_comps=nmodel, context_dim=6, response_dim=knum, noise_dim=1, nn_structure=nn_structure)
     mdgan.gen_lrate = 0.0002
     mdgan.dis_lrate = 0.0002
+    mdgan.entropy_ratio = 0.0
 
     csrates = np.zeros(shape=(MAX_EXPNUM, len(nsamples)))
     # generate training context

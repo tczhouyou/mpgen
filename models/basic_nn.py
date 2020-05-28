@@ -6,13 +6,10 @@ if tf.__version__ < '2.0.0':
     sigmoid_act = tflearn.activations.sigmoid
     tanh_act = tflearn.activations.tanh
     leaky_relu_act = tflearn.activations.leaky_relu
-    w_init = tflearn.initializations.uniform(minval=-0.1, maxval=0.1, seed=42)
 else:
     sigmoid_act = tf.keras.activations.sigmoid
     tanh_act = tf.keras.activations.tanh
-    leaky_relu_act = tf.keras.Layers.LeakyReLU
-    from tensorflow.keras import initializers
-    w_init = initializers.RandomNormal(stddev=0.01)
+    leaky_relu_act = tf.nn.leaky_relu
 
 
 if tf.__version__ < '2.0.0':
@@ -38,7 +35,7 @@ if tf.__version__ < '2.0.0':
 
             return out
 else:
-    def fully_connected_nn(inputs, layer_dims, out_dim, latent_activation=tf.keras.layers.LeakyReLU,
+    def fully_connected_nn(inputs, layer_dims, out_dim, latent_activation=tf.nn.leaky_relu,
                            out_activation=None, w_init='glorot_uniform', scope=None):
 
         with tf.compat.v1.variable_scope(scope or 'fcnn', reuse=tf.compat.v1.AUTO_REUSE):
@@ -83,18 +80,18 @@ def mdn_nn_v1(inputs, d_outputs, n_comps, nn_structure, using_batch_norm=False, 
         mc = tf.nn.softmax(mc, axis=1)
     else:
         feats = fully_connected_nn(inputs, feat_layers, d_feat, scope=scope + "_feat",
-                                   latent_activation=tf.keras.layers.LeakyReLU,
-                                   out_activation=tf.keras.layers.LeakyReLU)
+                                   latent_activation=leaky_relu_act,
+                                   out_activation=leaky_relu_act)
 
         mean = fully_connected_nn(feats, mean_layers, d_outputs, scope=scope + '_mean',
-                                  latent_activation=tf.keras.layers.LeakyReLU, out_activation=None)
+                                  latent_activation=leaky_relu_act, out_activation=None)
 
         scale = fully_connected_nn(feats, scale_layers, d_outputs, scope=scope + '_scale',
-                                   latent_activation=tf.keras.layers.LeakyReLU, out_activation=None)
+                                   latent_activation=leaky_relu_act, out_activation=None)
         scale = tf.exp(scale)
 
         mc = fully_connected_nn(feats, mixing_layers, n_comps, scope=scope + '_mixing',
-                                latent_activation=tf.keras.layers.LeakyReLU, out_activation=None)
+                                latent_activation=leaky_relu_act, out_activation=None)
         mc = tf.nn.softmax(mc, axis=1)
 
     outputs = {'mean': mean, 'scale': scale, 'mc': mc}

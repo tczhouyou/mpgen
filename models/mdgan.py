@@ -6,12 +6,17 @@ from tensorflow.python.util import deprecation
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 import numpy as np
-from basic_nn import fully_connected_nn, sigmoid_act, tanh_act, leaky_relu_act, w_init
+from basic_nn import fully_connected_nn, sigmoid_act, tanh_act, leaky_relu_act
 from basic_model import basicModel
 from costfcn import gmm_likelihood_simplex, entropy_discriminator_cost
 
 tf.compat.v1.disable_eager_execution()
-
+if tf.__version__ < '2.0.0':
+    import tflearn
+    w_init = tflearn.initializations.uniform(minval=-0.1, maxval=0.1, seed=42)
+else:
+    from tensorflow.keras import initializers
+    w_init = initializers.RandomNormal(stddev=0.1)
 
 class cMDGAN(basicModel):
     def __init__(self, n_comps, context_dim, response_dim, noise_dim, nn_structure,
@@ -32,7 +37,7 @@ class cMDGAN(basicModel):
     def create_generator(self):
         self.g_input = tf.concat([self.context, self.noise], axis=1)
         self.response = fully_connected_nn(self.g_input, self.nn_structure['generator'], self.response_dim, w_init=w_init,
-                                           scope='generator', out_activation=tanh_act)
+                                           scope='generator', latent_activation=leaky_relu_act, out_activation=tanh_act)
 
         self.gen_vars = [v for v in tf.compat.v1.trainable_variables() if 'generator' in v.name]
 
@@ -41,7 +46,7 @@ class cMDGAN(basicModel):
         self.d_real_input = tf.concat([self.real_response, self.real_context], axis=1)
         self.d_input = tf.concat([self.d_real_input, self.d_fake_input], axis=0)
         self.d_output = fully_connected_nn(self.d_input, self.nn_structure['discriminator'], self.latent_dim, w_init=w_init,
-                                           out_activation=sigmoid_act, scope='discriminator')
+                                           latent_activation=leaky_relu_act, out_activation=sigmoid_act, scope='discriminator')
 
         self.d_output = self.d_output * 5 - 2.5
         self.dis_vars = [v for v in tf.compat.v1.trainable_variables() if 'discriminator' in v.name]
@@ -49,17 +54,17 @@ class cMDGAN(basicModel):
     def create_discriminator(self):
         self.d_response = tf.concat([self.real_response, self.response], axis=0)
         self.d_hidden_response = fully_connected_nn(self.d_response, self.nn_structure['d_response'][:-1],
-                                                    self.nn_structure['d_response'][-1], w_init=w_init, out_activation=None,
-                                                    scope='discriminator_response')
+                                                    self.nn_structure['d_response'][-1], w_init=w_init, latent_activation= leaky_relu_act,
+                                                    out_activation=leaky_relu_act, scope='discriminator_response')
 
         self.d_context = tf.concat([self.real_context, self.context], axis=0)
         self.d_hidden_context = fully_connected_nn(self.d_context, self.nn_structure['d_context'][:-1],
-                                                   self.nn_structure['d_context'][-1], w_init=w_init, out_activation=None,
-                                                   scope='discriminator_context')
+                                                   self.nn_structure['d_context'][-1], w_init=w_init, latent_activation= leaky_relu_act,
+                                                   out_activation=leaky_relu_act, scope='discriminator_context')
 
         self.d_hidden_input = tf.concat([self.d_hidden_response, self.d_hidden_context], axis=1)
         self.d_output = fully_connected_nn(self.d_hidden_input, self.nn_structure['discriminator'], self.latent_dim, w_init=w_init,
-                                           out_activation=sigmoid_act, scope='discriminator')
+                                           latent_activation=leaky_relu_act, out_activation=sigmoid_act, scope='discriminator')
 
         self.d_output = self.d_output * 5 - 2.5
 
@@ -67,15 +72,14 @@ class cMDGAN(basicModel):
 
     def create_lambda_network(self):
         self.lambda_input = tf.compat.v1.placeholder(tf.float32, shape=[None, 1], name='lambda_input')
-        self.lambda_output = fully_connected_nn(self.lambda_input, self.nn_structure['lambda'], self.latent_dim,
-                                                latent_activation=tf.nn.leaky_relu, scope='lambda')
+        self.lambda_output = fully_connected_nn(self.lambda_input, self.nn_structure['lambda'], self.latent_dim, w_init=w_init,
+                                                latent_activation=leaky_relu_act, out_activation=sigmoid_act, scope='lambda')
+        self.lambda_output = self.lambda_output * 5 - 2.5
         self.lambval, _ = gmm_likelihood_simplex(self.lambda_output, self.latent_dim)
         self.lamb_cost = tf.negative(tf.math.log(1e-8 + tf.reduce_sum(self.lambval)))
         self.lamb_vars = [v for v in tf.compat.v1.trainable_variables() if 'lambda' in v.name]
         self.lamb_opt = tf.compat.v1.train.AdamOptimizer(learning_rate=0.001).minimize(self.lamb_cost,
                                                                                        var_list=self.lamb_vars)
-
-
     def create_network(self, num_real_data):
         tf.compat.v1.reset_default_graph()
         self.context = tf.compat.v1.placeholder(tf.float32, shape=(None, self.context_dim), name='context')

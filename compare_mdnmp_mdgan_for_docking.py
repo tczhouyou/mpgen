@@ -37,8 +37,9 @@ rstates = np.random.randint(0, 100, size=options.expnum)
 # create mdgan
 mdgan_struct = {'generator': [40], 'discriminator': [20], 'lambda': [10], 'd_response': [40,5], 'd_context': [10,5]}
 mdgan = cMDGAN(n_comps=options.nmodel, context_dim=6, response_dim=knum, noise_dim=1, nn_structure=mdgan_struct)
-mdgan.gen_lrate = 0.00025
+mdgan.gen_lrate = 0.0002
 mdgan.dis_lrate = 0.0002
+
 
 # create mdnmp
 mdnmp_struct = {'d_feat': 20,
@@ -50,10 +51,11 @@ mdnmp = MDNMP(n_comps=options.nmodel, d_input=6, d_output=knum, nn_structure=mdn
 
 
 # start experiment
-tsize = [0.9, 0.7, 0.5, 0.3, 0.1]
+tsize = [0.9, 0.5, 0.1]
 num_train_data = []
 
-mdgan_res = np.zeros(shape=(options.expnum, len(tsize)))
+omdgan_res = np.zeros(shape=(options.expnum, len(tsize)))
+emdgan_res = np.zeros(shape=(options.expnum, len(tsize)))
 omdnmp_res = np.zeros(shape=(options.expnum, len(tsize)))
 emdnmp_res = np.zeros(shape=(options.expnum, len(tsize)))
 
@@ -65,9 +67,14 @@ for i in range(len(tsize)):
         print("======== exp: %1d for training dataset: %1d =======" % (expId, np.shape(trdata)[0]))
 
         trqueries = trdata[:, 0:6]
-        print(">>>> train MD-GAN ")
+
+        print(">>>> train original MD-GAN ")
         # train and test mdgan
-        mdgan_res[expId, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, max_epochs=50000)
+        omdgan_res[expId, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, False, max_epochs=50000)
+
+        print(">>>> train entropy MD-GAN ")
+        # train and test mdgan
+        emdgan_res[expId, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, True, max_epochs=50000)
 
         print(">>>> train original MDN")
         # train and test original mdnmp
@@ -77,17 +84,19 @@ for i in range(len(tsize)):
         # train and test entropy mdnmp
         emdnmp_res[expId, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, True, max_epochs=20000)
 
-mdgan = np.mean(mdgan_res, axis=0)
+omdgan = np.mean(omdgan_res, axis=0)
+emdgan = np.mean(emdgan_res, axis=0)
 omdnmp = np.mean(omdnmp_res, axis=0)
 emdnmp = np.mean(emdnmp_res, axis=0)
 
-model_names = ['MD-GAN', 'Orig MDN', 'Entropy MDN']
+model_names = ['Orig MD-GAN', 'Entropy MD-GAN', 'Orig MDN', 'Entropy MDN']
 x = np.arange(len(num_train_data))
 fig, ax = plt.subplots()
 width = 0.35
-rects1 = ax.bar(x - width, mdgan, width, label=model_names[0])
-rects2 = ax.bar(x, omdnmp, width, label=model_names[1])
-rects3 = ax.bar(x + width, emdnmp, width, label=model_names[2])
+rects1 = ax.bar(x - 2 * width, omdgan, width, label=model_names[0])
+rects2 = ax.bar(x - width, emdgan, width, label=model_names[1])
+rects3 = ax.bar(x + width, omdnmp, width, label=model_names[2])
+rects4 = ax.bar(x + 2 * width, emdnmp, width, label=model_names[3])
 
 ax.set_ylabel('Success Rate - Docking')
 ax.set_title('Training Data Size')
@@ -108,5 +117,6 @@ def autolabel(rects):
 autolabel(rects1)
 autolabel(rects2)
 autolabel(rects3)
+autolabel(rects4)
 fig.tight_layout()
 plt.show()
