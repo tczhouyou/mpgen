@@ -46,9 +46,9 @@ class cMDGAN(basicModel):
         self.d_real_input = tf.concat([self.real_response, self.real_context], axis=1)
         self.d_input = tf.concat([self.d_real_input, self.d_fake_input], axis=0)
         self.d_output = fully_connected_nn(self.d_input, self.nn_structure['discriminator'], self.latent_dim, w_init=w_init,
-                                           latent_activation=leaky_relu_act, out_activation=leaky_relu_act, scope='discriminator')
+                                           latent_activation=leaky_relu_act, out_activation=sigmoid_act, scope='discriminator')
 
-        # self.d_output = self.d_output * 5 - 2.5
+        self.d_output = self.d_output * 5 - 2.5
         self.dis_vars = [v for v in tf.compat.v1.trainable_variables() if 'discriminator' in v.name]
 
     def create_discriminator(self):
@@ -64,9 +64,9 @@ class cMDGAN(basicModel):
 
         self.d_hidden_input = tf.concat([self.d_hidden_response, self.d_hidden_context], axis=1)
         self.d_output = fully_connected_nn(self.d_hidden_input, self.nn_structure['discriminator'], self.latent_dim, w_init=w_init,
-                                           latent_activation=leaky_relu_act, out_activation=None, scope='discriminator')
+                                           latent_activation=leaky_relu_act, out_activation=sigmoid_act, scope='discriminator')
 
-        # self.d_output = self.d_output * 5 - 2.5
+        self.d_output = self.d_output * 5 - 2.5
 
         self.dis_vars = [v for v in tf.compat.v1.trainable_variables() if 'discriminator' in v.name]
 
