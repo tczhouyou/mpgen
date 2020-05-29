@@ -22,7 +22,7 @@ def train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, use_entrop
 
     weights = np.ones(shape=(np.shape(trvmps)[0], 1))
     train_weights = np.copy(weights)
-    mdnmp.build_mdn(learning_rate=0.00005)
+    mdnmp.build_mdn(learning_rate=0.00003)
     mdnmp.init_train()
     mdnmp.train(trqueries, trvmps, train_weights, max_epochs=max_epochs, is_load=False, is_save=False)
 
@@ -76,7 +76,7 @@ def run_mdnmp_for_docking(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True
             train_weights = np.copy(weights)
 
             trqueries = trdata[:,0:6]
-            mdnmp.build_mdn(learning_rate=0.00005)
+            mdnmp.build_mdn(learning_rate=0.00003)
             mdnmp.init_train()
             mdnmp.train(trqueries, trvmps, train_weights, max_epochs=20000, is_load=False, is_save=False)
             tqueries = tdata[:, 0:6]

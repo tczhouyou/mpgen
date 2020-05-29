@@ -51,72 +51,77 @@ mdnmp = MDNMP(n_comps=options.nmodel, d_input=6, d_output=knum, nn_structure=mdn
 
 
 # start experiment
-tsize = [0.2, 0.5, 0.8]
-num_train_data = np.round((1 - np.array(tsize)) * np.shape(data)[0])
-print(num_train_data)
+num_train_data = np.array([300, 200, 100])
+tsize = (np.shape(data)[0] - np.array([300, 200, 100]))/np.shape(data)[0]
+print(tsize)
 
-omdgan_res = np.zeros(shape=(options.expnum, len(tsize)))
-emdgan_res = np.zeros(shape=(options.expnum, len(tsize)))
-omdnmp_res = np.zeros(shape=(options.expnum, len(tsize)))
-emdnmp_res = np.zeros(shape=(options.expnum, len(tsize)))
 
-for i in range(len(tsize)):
-    tratio = tsize[i]
-    for expId in range(options.expnum):
+for expId in range(options.expnum):
+    omdgan_res = np.zeros(shape=(1, len(tsize)))
+    emdgan_res = np.zeros(shape=(1, len(tsize)))
+    omdnmp_res = np.zeros(shape=(1, len(tsize)))
+    emdnmp_res = np.zeros(shape=(1, len(tsize)))
+
+    for i in range(len(tsize)):
+        tratio = tsize[i]
         trdata, tdata, trvmps, tvmps = train_test_split(data, vmps, test_size=tratio, random_state=rstates[expId])
         print("======== exp: %1d for training dataset: %1d =======" % (expId, np.shape(trdata)[0]))
 
         trqueries = trdata[:, 0:6]
-
         print(">>>> train entropy MD-GAN ")
         # train and test mdgan
-        emdgan_res[expId, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, True, max_epochs=300000)
+        emdgan_res[0, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, True, max_epochs=300000)
 
         print(">>>> train original MD-GAN ")
         # train and test mdgan
-        omdgan_res[expId, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, False, max_epochs=300000)
+        omdgan_res[0, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, False, max_epochs=300000)
 
         print(">>>> train original MDN")
         # train and test original mdnmp
-        omdnmp_res[expId, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, False, max_epochs=20000)
+        omdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, False, max_epochs=20000)
 
         print(">>>> train entropy MDN")
         # train and test entropy mdnmp
-        emdnmp_res[expId, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, True, max_epochs=20000)
+        emdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, True, max_epochs=20000)
 
-omdgan = np.mean(omdgan_res, axis=0)
-emdgan = np.mean(emdgan_res, axis=0)
-omdnmp = np.mean(omdnmp_res, axis=0)
-emdnmp = np.mean(emdnmp_res, axis=0)
+    with open("results_compare_docking/original_mdgan", "a") as f:
+        np.savetxt(f, np.array(omdgan_res), delimiter=',', fmt='%.3f')
+    with open("results_compare_docking/entropy_mdgan", "a") as f:
+        np.savetxt(f, np.array(emdgan_res), delimiter=',', fmt='%.3f')
+    with open("results_compare_docking/original_mdn", "a") as f:
+        np.savetxt(f, np.array(omdnmp_res), delimiter=',', fmt='%.3f')
+    with open("results_compare_docking/entropy_mdn", "a") as f:
+        np.savetxt(f, np.array(emdnmp_res), delimiter=',', fmt='%.3f')
 
-model_names = ['Orig MD-GAN','Entropy MD-GAN', 'Orig MDN', 'Entropy MDN']
-x = np.arange(len(num_train_data))
-fig, ax = plt.subplots()
-width = 0.35
-rects1 = ax.bar(x - 2 * width, omdgan, width, label=model_names[0])
-rects2 = ax.bar(x - width, emdgan, width, label=model_names[1])
-rects3 = ax.bar(x + width, omdnmp, width, label=model_names[2])
-rects4 = ax.bar(x + 2 * width, emdnmp, width, label=model_names[3])
 
-ax.set_ylabel('Success Rate - Docking')
-ax.set_title('Training Data Size')
-ax.set_xticks(x)
-ax.set_xticklabels(num_train_data)
-ax.legend()
-
-def autolabel(rects):
-    """Attach a text label above each bar in *rects*, displaying its height."""
-    for rect in rects:
-        height = rect.get_height()
-        ax.annotate('%.2f' % (height),
-                    xy=(rect.get_x() + rect.get_width() / 2, height),
-                    xytext=(0, 3),  # 3 points vertical offset
-                    textcoords="offset points",
-                    ha='center', va='bottom')
-
-autolabel(rects1)
-autolabel(rects2)
-autolabel(rects3)
-autolabel(rects4)
-fig.tight_layout()
-plt.show()
+# model_names = ['Orig MD-GAN','Entropy MD-GAN', 'Orig MDN', 'Entropy MDN']
+# x = np.arange(len(num_train_data))
+# fig, ax = plt.subplots()
+# width = 0.35
+# rects1 = ax.bar(x - 2 * width, omdgan, width, label=model_names[0])
+# rects2 = ax.bar(x - width, emdgan, width, label=model_names[1])
+# rects3 = ax.bar(x + width, omdnmp, width, label=model_names[2])
+# rects4 = ax.bar(x + 2 * width, emdnmp, width, label=model_names[3])
+#
+# ax.set_ylabel('Success Rate - Docking')
+# ax.set_title('Training Data Size')
+# ax.set_xticks(x)
+# ax.set_xticklabels(num_train_data)
+# ax.legend()
+#
+# def autolabel(rects):
+#     """Attach a text label above each bar in *rects*, displaying its height."""
+#     for rect in rects:
+#         height = rect.get_height()
+#         ax.annotate('%.2f' % (height),
+#                     xy=(rect.get_x() + rect.get_width() / 2, height),
+#                     xytext=(0, 3),  # 3 points vertical offset
+#                     textcoords="offset points",
+#                     ha='center', va='bottom')
+#
+# autolabel(rects1)
+# autolabel(rects2)
+# autolabel(rects3)
+# autolabel(rects4)
+# fig.tight_layout()
+# plt.show()
