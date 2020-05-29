@@ -70,7 +70,7 @@ for i in range(len(tsize)):
 
         print(">>>> train original MD-GAN ")
         # train and test mdgan
-        omdgan_res[expId, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, False, max_epochs=50000)
+        omdgan_res[expId, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, True, max_epochs=50000)
 
         print(">>>> train entropy MD-GAN ")
         # train and test mdgan
