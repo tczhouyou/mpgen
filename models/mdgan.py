@@ -16,7 +16,7 @@ if tf.__version__ < '2.0.0':
     w_init = tflearn.initializations.uniform(minval=-0.1, maxval=0.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    w_init = initializers.RandomNormal(stddev=0.1)
+    w_init = initializers.RandomNormal(stddev=0.01)
 
 class cMDGAN(basicModel):
     def __init__(self, n_comps, context_dim, response_dim, noise_dim, nn_structure,
@@ -37,7 +37,7 @@ class cMDGAN(basicModel):
     def create_generator(self):
         self.g_input = tf.concat([self.context, self.noise], axis=1)
         self.response = fully_connected_nn(self.g_input, self.nn_structure['generator'], self.response_dim, w_init=w_init,
-                                           scope='generator', latent_activation=leaky_relu_act, out_activation=tanh_act)
+                                           scope='generator', latent_activation=leaky_relu_act, out_activation=leaky_relu_act)
 
         self.gen_vars = [v for v in tf.compat.v1.trainable_variables() if 'generator' in v.name]
 
