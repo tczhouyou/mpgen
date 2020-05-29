@@ -37,8 +37,8 @@ rstates = np.random.randint(0, 100, size=options.expnum)
 # create mdgan
 mdgan_struct = {'generator': [60], 'discriminator': [20], 'lambda': [20], 'd_response': [60,10], 'd_context': [10]}
 mdgan = cMDGAN(n_comps=options.nmodel, context_dim=6, response_dim=knum, noise_dim=1, nn_structure=mdgan_struct)
-mdgan.gen_lrate = 0.0004
-mdgan.dis_lrate = 0.0002
+mdgan.gen_lrate = 0.001
+mdgan.dis_lrate = 0.001
 
 
 # create mdnmp
@@ -70,11 +70,11 @@ for i in range(len(tsize)):
 
         print(">>>> train original MD-GAN ")
         # train and test mdgan
-        omdgan_res[expId, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, False, max_epochs=120000)
+        omdgan_res[expId, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, False, max_epochs=20000)
 
         print(">>>> train entropy MD-GAN ")
         # train and test mdgan
-        emdgan_res[expId, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, True, max_epochs=120000)
+        emdgan_res[expId, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, True, max_epochs=20000)
 
         # print(">>>> train original MDN")
         # # train and test original mdnmp
