@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 def train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000):
     if use_entropy:
-        mdgan.entropy_ratio = 0.1
+        mdgan.entropy_ratio = 0.2
     else:
         mdgan.entropy_ratio = 0.0
 
