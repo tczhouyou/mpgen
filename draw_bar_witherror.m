@@ -9,7 +9,7 @@ for i = 1 : length(filenames)
     filename = filenames{i};
     data = importdata(filename);
     data = sort(data);
-    data = data(2:end-1,:);
+%     data = data(2:end-1,:);
     means(i,:) = mean(data);
     stds(i,:) = std(data);
 end

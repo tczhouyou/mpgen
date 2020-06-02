@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 def train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, use_entropy=True, max_epochs=20000):
     if use_entropy:
-        mdnmp.lratio['entropy'] = 200
+        mdnmp.lratio['entropy'] = 500
     else:
         mdnmp.lratio['entropy'] = 0
 

@@ -6,9 +6,13 @@ from tensorflow.python.util import deprecation
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 
 import numpy as np
+import basic_nn
 from basic_nn import fully_connected_nn, sigmoid_act, tanh_act, leaky_relu_act
 from basic_model import basicModel
 from costfcn import gmm_likelihood_simplex, entropy_discriminator_cost
+from tensorflow_probability import distributions as tfd
+from util import sample_gmm
+
 
 tf.compat.v1.disable_eager_execution()
 if tf.__version__ < '2.0.0':
@@ -18,8 +22,9 @@ else:
     from tensorflow.keras import initializers
     w_init = initializers.RandomNormal(stddev=0.005)
 
-class cMDGAN(basicModel):
-    def __init__(self, n_comps, context_dim, response_dim, noise_dim, nn_structure,
+
+class GMGAN:
+    def __init__(self, n_comps, context_dim, response_dim, nn_structure,
                  batch_size=None, using_batch_norm=False, seed=42, eps=1e-20,
                  gen_learning_rate=0.001, dis_learning_rate=0.001, entropy_ratio=0):
         basicModel.__init__(self, batch_size, using_batch_norm, seed, eps)
@@ -27,44 +32,53 @@ class cMDGAN(basicModel):
         self.context_dim = context_dim
         self.response_dim = response_dim
         self.latent_dim = n_comps-1
-        self.noise_dim = noise_dim
 
         self.nn_structure = nn_structure
         self.gen_lrate = gen_learning_rate
         self.dis_lrate = dis_learning_rate
         self.entropy_ratio = entropy_ratio
+        self.using_batch_norm = using_batch_norm
 
-    def create_generator(self):
-        self.g_input = tf.concat([self.context, self.noise], axis=1)
-        self.response = fully_connected_nn(self.g_input, self.nn_structure['generator'], self.response_dim, w_init=w_init,
-                                           scope='generator', latent_activation=leaky_relu_act, out_activation=leaky_relu_act)
 
+    def get_gmm(self, vec_mus, vec_scales, mixing_coeffs):
+        n_comp = mixing_coeffs.get_shape().as_list()[1]
+        mus = tf.split(vec_mus, num_or_size_splits=n_comp, axis=1)
+        scales = tf.split(vec_scales, num_or_size_splits=n_comp, axis=1)
+        gmm_comps = [tfd.MultivariateNormalDiag(loc=mu, scale_diag=scale) for mu, scale in zip(mus, scales)]
+        gmm = tfd.Mixture(cat=tfd.Categorical(probs=mixing_coeffs), components=gmm_comps)
+        return gmm
+
+    def create_generator(self, nn_type='v1'):
+        self.g_outs = getattr(basic_nn, 'mdn_nn_' + nn_type)(self.context, self.response_dim * self.n_comps, self.n_comps,
+                                                              self.nn_structure, self.using_batch_norm,
+                                                              scope='generator')
+
+        mean = self.g_outs['mean']
+        scale = self.g_outs['scale']
+        mc = self.g_outs['mc']
+        gmm = self.get_gmm(mean, scale, mc)
+
+        self.response = gmm.sample()
         self.gen_vars = [v for v in tf.compat.v1.trainable_variables() if 'generator' in v.name]
-
-    def create_simple_discriminator(self):
-        self.d_fake_input = tf.concat([self.response, self.context], axis=1)
-        self.d_real_input = tf.concat([self.real_response, self.real_context], axis=1)
-        self.d_input = tf.concat([self.d_real_input, self.d_fake_input], axis=0)
-        self.d_output = fully_connected_nn(self.d_input, self.nn_structure['discriminator'], self.latent_dim, w_init=w_init,
-                                           latent_activation=leaky_relu_act, out_activation=sigmoid_act, scope='discriminator')
-
-        self.d_output = self.d_output * 5 - 2.5
-        self.dis_vars = [v for v in tf.compat.v1.trainable_variables() if 'discriminator' in v.name]
 
     def create_discriminator(self):
         self.d_response = tf.concat([self.real_response, self.response], axis=0)
         self.d_hidden_response = fully_connected_nn(self.d_response, self.nn_structure['d_response'][:-1],
-                                                    self.nn_structure['d_response'][-1], w_init=w_init, latent_activation= leaky_relu_act,
+                                                    self.nn_structure['d_response'][-1], w_init=w_init,
+                                                    latent_activation=leaky_relu_act,
                                                     out_activation=None, scope='discriminator_response')
 
         self.d_context = tf.concat([self.real_context, self.context], axis=0)
         self.d_hidden_context = fully_connected_nn(self.d_context, self.nn_structure['d_context'][:-1],
-                                                   self.nn_structure['d_context'][-1], w_init=w_init, latent_activation= leaky_relu_act,
+                                                   self.nn_structure['d_context'][-1], w_init=w_init,
+                                                   latent_activation=leaky_relu_act,
                                                    out_activation=None, scope='discriminator_context')
 
         self.d_hidden_input = tf.concat([self.d_hidden_response, self.d_hidden_context], axis=1)
-        self.d_output = fully_connected_nn(self.d_hidden_input, self.nn_structure['discriminator'], self.latent_dim, w_init=w_init,
-                                           latent_activation=leaky_relu_act, out_activation=sigmoid_act, scope='discriminator')
+        self.d_output = fully_connected_nn(self.d_hidden_input, self.nn_structure['discriminator'], self.latent_dim,
+                                           w_init=w_init,
+                                           latent_activation=leaky_relu_act, out_activation=sigmoid_act,
+                                           scope='discriminator')
 
         self.d_output = self.d_output * 5 - 2.5
 
@@ -82,20 +96,12 @@ class cMDGAN(basicModel):
                                                                                        var_list=self.lamb_vars)
 
     def create_network(self, num_real_data):
-        tf.compat.v1.reset_default_graph()
         self.context = tf.compat.v1.placeholder(tf.float32, shape=(None, self.context_dim), name='context')
-        self.noise = tf.compat.v1.placeholder(tf.float32, shape=(None, self.noise_dim), name='noise')
-        self.real_context = tf.compat.v1.placeholder(tf.float32, shape=(num_real_data, self.context_dim), name='real_context')
-        self.real_response = tf.compat.v1.placeholder(tf.float32, shape=(num_real_data, self.response_dim), name='real_response')
+        self.real_context = tf.compat.v1.placeholder(tf.float32, shape=(num_real_data, self.context_dim),name='real_context')
+        self.real_response = tf.compat.v1.placeholder(tf.float32, shape=(num_real_data, self.response_dim),name='real_response')
 
-        # create generator
         self.create_generator()
-
-        # create discriminator
-        if 'd_response' in self.nn_structure and 'd_context' in self.nn_structure:
-            self.create_discriminator()
-        else:
-            self.create_simple_discriminator()
+        self.create_discriminator()
 
         self.d_real_output = self.d_output[:num_real_data,:]
         self.d_fake_output = self.d_output[num_real_data:,:]
@@ -117,18 +123,17 @@ class cMDGAN(basicModel):
         self.real_likelihood_mean = tf.reduce_mean(self.real_likelihood)
         self.fake_likelihood_mean = tf.reduce_mean(self.fake_likelihood)
 
-        # beta1=0.5, see https://github.com/eghbalz/mdgan/blob/master/mdgan.ipynb
         self.gen_opt = tf.compat.v1.train.AdamOptimizer(learning_rate=self.gen_lrate, beta1=0.5).minimize(self.gen_cost, var_list=self.gen_vars)
         self.dis_opt = tf.compat.v1.train.AdamOptimizer(learning_rate=self.dis_lrate, beta1=0.5).minimize(self.dis_cost, var_list=self.dis_vars)
 
-    def init_train(self,logfile='mdgan.log'):
+    def init_train(self,logfile='gmgan.log'):
         tf.compat.v1.random.set_random_seed(self.seed)
         self.sess = tf.compat.v1.Session()
         self.sess.run(tf.compat.v1.global_variables_initializer())
         self.writer = tf.compat.v1.summary.FileWriter(logfile, self.sess.graph)
 
-    def train(self, train_context, real_context, real_response, max_epochs=1000, lambda_max_epochs=1000, is_load=True, is_save=True, checkpoint_dir='mdgan_checkpoint',
-              model_dir='mdgan_model', model_name='mdgan'):
+    def train(self, train_context, real_context, real_response, max_epochs=1000, lambda_max_epochs=1000, is_load=True, is_save=True, checkpoint_dir='gmgan_checkpoint',
+              model_dir='gmgan_model', model_name='gmgan'):
         self.global_step = 1
         if is_load:
             could_load, checkpoint_counter = self.load(self.sess, self.saver, checkpoint_dir, model_dir)
@@ -155,9 +160,8 @@ class cMDGAN(basicModel):
                 batch_input = train_context
 
             n_data = np.shape(batch_input)[0]
-            batch_rand_input = np.random.uniform(low=0, high=1, size=(n_data, self.noise_dim)).astype(np.float32)
 
-            feed_dict = {self.context: batch_input, self.noise: batch_rand_input,
+            feed_dict = {self.context: batch_input,
                          self.lamb: lamb, self.real_context: real_context, self.real_response: real_response}
 
             _, gen_cost = self.sess.run([self.gen_opt, self.gen_cost], feed_dict=feed_dict)
@@ -178,21 +182,26 @@ class cMDGAN(basicModel):
               "fake_likelihood: %.3f, entropy_cost: %.3f" %
               (max_epochs, gen_cost, dis_cost, rlm, flm, entropy_cost), end='\n')
 
-    def generate(self, context):
-        n_data = np.shape(context)[0]
-        noise =  np.random.uniform(low=0, high=1, size=(n_data, self.noise_dim)).astype(np.float32)
-        feed_dict = {self.context: context, self.noise: noise}
-        out = self.sess.run(self.response, feed_dict=feed_dict)
-        return out
+    def predict(self, cinput, n_samples=1):
+        mean, scale, mc = self.sess.run([self.g_outs['mean'], self.g_outs['scale'], self.g_outs['mc']],
+                                        feed_dict={self.input: cinput})
 
-    def generate_multi(self, context, n_sample):
-        n_data = np.shape(context)[0]
-        out = np.zeros(shape=(n_data, n_sample, self.response_dim))
+        n_data = np.shape(cinput)[0]
 
-        for i in range(n_sample):
-            noise = np.random.uniform(low=0, high=1, size=(n_data, self.noise_dim)).astype(np.float32)
-            feed_dict = {self.context: context, self.noise: noise}
-            out[:,i,:] = self.sess.run(self.response, feed_dict=feed_dict)
+        scales = np.expand_dims(scale, axis=0)
+        scales = np.reshape(scales, newshape=(n_data, self.d_output, self.n_comps), order='F')
+        means = np.expand_dims(mean, axis=0)
+        means = np.reshape(means, newshape=(n_data, self.d_output, self.n_comps), order='F')
 
-        return out
+        scales = np.transpose(scales, (0, 2, 1))
+        means = np.transpose(means, (0, 2, 1))
+
+        out = np.zeros(shape=(n_data, n_samples, self.d_output))
+        idx = np.zeros(shape=(n_data, n_samples))
+        for i in range(np.shape(means)[0]):
+            out[i, :, :], idx[i, :] = sample_gmm(n_samples=n_samples, means=means[i, :, :],
+                                                 scales=scales[i, :, :] * self.scaling, mixing_coeffs=mc[i, :])
+
+        outdict = {'samples': out, 'compIDs': idx, 'mean': mean, 'scale': scale, 'mc': mc}
+        return out, outdict
 
