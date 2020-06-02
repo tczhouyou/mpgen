@@ -49,8 +49,16 @@ def run_gmgan_for_docking(nmodel=3, MAX_EXPNUM=1, nsamples=[1, 10, 30, 50], num_
     knum = np.shape(vmps)[1]
     rstates = np.random.randint(0, 100, size=MAX_EXPNUM)
 
-    nn_structure = {'generator': [40], 'discriminator': [20], 'lambda': [10], 'd_response': [40,5], 'd_context': [10,5]}
-    gmgan = cgmgan(n_comps=nmodel, context_dim=6, response_dim=knum, noise_dim=1, nn_structure=nn_structure)
+    nn_structure = {'d_feat': 20,
+                    'feat_layers': [40],
+                    'mean_layers': [60],
+                    'scale_layers': [60],
+                    'mixing_layers': [60],
+                    'discriminator': [20],
+                    'lambda': [10],
+                    'd_response': [40,5],
+                    'd_context': [10,5]}
+    gmgan = GMGAN(n_comps=nmodel, context_dim=6, response_dim=knum, noise_dim=1, nn_structure=nn_structure)
     gmgan.gen_lrate = 0.0002
     gmgan.dis_lrate = 0.0002
     gmgan.entropy_ratio = 0.0
