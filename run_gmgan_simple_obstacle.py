@@ -60,7 +60,7 @@ gmgan.init_train()
 
 train_input = np.random.uniform(low=np.min(train_goals, axis=0), high=np.max(train_goals, axis=0),
                                 size=(1000, np.shape(train_goals)[1]))
-gmgan.train(train_context=train_input, real_context=train_goals, real_response=train_ws, max_epochs=30000, is_load=False, is_save=False)
+gmgan.train(train_context=train_input, real_context=train_goals, real_response=train_ws, max_epochs=5000, is_load=False, is_save=False)
 
 wout, _ = gmgan.predict(testgoals)
 for k in range(np.shape(wout)[0]):
