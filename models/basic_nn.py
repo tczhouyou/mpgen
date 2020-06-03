@@ -79,19 +79,21 @@ def mdn_nn_v1(inputs, d_outputs, n_comps, nn_structure, using_batch_norm=False, 
                                 is_batch_norm=using_batch_norm)
         mc = tf.nn.softmax(mc, axis=1)
     else:
+        from tensorflow.keras import initializers
+        var_init = initializers.RandomNormal(stddev=0.003)
         feats = fully_connected_nn(inputs, feat_layers, d_feat, scope=scope + "_feat",
                                    latent_activation=leaky_relu_act,
-                                   out_activation=leaky_relu_act)
+                                   out_activation=leaky_relu_act, w_init=var_init)
 
         mean = fully_connected_nn(feats, mean_layers, d_outputs, scope=scope + '_mean',
-                                  latent_activation=leaky_relu_act, out_activation=None)
+                                  latent_activation=leaky_relu_act, out_activation=None, w_init=var_init)
 
         scale = fully_connected_nn(feats, scale_layers, d_outputs, scope=scope + '_scale',
-                                   latent_activation=leaky_relu_act, out_activation=None)
+                                   latent_activation=leaky_relu_act, out_activation=None, w_init=var_init)
         scale = tf.exp(scale)
 
         mc = fully_connected_nn(feats, mixing_layers, n_comps, scope=scope + '_mixing',
-                                latent_activation=leaky_relu_act, out_activation=None)
+                                latent_activation=leaky_relu_act, out_activation=None, w_init=var_init)
         mc = tf.nn.softmax(mc, axis=1)
 
     outputs = {'mean': mean, 'scale': scale, 'mc': mc}

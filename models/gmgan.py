@@ -9,7 +9,7 @@ import numpy as np
 import basic_nn
 from basic_nn import fully_connected_nn, sigmoid_act, tanh_act, leaky_relu_act
 from basic_model import basicModel
-from costfcn import gmm_likelihood_simplex, entropy_discriminator_cost, gmm_nll_cost
+from costfcn import gmm_likelihood_simplex, entropy_discriminator_cost, gmm_nll_cost, model_entropy_cost
 from tensorflow_probability import distributions as tfd
 from util import sample_gmm
 
@@ -17,16 +17,16 @@ from util import sample_gmm
 tf.compat.v1.disable_eager_execution()
 if tf.__version__ < '2.0.0':
     import tflearn
-    w_init = tflearn.initializations.uniform(minval=-0.1, maxval=0.1, seed=42)
+    w_init = tflearn.initializations.uniform(minval=-0.003, maxval=0.003, seed=42)
 else:
     from tensorflow.keras import initializers
-    w_init = initializers.RandomNormal(stddev=0.005)
+    w_init = initializers.RandomNormal(stddev=0.003)
 
 
 class GMGAN:
     def __init__(self, n_comps, context_dim, response_dim, nn_structure,
                  batch_size=None, using_batch_norm=False, seed=42, eps=1e-20,
-                 gen_learning_rate=0.001, dis_learning_rate=0.001, entropy_ratio=0, scaling=1):
+                 gen_sup_lrate=0.001, gen_adv_lrate=0.001, dis_learning_rate=0.001, entropy_ratio=0, scaling=1):
         basicModel.__init__(self, batch_size, using_batch_norm, seed, eps)
         self.n_comps = n_comps
         self.context_dim = context_dim
@@ -34,13 +34,16 @@ class GMGAN:
         self.latent_dim = n_comps-1
 
         self.nn_structure = nn_structure
-        self.gen_lrate = gen_learning_rate
+        self.gen_sup_lrate = gen_sup_lrate
+        self.gen_adv_lrate = gen_adv_lrate
+
         self.dis_lrate = dis_learning_rate
         self.entropy_ratio = entropy_ratio
         self.using_batch_norm = using_batch_norm
         self.scaling = scaling
-        self.lratio = {'likelihood': 1, 'adversarial': 0}
-        self.outputs={}
+        self.lratio = {'likelihood': 1, 'entropy': 0}
+        self.sup_max_epoch = 0
+        self.outputs = {}
 
     def get_gmm(self, vec_mus, vec_scales, mixing_coeffs):
         n_comp = mixing_coeffs.get_shape().as_list()[1]
@@ -50,7 +53,7 @@ class GMGAN:
         gmm = tfd.Mixture(cat=tfd.Categorical(probs=mixing_coeffs), components=gmm_comps)
         return gmm
 
-    def create_generator(self, context, nn_type='v1'):
+    def generator(self, context, nn_type='v1'):
         g_outs = getattr(basic_nn, 'mdn_nn_' + nn_type)(context, self.response_dim * self.n_comps, self.n_comps,
                                                               self.nn_structure, self.using_batch_norm,
                                                               scope='generator')
@@ -62,24 +65,25 @@ class GMGAN:
 
         return g_outs, gmm.sample()
 
-    def create_discriminator(self, context, response):
-        self.d_hidden_response = fully_connected_nn(response, self.nn_structure['d_response'][:-1],
+    def discriminator(self, context, response):
+        d_hidden_response = fully_connected_nn(response, self.nn_structure['d_response'][:-1],
                                                     self.nn_structure['d_response'][-1], w_init=w_init,
                                                     latent_activation=leaky_relu_act,
                                                     out_activation=None, scope='discriminator_response')
 
-        self.d_hidden_context = fully_connected_nn(context, self.nn_structure['d_context'][:-1],
+        d_hidden_context = fully_connected_nn(context, self.nn_structure['d_context'][:-1],
                                                    self.nn_structure['d_context'][-1], w_init=w_init,
                                                    latent_activation=leaky_relu_act,
                                                    out_activation=None, scope='discriminator_context')
 
-        self.d_hidden_input = tf.concat([self.d_hidden_response, self.d_hidden_context], axis=1)
-        self.d_output = fully_connected_nn(self.d_hidden_input, self.nn_structure['discriminator'], self.latent_dim,
+        d_hidden_input = tf.concat([d_hidden_response, d_hidden_context], axis=1)
+        d_output = fully_connected_nn(d_hidden_input, self.nn_structure['discriminator'], self.latent_dim,
                                            w_init=w_init,
                                            latent_activation=leaky_relu_act, out_activation=sigmoid_act,
                                            scope='discriminator')
 
-        self.d_output = self.d_output * 5 - 2.5
+        d_output = d_output * 5 - 2.5
+        return d_output
 
 
     def create_lambda_network(self):
@@ -99,20 +103,23 @@ class GMGAN:
         self.real_context = tf.compat.v1.placeholder(tf.float32, shape=(num_real_data, self.context_dim),name='real_context')
         self.real_response = tf.compat.v1.placeholder(tf.float32, shape=(num_real_data, self.response_dim),name='real_response')
 
+        all_context = tf.concat([self.real_context, self.context], axis=0)
+        self.g_outs, self.all_response = self.generator(all_context)
 
-        self.all_context = tf.concat([self.real_context, self.context], axis=0)
-        self.g_outs, self.g_response = self.create_generator(self.all_context)
+        self.g_response = self.all_response[num_real_data:,:]
+        self.response = self.all_response[num_real_data:, :]
 
-        self.d_response = tf.concat([self.real_response, self.g_response], axis=0)
-        self.d_context = tf.concat([self.real_context, self.all_context], axis=0)
-        self.create_discriminator(self.d_context, self.d_response)
+        d_context = tf.concat([self.real_context, self.context], axis=0)
+        d_response = tf.concat([self.real_response, self.response], axis=0)
+        self.d_output = self.discriminator(d_context, d_response)
+
+        self.d_real_output = self.d_output[:num_real_data,:]
+        self.d_fake_output = self.d_output[num_real_data:,:]
         self.create_lambda_network()
 
         self.gen_vars = [v for v in tf.compat.v1.trainable_variables() if 'generator' in v.name]
         self.dis_vars = [v for v in tf.compat.v1.trainable_variables() if 'discriminator' in v.name]
 
-        self.d_real_output = self.d_output[:num_real_data,:]
-        self.d_fake_output = self.d_output[num_real_data:,:]
         self.lamb = tf.compat.v1.placeholder(tf.float32, shape=[None, 1], name='lambda')
         self.fake_likelihood, _ = gmm_likelihood_simplex(self.d_fake_output, self.latent_dim)
         self.real_likelihood, simplex_gmm = gmm_likelihood_simplex(self.d_real_output, self.latent_dim)
@@ -126,9 +133,12 @@ class GMGAN:
         self.outputs['scale'] = self.g_outs['scale'][num_real_data:,:]
         self.outputs['mc'] = self.g_outs['mc'][num_real_data:,:]
 
-        is_positive = tf.ones(shape=(num_real_data, 1))
+        is_positive = np.ones(shape=(num_real_data, 1), dtype=np.float32)
         self.nll = gmm_nll_cost(self.real_response, mean, scale, mc, is_positive)
-        self.g_adver_cost = tf.reduce_mean(tf.math.log(self.lamb - self.fake_likelihood + 1e-8))
+        self.entropy_loss = model_entropy_cost(self.n_comps, mc, is_positive, eps=1e-20)
+        self.gen_sup_cost = self.lratio['likelihood'] * self.nll + self.lratio['entropy'] * self.entropy_loss
+
+        self.gen_adv_cost = tf.reduce_mean(tf.math.log(self.lamb - self.fake_likelihood + 1e-8))
 
         # get discriminator costs
         self.dis_real_cost = tf.negative(tf.reduce_mean(tf.math.log(self.real_likelihood + 1e-8)))
@@ -140,8 +150,8 @@ class GMGAN:
         self.fake_likelihood_mean = tf.reduce_mean(self.fake_likelihood)
 
 
-        self.gen_cost = self.lratio['likelihood'] * self.nll + self.lratio['adversarial'] * self.g_adver_cost
-        self.gen_opt = tf.compat.v1.train.AdamOptimizer(learning_rate=self.gen_lrate, beta1=0.5).minimize(self.gen_cost, var_list=self.gen_vars)
+        self.gen_adv_opt = tf.compat.v1.train.AdamOptimizer(learning_rate=self.gen_adv_lrate, beta1=0.5).minimize(self.gen_adv_cost, var_list=self.gen_vars)
+        self.gen_sup_opt = tf.compat.v1.train.AdamOptimizer(learning_rate=self.gen_sup_lrate).minimize(self.gen_sup_cost, var_list=self.gen_vars)
         self.dis_opt = tf.compat.v1.train.AdamOptimizer(learning_rate=self.dis_lrate, beta1=0.5).minimize(self.dis_cost, var_list=self.dis_vars)
 
     def init_train(self,logfile='gmgan.log'):
@@ -177,31 +187,32 @@ class GMGAN:
             else:
                 batch_input = train_context
 
-            n_data = np.shape(batch_input)[0]
-
             feed_dict = {self.context: batch_input,
                          self.lamb: lamb, self.real_context: real_context, self.real_response: real_response}
+            if i < self.sup_max_epoch:
+                self.sess.run(self.gen_sup_opt, feed_dict=feed_dict)
+            else:
+                self.sess.run(self.gen_adv_opt, feed_dict=feed_dict)
 
-            _, gen_cost = self.sess.run([self.gen_opt, self.gen_cost], feed_dict=feed_dict)
-            _, dis_cost, rlm, flm, entropy_cost = \
+            _, dis_cost, rlm, flm, ecost, gsup, gadv = \
                 self.sess.run([self.dis_opt, self.dis_cost,
                                self.real_likelihood_mean, self.fake_likelihood_mean,
-                               self.entropy_cost], feed_dict=feed_dict)
+                               self.entropy_cost, self.gen_sup_cost, self.gen_adv_cost], feed_dict=feed_dict)
 
             if i != 0 and i % 1000 == 0 and is_save:
                 self.save(self.sess, self.saver, checkpoint_dir, model_dir, model_name)
                 self.global_step = self.global_step + 1
 
-            print("epoch: %1d, gen_cost: %.3f, dis_cost: %.3f, real_liklihood: %.3f, "
+            print("epoch: %1d, gen_sup_cost: %.3f, gen_adv_cost: %.3f, dis_cost: %.3f, real_liklihood: %.3f, "
                   "fake_likelihood: %.3f, entropy_cost: %.3f" %
-                  (i, gen_cost, dis_cost, rlm, flm, entropy_cost), end='\r', flush=True)
+                  (i, gsup, gadv, dis_cost, rlm, flm, ecost), end='\r', flush=True)
 
-        print("epoch: %1d, gen_cost: %.3f, dis_cost: %.3f, real_liklihood: %.3f, "
+        print("epoch: %1d, gen_sup_cost: %.3f, gen_adv_cost: %.3f, dis_cost: %.3f, real_liklihood: %.3f, "
               "fake_likelihood: %.3f, entropy_cost: %.3f" %
-              (max_epochs, gen_cost, dis_cost, rlm, flm, entropy_cost), end='\n')
+              (i, gsup, gadv, dis_cost, rlm, flm, ecost), end='\n')
 
     def predict(self, cinput, n_samples=1):
-        rinput = np.random.uniform(low=np.min(cinput, axis=0), high=np.max(cinput, axis=0), size=(self.num_real_data, np.shape(cinput)[1]))
+        rinput = np.random.uniform(low=np.min(cinput, axis=0), high=np.max(cinput, axis=0),size=(self.num_real_data, np.shape(cinput)[1]))
         mean, scale, mc = self.sess.run([self.outputs['mean'], self.outputs['scale'], self.outputs['mc']],
                                         feed_dict={self.context: cinput, self.real_context:rinput})
 

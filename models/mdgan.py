@@ -16,7 +16,7 @@ if tf.__version__ < '2.0.0':
     w_init = tflearn.initializations.uniform(minval=-0.1, maxval=0.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    w_init = initializers.RandomNormal(stddev=0.005)
+    w_init = initializers.RandomNormal(stddev=0.1)
 
 class cMDGAN(basicModel):
     def __init__(self, n_comps, context_dim, response_dim, noise_dim, nn_structure,

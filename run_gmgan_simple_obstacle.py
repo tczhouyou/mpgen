@@ -51,10 +51,12 @@ nn_structure = {'d_feat': 20,
 
 gmgan = GMGAN(n_comps=2, context_dim=2, response_dim=20,  nn_structure=nn_structure)
 
-gmgan.gen_lrate = 0.0002
+gmgan.lratio = {'likelihood': 1, 'entropy': 100}
+gmgan.gen_sup_lrate = 0.00005
+gmgan.gen_adv_lrate = 0.0002
 gmgan.dis_lrate = 0.0002
 gmgan.entropy_ratio = 0.0
-
+gmgan.sup_max_epoch = 6000
 gmgan.create_network(num_real_data=n_data)
 gmgan.init_train()
 
@@ -63,12 +65,12 @@ train_input = np.random.uniform(low=np.min(train_goals, axis=0), high=np.max(tra
 gmgan.train(train_context=train_input, real_context=train_goals, real_response=train_ws, max_epochs=5000, is_load=False, is_save=False)
 
 wout, _ = gmgan.predict(testgoals)
+axe.set_ylim([-2, 2])
+axe.set_xlim([-2.5, 2.5])
+obs.plot(axe)
 for k in range(np.shape(wout)[0]):
-    axe.set_ylim([-2, 2])
-    axe.set_xlim([-2.5, 2.5])
-    obs.plot(axe)
     cgoals = testgoals[k, :]
-    vmp.set_weights(wout[k,:])
+    vmp.set_weights(wout[k,0,:])
     traj = vmp.roll(start, cgoals)
     axe.plot(traj[:, 1], traj[:, 2], '-', color='r', linewidth=2)
     axe.plot(cgoals[0], cgoals[1], 'bo')
