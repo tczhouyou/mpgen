@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 def train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000, sup_max_epoch=10000):
     if use_entropy:
-        gmgan.entropy_ratio = 1.0
+        gmgan.entropy_ratio = 0.3
     else:
         gmgan.entropy_ratio = 0.0
 

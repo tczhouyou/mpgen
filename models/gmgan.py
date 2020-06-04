@@ -17,8 +17,8 @@ from util import sample_gmm
 tf.compat.v1.disable_eager_execution()
 if tf.__version__ < '2.0.0':
     import tflearn
-    w_init = tflearn.initializations.Normal(stddev=0.003, seed=42)
-    w_init_dis = tflearn.initializations.Normal(stddev=0.1, seed=42)
+    w_init = tflearn.initializations.normal(stddev=0.003, seed=42)
+    w_init_dis = tflearn.initializations.normal(stddev=0.1, seed=42)
 else:
     from tensorflow.keras import initializers
     w_init = initializers.RandomNormal(stddev=0.003)
