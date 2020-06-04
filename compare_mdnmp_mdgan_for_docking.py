@@ -7,6 +7,7 @@ os.sys.path.insert(0, '..')
 os.sys.path.insert(0, '../mp')
 from models.mdgan import cMDGAN
 from models.mdnmp import MDNMP
+from models.gmgan import GMGAN
 import sys
 from optparse import OptionParser
 import numpy as np
@@ -15,6 +16,7 @@ from experiments.evaluate_exps import evaluate_docking
 import matplotlib.pyplot as plt
 from run_mdgan_for_docking import train_evaluate_mdgan_for_docking
 from run_mdnmp_for_docking import train_evaluate_mdnmp_for_docking
+from run_gmgan_for_docking import train_evaluate_gmgan_for_docking
 
 parser = OptionParser()
 parser.add_option("-m", "--nmodel", dest="nmodel", type="int", default=3)
@@ -49,6 +51,18 @@ mdnmp_struct = {'d_feat': 20,
                 'mixing_layers': [60]}
 mdnmp = MDNMP(n_comps=options.nmodel, d_input=6, d_output=knum, nn_structure=mdnmp_struct, scaling=1)
 
+# create gmgan
+nn_structure = {'d_feat': 20,
+                'feat_layers': [40],
+                'mean_layers': [60],
+                'scale_layers': [60],
+                'mixing_layers': [60],
+                'discriminator': [20],
+                'lambda': [10],
+                'd_response': [40,5],
+                'd_context': [10,5]}
+gmgan = GMGAN(n_comps=options.nmodel, context_dim=6, response_dim=knum, nn_structure=nn_structure)
+
 
 # start experiment
 num_train_data = np.array([300, 200, 100])
@@ -57,10 +71,11 @@ print(tsize)
 
 
 for expId in range(options.expnum):
-    omdgan_res = np.zeros(shape=(1, len(tsize)))
-    emdgan_res = np.zeros(shape=(1, len(tsize)))
+    # omdgan_res = np.zeros(shape=(1, len(tsize)))
+    # emdgan_res = np.zeros(shape=(1, len(tsize)))
     omdnmp_res = np.zeros(shape=(1, len(tsize)))
     emdnmp_res = np.zeros(shape=(1, len(tsize)))
+    gmgan_res = np.zeros(shape=(1, len(tsize)))
 
     for i in range(len(tsize)):
         tratio = tsize[i]
@@ -68,13 +83,18 @@ for expId in range(options.expnum):
         print("======== exp: %1d for training dataset: %1d =======" % (expId, np.shape(trdata)[0]))
 
         trqueries = trdata[:, 0:6]
-        print(">>>> train entropy MD-GAN ")
-        # train and test mdgan
-        emdgan_res[0, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, True, max_epochs=300000)
 
-        print(">>>> train original MD-GAN ")
-        # train and test mdgan
-        omdgan_res[0, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, False, max_epochs=300000)
+        # print(">>>> train entropy MD-GAN ")
+        # # train and test mdgan
+        # emdgan_res[0, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, True, max_epochs=300000)
+        #
+        # print(">>>> train original MD-GAN ")
+        # # train and test mdgan
+        # omdgan_res[0, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, False, max_epochs=300000)
+
+        print(">>>> train GMGANs")
+        # train and test entropy mdnmp
+        gmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, False, max_epochs=20000)
 
         print(">>>> train original MDN")
         # train and test original mdnmp
@@ -84,10 +104,15 @@ for expId in range(options.expnum):
         # train and test entropy mdnmp
         emdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, True, max_epochs=20000)
 
-    with open("results_compare_docking/original_mdgan", "a") as f:
-        np.savetxt(f, np.array(omdgan_res), delimiter=',', fmt='%.3f')
-    with open("results_compare_docking/entropy_mdgan", "a") as f:
-        np.savetxt(f, np.array(emdgan_res), delimiter=',', fmt='%.3f')
+
+
+
+    # with open("results_compare_docking/original_mdgan", "a") as f:
+    #     np.savetxt(f, np.array(omdgan_res), delimiter=',', fmt='%.3f')
+    # with open("results_compare_docking/entropy_mdgan", "a") as f:
+    #     np.savetxt(f, np.array(emdgan_res), delimiter=',', fmt='%.3f')
+    with open("results_compare_docking/gmgan", "a") as f:
+        np.savetxt(f, np.array(omdnmp_res), delimiter=',', fmt='%.3f')
     with open("results_compare_docking/original_mdn", "a") as f:
         np.savetxt(f, np.array(omdnmp_res), delimiter=',', fmt='%.3f')
     with open("results_compare_docking/entropy_mdn", "a") as f:

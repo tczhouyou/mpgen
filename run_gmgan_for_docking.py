@@ -14,27 +14,32 @@ from experiments.evaluate_exps import evaluate_docking, evaluate_docking_for_all
 import matplotlib.pyplot as plt
 
 
-def train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000):
+def train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000, sup_max_epoch=10000):
     if use_entropy:
-        gmgan.entropy_ratio = 0.2
+        gmgan.entropy_ratio = 0.5
     else:
         gmgan.entropy_ratio = 0.0
 
-    train_input = np.random.uniform(low=np.min(trqueries, axis=0), high=np.max(trqueries, axis=0),
-                                    size=(10000, np.shape(trqueries)[1]))
-    gmgan.create_network(num_real_data=np.shape(trqueries)[0])
+    gmgan.lratio['entropy'] = 200
+    gmgan.gen_sup_lrate = 0.0001
+    gmgan.gen_adv_lrate = 0.0002
+    gmgan.dis_lrate = 0.0002
+    gmgan.sup_max_epoch = sup_max_epoch
+
+    train_input = np.random.uniform(low=np.min(trqueries, axis=0), high=np.max(trqueries, axis=0), size=(1000, np.shape(trqueries)[1]))
+
+    gmgan.create_network()
     gmgan.init_train()
-    gmgan.train(train_context=train_input, real_context=trqueries, real_response=trvmps, max_epochs=max_epochs,
-                is_load=False, is_save=False)
+    gmgan.train(train_context=train_input, real_context=trqueries, real_response=trvmps, max_epochs=max_epochs, is_load=False, is_save=False)
 
     tqueries = tdata[:, 0:6]
     starts = tdata[:, 6:8]
     goals = tdata[:, 8:10]
-    wout, _ = gmgan.predict(tqueries, 1)
+    wout = gmgan.generate(tqueries, 1000)
     srate, _ = evaluate_docking(wout, tqueries, starts, goals)
     return srate
 
-def run_gmgan_for_docking(nmodel=3, MAX_EXPNUM=1, nsamples=[1, 10, 30, 50], num_train_input=1000):
+def run_gmgan_for_docking(nmodel=3, MAX_EXPNUM=1, nsamples=[1, 10, 30, 50], num_train_input=100, sup_max_epoch=10000, max_epochs=20000):
     queries = np.loadtxt('data/docking_queries.csv', delimiter=',')
     vmps = np.loadtxt('data/docking_weights.csv', delimiter=',')
     starts = np.loadtxt('data/docking_starts.csv', delimiter=',')
@@ -58,13 +63,17 @@ def run_gmgan_for_docking(nmodel=3, MAX_EXPNUM=1, nsamples=[1, 10, 30, 50], num_
                     'lambda': [10],
                     'd_response': [40,5],
                     'd_context': [10,5]}
-    gmgan = GMGAN(n_comps=nmodel, context_dim=6, response_dim=knum, noise_dim=1, nn_structure=nn_structure)
-    gmgan.gen_lrate = 0.0002
-    gmgan.dis_lrate = 0.0002
+    gmgan = GMGAN(n_comps=nmodel, context_dim=6, response_dim=knum, nn_structure=nn_structure)
+
     gmgan.entropy_ratio = 0.0
 
+    gmgan.lratio['entropy'] = 200
+    gmgan.gen_sup_lrate = 0.0001
+    gmgan.gen_adv_lrate = 0.0002
+    gmgan.dis_lrate = 0.0002
+    gmgan.sup_max_epoch = sup_max_epoch
+
     csrates = np.zeros(shape=(MAX_EXPNUM, len(nsamples)))
-    # generate training context
     train_input = np.random.uniform(low=np.min(queries, axis=0), high=np.max(queries, axis=0), size=(num_train_input, np.shape(queries)[1]))
 
     for expId in range(MAX_EXPNUM):
@@ -74,13 +83,13 @@ def run_gmgan_for_docking(nmodel=3, MAX_EXPNUM=1, nsamples=[1, 10, 30, 50], num_
         print("======== Exp: {} ========".format(expId))
         trqueries = trdata[:,0:6]
 
-        gmgan.create_network(num_real_data=np.shape(trdata)[0])
+        gmgan.create_network()#num_real_data=np.shape(trdata)[0])
         gmgan.init_train()
-        gmgan.train(train_context=train_input, real_context=trqueries, real_response=trvmps, max_epochs=20000, is_load=False, is_save=False)
+        gmgan.train(train_context=train_input, real_context=trqueries, real_response=trvmps, max_epochs=max_epochs, is_load=False, is_save=False)
 
         tqueries = tdata[:, 0:6]
         for i in range(len(nsamples)):
-            wout, _ = gmgan.predict(tqueries, nsamples[i])
+            wout = gmgan.generate(tqueries, nsamples[i])
             starts = tdata[:, 6:8]
             goals = tdata[:, 8:10]
             srate, _ = evaluate_docking(wout, tqueries, starts, goals)
@@ -101,7 +110,8 @@ if __name__ == '__main__':
     if options.nmodel is not None:
         nmodel = options.nmodel
 
-    srates = run_gmgan_for_docking(nmodel, MAX_EXPNUM, nsamples, num_train_input=10000)
+    srates = run_gmgan_for_docking(nmodel, MAX_EXPNUM, nsamples, num_train_input=100, sup_max_epoch=10000, max_epochs=20000)
+    srates = run_gmgan_for_docking(nmodel, MAX_EXPNUM, nsamples, num_train_input=100, sup_max_epoch=10000, max_epochs=20000)
 
     print(srates)
     x = np.arange(len(nsamples))

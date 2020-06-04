@@ -16,7 +16,8 @@ if tf.__version__ < '2.0.0':
     w_init = tflearn.initializations.uniform(minval=-0.1, maxval=0.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    w_init = initializers.RandomNormal(stddev=0.1)
+    w_init = initializers.RandomNormal(stddev=0.003)
+    w_init_dis = initializers.RandomNormal(stddev=0.1)
 
 class cMDGAN(basicModel):
     def __init__(self, n_comps, context_dim, response_dim, noise_dim, nn_structure,
@@ -54,16 +55,16 @@ class cMDGAN(basicModel):
     def create_discriminator(self):
         self.d_response = tf.concat([self.real_response, self.response], axis=0)
         self.d_hidden_response = fully_connected_nn(self.d_response, self.nn_structure['d_response'][:-1],
-                                                    self.nn_structure['d_response'][-1], w_init=w_init, latent_activation= leaky_relu_act,
+                                                    self.nn_structure['d_response'][-1], w_init=w_init_dis, latent_activation= leaky_relu_act,
                                                     out_activation=None, scope='discriminator_response')
 
         self.d_context = tf.concat([self.real_context, self.context], axis=0)
         self.d_hidden_context = fully_connected_nn(self.d_context, self.nn_structure['d_context'][:-1],
-                                                   self.nn_structure['d_context'][-1], w_init=w_init, latent_activation= leaky_relu_act,
+                                                   self.nn_structure['d_context'][-1], w_init=w_init_dis, latent_activation= leaky_relu_act,
                                                    out_activation=None, scope='discriminator_context')
 
         self.d_hidden_input = tf.concat([self.d_hidden_response, self.d_hidden_context], axis=1)
-        self.d_output = fully_connected_nn(self.d_hidden_input, self.nn_structure['discriminator'], self.latent_dim, w_init=w_init,
+        self.d_output = fully_connected_nn(self.d_hidden_input, self.nn_structure['discriminator'], self.latent_dim, w_init=w_init_dis,
                                            latent_activation=leaky_relu_act, out_activation=sigmoid_act, scope='discriminator')
 
         self.d_output = self.d_output * 5 - 2.5

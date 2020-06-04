@@ -21,6 +21,7 @@ if tf.__version__ < '2.0.0':
 else:
     from tensorflow.keras import initializers
     w_init = initializers.RandomNormal(stddev=0.003)
+    w_init_dis = initializers.RandomNormal(stddev=0.1)
 
 
 class GMGAN:
@@ -41,7 +42,7 @@ class GMGAN:
         self.entropy_ratio = entropy_ratio
         self.using_batch_norm = using_batch_norm
         self.scaling = scaling
-        self.lratio = {'likelihood': 1, 'entropy': 0}
+        self.lratio = {'likelihood': 1, 'entropy': 0, 'adv_cost':100}
         self.sup_max_epoch = 0
         self.outputs = {}
 
@@ -67,18 +68,18 @@ class GMGAN:
 
     def discriminator(self, context, response):
         d_hidden_response = fully_connected_nn(response, self.nn_structure['d_response'][:-1],
-                                                    self.nn_structure['d_response'][-1], w_init=w_init,
+                                                    self.nn_structure['d_response'][-1], w_init=w_init_dis,
                                                     latent_activation=leaky_relu_act,
                                                     out_activation=None, scope='discriminator_response')
 
         d_hidden_context = fully_connected_nn(context, self.nn_structure['d_context'][:-1],
-                                                   self.nn_structure['d_context'][-1], w_init=w_init,
+                                                   self.nn_structure['d_context'][-1], w_init=w_init_dis,
                                                    latent_activation=leaky_relu_act,
                                                    out_activation=None, scope='discriminator_context')
 
         d_hidden_input = tf.concat([d_hidden_response, d_hidden_context], axis=1)
         d_output = fully_connected_nn(d_hidden_input, self.nn_structure['discriminator'], self.latent_dim,
-                                           w_init=w_init,
+                                           w_init=w_init_dis,
                                            latent_activation=leaky_relu_act, out_activation=sigmoid_act,
                                            scope='discriminator')
 
@@ -97,12 +98,12 @@ class GMGAN:
         self.lamb_opt = tf.compat.v1.train.AdamOptimizer(learning_rate=0.001).minimize(self.lamb_cost,
                                                                                        var_list=self.lamb_vars)
 
-    def create_network(self, num_real_data):
-        self.num_real_data = num_real_data
+    def create_network(self):
         self.context = tf.compat.v1.placeholder(tf.float32, shape=(None, self.context_dim), name='context')
-        self.real_context = tf.compat.v1.placeholder(tf.float32, shape=(num_real_data, self.context_dim),name='real_context')
-        self.real_response = tf.compat.v1.placeholder(tf.float32, shape=(num_real_data, self.response_dim),name='real_response')
+        self.real_context = tf.compat.v1.placeholder(tf.float32, shape=(None, self.context_dim),name='real_context')
+        self.real_response = tf.compat.v1.placeholder(tf.float32, shape=(None, self.response_dim),name='real_response')
 
+        num_real_data = tf.shape(self.real_context)[0]
         all_context = tf.concat([self.real_context, self.context], axis=0)
         self.g_outs, self.all_response = self.generator(all_context)
 
@@ -133,12 +134,13 @@ class GMGAN:
         self.outputs['scale'] = self.g_outs['scale'][num_real_data:,:]
         self.outputs['mc'] = self.g_outs['mc'][num_real_data:,:]
 
-        is_positive = np.ones(shape=(num_real_data, 1), dtype=np.float32)
+        is_positive = tf.ones(shape=(num_real_data, 1), dtype=tf.float32)
         self.nll = gmm_nll_cost(self.real_response, mean, scale, mc, is_positive)
         self.entropy_loss = model_entropy_cost(self.n_comps, mc, is_positive, eps=1e-20)
         self.gen_sup_cost = self.lratio['likelihood'] * self.nll + self.lratio['entropy'] * self.entropy_loss
 
         self.gen_adv_cost = tf.reduce_mean(tf.math.log(self.lamb - self.fake_likelihood + 1e-8))
+        self.gen_cost = self.gen_sup_cost + self.lratio['adv_cost'] * self.gen_adv_cost
 
         # get discriminator costs
         self.dis_real_cost = tf.negative(tf.reduce_mean(tf.math.log(self.real_likelihood + 1e-8)))
@@ -149,10 +151,12 @@ class GMGAN:
         self.real_likelihood_mean = tf.reduce_mean(self.real_likelihood)
         self.fake_likelihood_mean = tf.reduce_mean(self.fake_likelihood)
 
-
-        self.gen_adv_opt = tf.compat.v1.train.AdamOptimizer(learning_rate=self.gen_adv_lrate, beta1=0.5).minimize(self.gen_adv_cost, var_list=self.gen_vars)
+        self.gen_adv_opt = tf.compat.v1.train.AdamOptimizer(learning_rate=self.gen_adv_lrate).minimize(self.gen_cost, var_list=self.gen_vars)
         self.gen_sup_opt = tf.compat.v1.train.AdamOptimizer(learning_rate=self.gen_sup_lrate).minimize(self.gen_sup_cost, var_list=self.gen_vars)
-        self.dis_opt = tf.compat.v1.train.AdamOptimizer(learning_rate=self.dis_lrate, beta1=0.5).minimize(self.dis_cost, var_list=self.dis_vars)
+        self.dis_opt = tf.compat.v1.train.AdamOptimizer(learning_rate=self.dis_lrate).minimize(self.dis_cost, var_list=self.dis_vars)
+
+        self.reg_loss = [tf.nn.l2_loss(v) for v in tf.compat.v1.trainable_variables()]
+
 
     def init_train(self,logfile='gmgan.log'):
         tf.compat.v1.random.set_random_seed(self.seed)
@@ -212,7 +216,7 @@ class GMGAN:
               (i, gsup, gadv, dis_cost, rlm, flm, ecost), end='\n')
 
     def predict(self, cinput, n_samples=1):
-        rinput = np.random.uniform(low=np.min(cinput, axis=0), high=np.max(cinput, axis=0),size=(self.num_real_data, np.shape(cinput)[1]))
+        rinput = np.random.uniform(low=np.min(cinput, axis=0), high=np.max(cinput, axis=0),size=(1, np.shape(cinput)[1]))
         mean, scale, mc = self.sess.run([self.outputs['mean'], self.outputs['scale'], self.outputs['mc']],
                                         feed_dict={self.context: cinput, self.real_context:rinput})
 
@@ -235,3 +239,15 @@ class GMGAN:
         outdict = {'samples': out, 'compIDs': idx, 'mean': mean, 'scale': scale, 'mc': mc}
         return out, outdict
 
+
+    def generate(self, cinput, n_samples=100):
+        out, outdict = self.predict(cinput, n_samples)
+        n_data = np.shape(cinput)[0]
+        res = np.zeros(shape=(n_data, 1, self.response_dim), dtype=np.float32)
+        for i in range(n_data):
+            souts = out[i,:,:]
+            sinputs = np.tile(cinput[i,:], [n_samples,1])
+            real_likelihood = self.sess.run(self.real_likelihood, feed_dict={self.context:sinputs, self.real_context:sinputs, self.real_response:souts})
+            res[i,0,:] = souts[np.argmax(real_likelihood),:]
+
+        return res

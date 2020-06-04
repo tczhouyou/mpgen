@@ -51,18 +51,18 @@ nn_structure = {'d_feat': 20,
 
 gmgan = GMGAN(n_comps=2, context_dim=2, response_dim=20,  nn_structure=nn_structure)
 
-gmgan.lratio = {'likelihood': 1, 'entropy': 100}
+gmgan.lratio['entropy'] = 100
 gmgan.gen_sup_lrate = 0.00005
 gmgan.gen_adv_lrate = 0.0002
 gmgan.dis_lrate = 0.0002
 gmgan.entropy_ratio = 0.0
-gmgan.sup_max_epoch = 6000
+gmgan.sup_max_epoch = 5000
 gmgan.create_network(num_real_data=n_data)
 gmgan.init_train()
 
 train_input = np.random.uniform(low=np.min(train_goals, axis=0), high=np.max(train_goals, axis=0),
                                 size=(1000, np.shape(train_goals)[1]))
-gmgan.train(train_context=train_input, real_context=train_goals, real_response=train_ws, max_epochs=5000, is_load=False, is_save=False)
+gmgan.train(train_context=train_input, real_context=train_goals, real_response=train_ws, max_epochs=10000, is_load=False, is_save=False)
 
 wout, _ = gmgan.predict(testgoals)
 axe.set_ylim([-2, 2])
