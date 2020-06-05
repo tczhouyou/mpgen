@@ -21,6 +21,7 @@ from run_gmgan_for_docking import train_evaluate_gmgan_for_docking
 parser = OptionParser()
 parser.add_option("-m", "--nmodel", dest="nmodel", type="int", default=3)
 parser.add_option("-n", "--num_exp", dest="expnum", type="int", default=1)
+parser.add_option("-d", "--result_dir", dest="result_dir", type="string", default="results_compare_docking")
 (options, args) = parser.parse_args(sys.argv)
 
 queries = np.loadtxt('data/docking_queries.csv', delimiter=',')
@@ -69,6 +70,9 @@ num_train_data = np.array([300, 200, 100])
 tsize = (np.shape(data)[0] - np.array([300, 200, 100]))/np.shape(data)[0]
 print(tsize)
 
+result_dir = options.result_dir
+if not os.path.exists(result_dir):
+    os.makedirs(result_dir)
 
 for expId in range(options.expnum):
     # omdgan_res = np.zeros(shape=(1, len(tsize)))
@@ -108,13 +112,13 @@ for expId in range(options.expnum):
     #     np.savetxt(f, np.array(omdgan_res), delimiter=',', fmt='%.3f')
     # with open("results_compare_docking/entropy_mdgan", "a") as f:
     #     np.savetxt(f, np.array(emdgan_res), delimiter=',', fmt='%.3f')
-    with open("results_compare_docking/normal_gmgan", "a") as f:
+    with open(result_dir + "/normal_gmgan", "a") as f:
         np.savetxt(f, np.array(ogmgan_res), delimiter=',', fmt='%.3f')
-    with open("results_compare_docking/entropy_gmgan", "a") as f:
+    with open(result_dir + "/entropy_gmgan", "a") as f:
         np.savetxt(f, np.array(egmgan_res), delimiter=',', fmt='%.3f')
-    with open("results_compare_docking/original_mdn", "a") as f:
+    with open(result_dir + "/original_mdn", "a") as f:
         np.savetxt(f, np.array(omdnmp_res), delimiter=',', fmt='%.3f')
-    with open("results_compare_docking/entropy_mdn", "a") as f:
+    with open(result_dir + "/entropy_mdn", "a") as f:
         np.savetxt(f, np.array(emdnmp_res), delimiter=',', fmt='%.3f')
 
 
