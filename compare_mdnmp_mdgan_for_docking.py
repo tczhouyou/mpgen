@@ -93,16 +93,16 @@ for expId in range(options.expnum):
         # # train and test mdgan
         # omdgan_res[0, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, False, max_epochs=300000)
         print(">>>> train entropy GMGANs")
-        egmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, True, max_epochs=20000)
+        egmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, True, max_epochs=25000)
 
         print(">>>> train normal GMGANs")
-        ogmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, False, max_epochs=20000)
+        ogmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, False, max_epochs=25000)
 
         print(">>>> train entropy MDN")
-        emdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, True, max_epochs=20000)
+        emdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, True, max_epochs=25000)
 
         print(">>>> train original MDN")
-        omdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, False, max_epochs=20000)
+        omdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, False, max_epochs=25000)
 
     # with open("results_compare_docking/original_mdgan", "a") as f:
     #     np.savetxt(f, np.array(omdgan_res), delimiter=',', fmt='%.3f')

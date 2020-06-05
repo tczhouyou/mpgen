@@ -22,7 +22,7 @@ def train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, use_entrop
 
     gmgan.lratio['entropy'] = 200
     gmgan.gen_sup_lrate = 0.0001
-    gmgan.gen_adv_lrate = 0.0002
+    gmgan.gen_adv_lrate = 0.0001
     gmgan.dis_lrate = 0.0002
     gmgan.sup_max_epoch = sup_max_epoch
 
