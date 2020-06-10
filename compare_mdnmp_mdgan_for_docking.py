@@ -66,8 +66,8 @@ gmgan = GMGAN(n_comps=options.nmodel, context_dim=6, response_dim=knum, nn_struc
 
 
 # start experiment
-num_train_data = np.array([300, 200, 100])
-tsize = (np.shape(data)[0] - np.array([300, 200, 100]))/np.shape(data)[0]
+num_train_data = np.array([50, 100, 150])
+tsize = (np.shape(data)[0] -num_train_data)/np.shape(data)[0]
 print(tsize)
 
 result_dir = options.result_dir
@@ -93,20 +93,21 @@ for expId in range(options.expnum):
         # # train and test mdgan
         # emdgan_res[0, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, True, max_epochs=300000)
         #
+        
         # print(">>>> train original MD-GAN ")
         # # train and test mdgan
         # omdgan_res[0, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, False, max_epochs=300000)
         print(">>>> train entropy GMGANs")
-        egmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, True, max_epochs=25000)
+        egmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, True, max_epochs=20000, sup_max_epoch=20001)
 
         print(">>>> train normal GMGANs")
-        ogmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, False, max_epochs=25000)
+        ogmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, False, max_epochs=20000, sup_max_epoch=20001)
 
         print(">>>> train entropy MDN")
-        emdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, True, max_epochs=25000)
+        emdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, True, max_epochs=20000)
 
         print(">>>> train original MDN")
-        omdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, False, max_epochs=25000)
+        omdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, False, max_epochs=20000)
 
     # with open("results_compare_docking/original_mdgan", "a") as f:
     #     np.savetxt(f, np.array(omdgan_res), delimiter=',', fmt='%.3f')

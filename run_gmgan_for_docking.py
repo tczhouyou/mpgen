@@ -14,19 +14,19 @@ from experiments.evaluate_exps import evaluate_docking, evaluate_docking_for_all
 import matplotlib.pyplot as plt
 
 
-def train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000, sup_max_epoch=10000):
+def train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000, sup_max_epoch=0):
     if use_entropy:
-        gmgan.entropy_ratio = 0.3
+        gmgan.lratio['entropy'] = 100
     else:
-        gmgan.entropy_ratio = 0.0
+        gmgan.lratio['entropy'] = 0
 
-    gmgan.lratio['entropy'] = 200
-    gmgan.gen_sup_lrate = 0.0001
-    gmgan.gen_adv_lrate = 0.0001
+    gmgan.lratio['adv_cost'] = 100
+    gmgan.gen_sup_lrate = 0.00003
+    gmgan.gen_adv_lrate = 0.00003
     gmgan.dis_lrate = 0.0002
     gmgan.sup_max_epoch = sup_max_epoch
 
-    train_input = np.random.uniform(low=np.min(trqueries, axis=0), high=np.max(trqueries, axis=0), size=(1000, np.shape(trqueries)[1]))
+    train_input = np.random.uniform(low=np.min(trqueries, axis=0), high=np.max(trqueries, axis=0), size=(100, np.shape(trqueries)[1]))
 
     gmgan.create_network()
     gmgan.init_train()
@@ -35,7 +35,7 @@ def train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, use_entrop
     tqueries = tdata[:, 0:6]
     starts = tdata[:, 6:8]
     goals = tdata[:, 8:10]
-    wout = gmgan.generate(tqueries, 1000)
+    wout = gmgan.generate(tqueries, 2000)
     srate, _ = evaluate_docking(wout, tqueries, starts, goals)
     return srate
 
@@ -69,7 +69,7 @@ def run_gmgan_for_docking(nmodel=3, MAX_EXPNUM=1, nsamples=[1, 10, 30, 50], num_
 
     gmgan.lratio['entropy'] = 200
     gmgan.gen_sup_lrate = 0.00005
-    gmgan.gen_adv_lrate = 0.0002
+    gmgan.gen_adv_lrate = 0.00005
     gmgan.dis_lrate = 0.0002
     gmgan.sup_max_epoch = sup_max_epoch
 
@@ -110,7 +110,6 @@ if __name__ == '__main__':
     if options.nmodel is not None:
         nmodel = options.nmodel
 
-    srates = run_gmgan_for_docking(nmodel, MAX_EXPNUM, nsamples, num_train_input=100, sup_max_epoch=10000, max_epochs=20000)
     srates = run_gmgan_for_docking(nmodel, MAX_EXPNUM, nsamples, num_train_input=100, sup_max_epoch=10000, max_epochs=20000)
 
     print(srates)

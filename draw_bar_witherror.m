@@ -1,7 +1,7 @@
 clear
 num_type = 4;
 num_comp = 3;
-filenames = {'original_mdgan', 'entropy_mdgan', 'original_mdn', 'entropy_mdn'};
+filenames = {'original_mdn', 'entropy_mdn', 'entropy_gmgan'};
 means = zeros(num_type,num_comp);
 stds = zeros(num_type,num_comp);
 
@@ -9,7 +9,7 @@ for i = 1 : length(filenames)
     filename = filenames{i};
     data = importdata(filename);
     data = sort(data);
-%     data = data(2:end-1,:);
+    data = data(2:end-1,:);
     means(i,:) = mean(data);
     stds(i,:) = std(data);
 end

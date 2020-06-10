@@ -43,7 +43,7 @@ class GMGAN:
         self.entropy_ratio = entropy_ratio
         self.using_batch_norm = using_batch_norm
         self.scaling = scaling
-        self.lratio = {'likelihood': 1, 'entropy': 0, 'adv_cost':100}
+        self.lratio = {'likelihood': 1, 'entropy': 0, 'adv_cost':200}
         self.sup_max_epoch = 0
         self.outputs = {}
 
