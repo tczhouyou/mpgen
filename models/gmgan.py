@@ -21,8 +21,8 @@ if tf.__version__ < '2.0.0':
     w_init_dis = tflearn.initializations.normal(stddev=0.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    w_init = initializers.RandomNormal(stddev=0.003)
-    w_init_dis = initializers.RandomNormal(stddev=0.1)
+    w_init = initializers.RandomNormal(stddev=0.003, seed=42)
+    w_init_dis = initializers.RandomNormal(stddev=0.1, seed=42)
 
 
 class GMGAN:
@@ -242,13 +242,34 @@ class GMGAN:
 
 
     def generate(self, cinput, n_samples=100):
-        out, outdict = self.predict(cinput, n_samples)
+        rinput = np.random.uniform(low=np.min(cinput, axis=0), high=np.max(cinput, axis=0),
+                                   size=(1, np.shape(cinput)[1]))
+        mean, scale, mc = self.sess.run([self.outputs['mean'], self.outputs['scale'], self.outputs['mc']],
+                                        feed_dict={self.context: cinput, self.real_context: rinput})
+
+        n_data = np.shape(cinput)[0]
+
+        scales = np.expand_dims(scale, axis=0)
+        scales = np.reshape(scales, newshape=(n_data, self.response_dim, self.n_comps), order='F')
+        means = np.expand_dims(mean, axis=0)
+        means = np.reshape(means, newshape=(n_data, self.response_dim, self.n_comps), order='F')
+        scales = np.transpose(scales, (0, 2, 1))
+        means = np.transpose(means, (0, 2, 1))
+
         n_data = np.shape(cinput)[0]
         res = np.zeros(shape=(n_data, 1, self.response_dim), dtype=np.float32)
         for i in range(n_data):
-            souts = out[i,:,:]
+            souts, _ = sample_gmm(n_samples=n_samples, means=means[i, :, :], scales=scales[i, :, :] * self.scaling, mixing_coeffs=mc[i, :])
             sinputs = np.tile(cinput[i,:], [n_samples,1])
-            real_likelihood = self.sess.run(self.real_likelihood, feed_dict={self.context:sinputs, self.real_context:sinputs, self.real_response:souts})
+            k0 = 0
+            real_likelihood = []
+            while k0+100 < n_samples:
+                rlikelihood = self.sess.run(self.real_likelihood, feed_dict={self.context:sinputs[k0:k0+100,:],
+                                                                                 self.real_context:sinputs[k0:k0+100,:],
+                                                                                 self.real_response:souts[k0:k0+100,:]})
+                real_likelihood.append(rlikelihood)
+                k0 = k0 + 100
+
             res[i,0,:] = souts[np.argmax(real_likelihood),:]
 
         return res

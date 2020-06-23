@@ -80,7 +80,7 @@ def mdn_nn_v1(inputs, d_outputs, n_comps, nn_structure, using_batch_norm=False, 
         mc = tf.nn.softmax(mc, axis=1)
     else:
         from tensorflow.keras import initializers
-        var_init = initializers.RandomNormal(stddev=0.003)
+        var_init = initializers.RandomNormal(stddev=0.003, seed=42)
         feats = fully_connected_nn(inputs, feat_layers, d_feat, scope=scope + "_feat",
                                    latent_activation=leaky_relu_act,
                                    out_activation=leaky_relu_act, w_init=var_init)

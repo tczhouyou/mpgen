@@ -16,14 +16,15 @@ import matplotlib.pyplot as plt
 
 def train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000, sup_max_epoch=0):
     if use_entropy:
-        gmgan.lratio['entropy'] = 100
+        gmgan.entropy_ratio = 1
     else:
-        gmgan.lratio['entropy'] = 0
+        gmgan.entropy_ratio = 0
 
-    gmgan.lratio['adv_cost'] = 100
+    gmgan.lratio['entropy'] = 500
+    gmgan.lratio['adv_cost'] = 0
     gmgan.gen_sup_lrate = 0.00003
     gmgan.gen_adv_lrate = 0.00003
-    gmgan.dis_lrate = 0.0002
+    gmgan.dis_lrate = 0.001
     gmgan.sup_max_epoch = sup_max_epoch
 
     train_input = np.random.uniform(low=np.min(trqueries, axis=0), high=np.max(trqueries, axis=0), size=(100, np.shape(trqueries)[1]))
@@ -35,7 +36,7 @@ def train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, use_entrop
     tqueries = tdata[:, 0:6]
     starts = tdata[:, 6:8]
     goals = tdata[:, 8:10]
-    wout = gmgan.generate(tqueries, 2000)
+    wout = gmgan.generate(tqueries, 10000)
     srate, _ = evaluate_docking(wout, tqueries, starts, goals)
     return srate
 

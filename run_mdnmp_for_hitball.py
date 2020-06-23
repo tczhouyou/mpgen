@@ -15,6 +15,27 @@ from experiments.mujoco.hitball.hitball_exp import evaluate_hitball
 from optparse import OptionParser
 
 
+def train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000):
+    if use_entropy:
+        mdnmp.lratio['entropy'] = 1000
+    else:
+        mdnmp.lratio['entropy'] = 0
+
+    weights = np.ones(shape=(np.shape(trvmps)[0], 1))
+    train_weights = np.copy(weights)
+    mdnmp.build_mdn(learning_rate=0.00003)
+    mdnmp.init_train()
+    mdnmp.train(trqueries, trvmps, train_weights, max_epochs=max_epochs, is_load=False, is_save=False)
+    mp = VMP(dim=2, kernel_num=10)
+
+    tqueries = tdata[:100, 0:2]
+    starts = tdata[:100, 2:4]
+    goals = tdata[:100, 4:6]
+    wout, _ = mdnmp.predict(tqueries, 1)
+    srate = evaluate_hitball(mp, wout, tqueries, starts, goals)
+    return srate
+
+
 def run_mdnmp_for_hitball(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True], model_names=["Original MDN", "Entropy MDN"], nsamples=[1, 10, 30, 50, 70]):
     # prepare data
     data_dir = 'experiments/mujoco/hitball/hitball_mpdata'

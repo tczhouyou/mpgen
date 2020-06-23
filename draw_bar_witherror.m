@@ -1,7 +1,7 @@
 clear
-num_type = 4;
+num_type = 3;
 num_comp = 3;
-filenames = {'original_mdn', 'entropy_mdn', 'entropy_gmgan'};
+filenames = {'original_mdn',  'entropy_mdn',  'entropy_gmgan'};
 means = zeros(num_type,num_comp);
 stds = zeros(num_type,num_comp);
 
@@ -16,9 +16,10 @@ end
 
 figure
 hold on
-hb = bar(1:num_comp,means');
+hb = bar([1,1.5,2],means');
 pause(0.1); %pause allows the figure to be created
 for ib = 1:numel(hb)
     xData = hb(ib).XData+hb(ib).XOffset;
     errorbar(xData,means(ib,:),stds(ib,:),'k.')
 end
+legend(hb, {'original MDN','entropy MDN','entropy MDN + discriminator'});

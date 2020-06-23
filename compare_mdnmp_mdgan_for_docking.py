@@ -49,7 +49,7 @@ mdnmp_struct = {'d_feat': 20,
                 'feat_layers': [40],
                 'mean_layers': [60],
                 'scale_layers': [60],
-                'mixing_layers': [60]}
+                'mixing_layers': [40]}
 mdnmp = MDNMP(n_comps=options.nmodel, d_input=6, d_output=knum, nn_structure=mdnmp_struct, scaling=1)
 
 # create gmgan
@@ -57,12 +57,12 @@ nn_structure = {'d_feat': 20,
                 'feat_layers': [40],
                 'mean_layers': [60],
                 'scale_layers': [60],
-                'mixing_layers': [60],
-                'discriminator': [20],
+                'mixing_layers': [40],
+                'discriminator': [40,40],
                 'lambda': [10],
-                'd_response': [40,5],
-                'd_context': [10,5]}
-gmgan = GMGAN(n_comps=options.nmodel, context_dim=6, response_dim=knum, nn_structure=nn_structure)
+                'd_response': [40,10],
+                'd_context': [20,10]}
+gmgan = GMGAN(n_comps=options.nmodel, context_dim=6, response_dim=knum, nn_structure=nn_structure, scaling=1)
 
 
 # start experiment
@@ -97,11 +97,11 @@ for expId in range(options.expnum):
         # print(">>>> train original MD-GAN ")
         # # train and test mdgan
         # omdgan_res[0, i] = train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, False, max_epochs=300000)
-        print(">>>> train entropy GMGANs")
-        egmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, True, max_epochs=20000, sup_max_epoch=20001)
+        # print(">>>> train entropy GMGANs")
+        # egmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, True, max_epochs=20000, sup_max_epoch=20001)
 
-        print(">>>> train normal GMGANs")
-        ogmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, False, max_epochs=20000, sup_max_epoch=20001)
+        print(">>>> train GMGANs")
+        egmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, False, max_epochs=20000, sup_max_epoch=20001)
 
         print(">>>> train entropy MDN")
         emdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, True, max_epochs=20000)
@@ -113,8 +113,8 @@ for expId in range(options.expnum):
     #     np.savetxt(f, np.array(omdgan_res), delimiter=',', fmt='%.3f')
     # with open("results_compare_docking/entropy_mdgan", "a") as f:
     #     np.savetxt(f, np.array(emdgan_res), delimiter=',', fmt='%.3f')
-    with open(result_dir + "/normal_gmgan", "a") as f:
-        np.savetxt(f, np.array(ogmgan_res), delimiter=',', fmt='%.3f')
+    # with open(result_dir + "/normal_gmgan", "a") as f:
+    #     np.savetxt(f, np.array(ogmgan_res), delimiter=',', fmt='%.3f')
     with open(result_dir + "/entropy_gmgan", "a") as f:
         np.savetxt(f, np.array(egmgan_res), delimiter=',', fmt='%.3f')
     with open(result_dir + "/original_mdn", "a") as f:
