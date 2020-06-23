@@ -21,6 +21,8 @@ import pandas as pd
 from python_pid_controller.PID import PID
 from sklearn.decomposition import PCA
 
+from scipy.linalg import null_space
+
 LEFT_JOINT = [
     "ArmL1_Cla1",
     "ArmL2_Sho1",
@@ -133,6 +135,15 @@ DEFAULT_PD_CONFIG = {
     'dori': [20, 20, 20]
 }
 
+DEFAULT_PD_VEL_CONFIG = {
+    'kpos': [100, 100, 100],
+    'kori': [1, 1, 1],
+    # 'kori': [100,100,100],
+    'dpos': [0, 0, 0],
+    'dori': [0, 0, 0]
+}
+
+
 class HandController:
     def __init__(self, model, sim, arm_name="RightArm"):
         self.sim = sim
@@ -216,6 +227,112 @@ class JointVelocityController:
         for jname, _ in targets.items():
             self.sim.data.ctrl[self.actuator_ids[jname]] = targets[jname] * 180/ np.pi
 
+
+class TaskSpaceVelocityController:
+    def __init__(self, model, sim, config=None, arm_name="RightArm", desired_joints=None):
+        self.sim = sim
+
+        if config is None:
+            self.config = DEFAULT_PD_VEL_CONFIG
+        else:
+            self.config = config
+
+        self.kpos = self.config['kpos']
+        self.kori = self.config['kori']
+        self.dpos = self.config['dpos']
+        self.dori = self.config['dori']
+
+        if arm_name == "LeftArm":
+            self.joint_name_list = LEFT_JOINT
+            self.jointConfig = LEFT_JOINT_CONFIG
+            self.tcp_name = "Hand L TCP"
+        else:
+            self.joint_name_list = RIGHT_JOINT
+            self.jointConfig = RIGHT_JOINT_CONFIG
+            self.tcp_name = "Hand R TCP"
+
+        self.n_joints = len(self.joint_name_list)
+        self.actuator_ids = {joint: model.actuator_name2id(joint + "_velocity") for joint in self.jointConfig}
+        self.actuator_id_in_order = [self.actuator_ids[joint_name] for joint_name in self.joint_name_list]
+
+        if desired_joints is None:
+            self.static_nullspace_joints = np.array([0, 0, 0, 0, 1.6, 3.14, 0, 0])
+        else:
+            self.static_nullspace_joints = desired_joints
+
+
+    def read(self, targets):
+
+        if 'position' in targets.keys():
+            target_xyz = targets['position']
+        else:
+            print('target is invalid, because key word {} is missing'.format('position'))
+
+        if 'orientation' in targets.keys():
+            target_quat = targets['orientation']
+        else:
+            print('target is invalid, because key word {} is missing'.format('orientation'))
+
+        if 'nullspace' in targets.keys():
+            desired_joints = targets['nullspace']
+        else:
+            desired_joints = None
+
+        return target_xyz, target_quat, desired_joints
+
+
+    def control(self, targets):
+        target_xyz, target_quat, desired_joints = self.read(targets)
+
+        tcp_xpos = self.sim.data.get_site_xpos(self.tcp_name)
+        tcp_xmat = self.sim.data.get_site_xmat(self.tcp_name)
+        v_p = self.sim.data.get_site_xvelp(self.tcp_name)
+        v_r = self.sim.data.get_site_xvelr(self.tcp_name)
+        qpos = get_actuator_data(self.sim.data.qpos, self.actuator_id_in_order)
+        qvel = get_actuator_data(self.sim.data.qvel, self.actuator_id_in_order)
+
+        # inverse kinematic control
+        # position
+        u_task = np.zeros(6)
+        u_task[:3] = np.multiply(self.kpos, (target_xyz - tcp_xpos)) - np.multiply(self.dpos, v_p)
+
+        # orientation
+        rot_mat = np.zeros(9)
+        mujoco_py.functions.mju_quat2Mat(rot_mat, target_quat)
+        target_mat = rot_mat.reshape(3, 3)
+        rot_diff_mat = target_mat.dot(np.linalg.inv(tcp_xmat))
+        rpy_error = mat2rpy(rot_diff_mat)
+        u_task[3:] = np.multiply(self.kori, rpy_error) - np.multiply(self.dori, v_r)
+
+        # get jacobian matrix
+        jac_p = self.sim.data.get_site_jacp(self.tcp_name)
+        jac_r = self.sim.data.get_site_jacr(self.tcp_name)
+        jac = np.zeros((6, self.n_joints))
+
+        jac[0:3, :] = get_actuator_data(jac_p.reshape(3, -1), self.actuator_id_in_order)
+        jac[3:, :] = get_actuator_data(jac_r.reshape(3, -1), self.actuator_id_in_order)
+
+        njac = null_space(jac)
+
+        # get velocity
+        jmat = np.linalg.pinv(jac, 1e-10)
+        jvel = jmat.dot(u_task)
+
+        # null space control
+        if desired_joints is None:
+            u_null = 20 * (self.static_nullspace_joints - qpos) - 4 * qvel
+        else:
+            u_null = 20 * (desired_joints - qpos) - 4 * qvel
+
+        nmat = njac.dot(np.linalg.pinv(njac, 1e-10))
+        njvel = nmat.dot(u_null)
+        jvel = jvel + njvel
+
+        jvel = np.clip(jvel, a_min=-200, a_max=200)
+        for j, jointName in enumerate(self.joint_name_list):
+            self.sim.data.ctrl[self.actuator_ids[jointName]] = jvel[j] * 180 / np.pi
+
+        return jvel
 
 
 class TaskSpaceImpedanceController:

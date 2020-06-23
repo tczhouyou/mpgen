@@ -1,0 +1,68 @@
+<!-- ======================================================
+    Model: Armar6
+    Mujoco Version: 2.0.x
+	Author: You Zhou
+====================================================== -->
+<mujoco model="ur5">
+    <compiler angle="radian" coordinate="local" balanceinertia="true" inertiafromgeom="auto" settotalmass="2.3"/>
+
+<!--    <option gravity="0 0 0" cone="elliptic" timestep="0.02" />-->
+<!--    <option solver="CG" tolerance="1e-6"/>-->
+
+    <statistic extent="2" meansize=".05"/>
+    <option timestep="0.1" solver="Newton" iterations="10" tolerance="1e-5" jacobian="sparse" cone="pyramidal"/>
+
+
+    <visual>
+        <map znear="0.001" />
+    </visual>
+
+
+    <include file="../../world.xml"/>
+    <!--<include file="../robot/Armar6-SH-Right-Arm-Only-Push-ExpV2.xml"/>-->
+
+    <include file="../robot/Armar6-SH-Right-Arm-Only-Curling-Velocity_v1.xml"/>
+    <include file="../../components/table/asset.xml"/>
+	<include file="../../components/box/asset.xml"/>
+    <size njmax="8000" nconmax="4000"/>
+
+    <worldbody>
+        <body pos="-0.16 0.90 0.02" euler="4.71238898 0 3.14159265">
+            <body euler="0 -0.82 0">
+                <camera name="workbench_camera" euler="0.25 0 0" fovy="43" />
+            </body>
+        </body>
+        <body pos="-1 1.52 0.64" euler="4.71238898 0 3.14159265">
+            <body euler="-0.23 0 0">
+                <camera name="upper_camera" euler="0 0.09 0" fovy="41" />
+            </body>
+        </body>
+
+        <body name="Table" pos="0.3 1.6 0.9">
+			<include file="../../components/table/curling_table.xml"/>
+		</body>
+
+        <body name="curling_ball" pos="0 0 0">
+            <geom type="cylinder" pos="0 0 0" size="0.03 0.03" condim="1" solref="0.01 1" friction="0.02 0.02 0"  rgba="0 1 0 1"/>
+            <joint name="curling_ball_x" type="slide" axis="1 0 0" />
+            <joint name="curling_ball_y" type="slide" axis="0 1 0" />
+            <joint name="curling_ball_z" type="slide" axis="0 0 1" />
+        </body>
+
+        <body name="target_ball" pos="0 0 0">
+            <geom type="cylinder" pos="0 0 0" size="0.03 0.03" condim="1" solref="0.01 1" friction="0.02 0.02 0" rgba="1 0 0 1"/>
+            <joint name="target_ball_x" type="slide" axis="1 0 0" />
+            <joint name="target_ball_y" type="slide" axis="0 1 0" />
+            <joint name="target_ball_z" type="slide" axis="0 0 1" />
+        </body>
+
+        <body name="target_ball_0" pos="0 0 0">
+            <geom type="cylinder" pos="0 0 0" size="0.03 0.03" condim="1" solref="0.01 1" friction="0.02 0.02 0" rgba="1 0 0 1"/>
+            <joint name="target_ball_0_x" type="slide" axis="1 0 0" />
+            <joint name="target_ball_0_y" type="slide" axis="0 1 0" />
+            <joint name="target_ball_0_z" type="slide" axis="0 0 1" />
+        </body>
+
+    </worldbody>
+
+</mujoco>
