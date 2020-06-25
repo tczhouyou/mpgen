@@ -9,9 +9,12 @@ os.sys.path.insert(0, './experiments/mujoco')
 import numpy as np
 from mp.vmp import VMP
 
-from experiments.mujoco.hitball.hitball_exp import evaluate_hitball
+from experiments.mujoco.hitball.hitball_exp import evaluate_hitball, ENV_DIR
+from experiments.mujoco.armar6_controllers.armar6_low_controller import TaskSpaceVelocityController, TaskSpaceImpedanceController
+from experiments.mujoco.armar6_controllers.armar6_high_controller import TaskSpacePositionVMPController
 
-def train_evaluate_gmgan_for_hitball(gmgan, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000, sup_max_epoch=0):
+def train_evaluate_gmgan_for_hitball(gmgan, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000, sup_max_epoch=0,
+                                     isvel=True, env_file="hitball_exp_v1.xml", sample_num=1, isdraw=False, num_test=100, g_lrate=0.002, d_lrate=0.002):
     if use_entropy:
         gmgan.entropy_ratio = 1
     else:
@@ -19,9 +22,9 @@ def train_evaluate_gmgan_for_hitball(gmgan, trqueries, trvmps, tdata, use_entrop
 
     gmgan.lratio['entropy'] = 1000
     gmgan.lratio['adv_cost'] = 0
-    gmgan.gen_sup_lrate = 0.00003
-    gmgan.gen_adv_lrate = 0.00003
-    gmgan.dis_lrate = 0.0002
+    gmgan.gen_sup_lrate = g_lrate
+    gmgan.gen_adv_lrate = g_lrate
+    gmgan.dis_lrate = d_lrate
     gmgan.sup_max_epoch = sup_max_epoch
 
     train_input = np.random.uniform(low=np.min(trqueries, axis=0), high=np.max(trqueries, axis=0), size=(100, np.shape(trqueries)[1]))
@@ -31,11 +34,25 @@ def train_evaluate_gmgan_for_hitball(gmgan, trqueries, trvmps, tdata, use_entrop
     gmgan.train(train_context=train_input, real_context=trqueries, real_response=trvmps, max_epochs=max_epochs, is_load=False, is_save=False)
     mp = VMP(dim=2, kernel_num=10)
 
-    tqueries = tdata[:100, 0:2]
-    starts = tdata[:100, 2:4]
-    goals = tdata[:100, 4:6]
-    wout = gmgan.generate(tqueries, 8000)
-    srate = evaluate_hitball(mp, wout, tqueries, starts, goals)
+    if num_test > np.shape(tdata)[0]:
+        num_test = np.shape(tdata)[0]-1
+
+    tqueries = tdata[:num_test, 0:2]
+    starts = tdata[:num_test, 2:4]
+    goals = tdata[:num_test, 4:6]
+    wout = gmgan.generate(tqueries, 10000, sample_num)
+
+    if isvel:
+        srate = evaluate_hitball(wout, tqueries, starts, goals,
+                                 low_ctrl=TaskSpaceVelocityController,
+                                 high_ctrl=TaskSpacePositionVMPController(mp),
+                                 env_path=ENV_DIR+env_file, isdraw=isdraw)
+    else:
+        srate = evaluate_hitball(wout, tqueries, starts, goals,
+                                 low_ctrl=TaskSpaceImpedanceController,
+                                 high_ctrl=TaskSpacePositionVMPController(mp),
+                                 env_path=ENV_DIR+env_file, isdraw=isdraw)
+
     return srate
 
 

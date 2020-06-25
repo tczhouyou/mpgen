@@ -28,7 +28,7 @@ else:
 class GMGAN:
     def __init__(self, n_comps, context_dim, response_dim, nn_structure,
                  batch_size=None, using_batch_norm=False, seed=42, eps=1e-20,
-                 gen_sup_lrate=0.001, gen_adv_lrate=0.001, dis_learning_rate=0.001, entropy_ratio=0, scaling=1):
+                 gen_sup_lrate=0.001, gen_adv_lrate=0.001, dis_learning_rate=0.001, entropy_ratio=0, scaling=1, var_init=None, var_init_dis=None):
         basicModel.__init__(self, batch_size, using_batch_norm, seed, eps)
         self.n_comps = n_comps
         self.context_dim = context_dim
@@ -47,6 +47,16 @@ class GMGAN:
         self.sup_max_epoch = 0
         self.outputs = {}
 
+        if var_init is None:
+            self.var_init = w_init
+        else:
+            self.var_init = var_init
+
+        if var_init_dis is None:
+            self.var_init_dis = w_init_dis
+        else:
+            self.var_init_dis = var_init_dis
+
     def get_gmm(self, vec_mus, vec_scales, mixing_coeffs):
         n_comp = mixing_coeffs.get_shape().as_list()[1]
         mus = tf.split(vec_mus, num_or_size_splits=n_comp, axis=1)
@@ -58,7 +68,7 @@ class GMGAN:
     def generator(self, context, nn_type='v1'):
         g_outs = getattr(basic_nn, 'mdn_nn_' + nn_type)(context, self.response_dim * self.n_comps, self.n_comps,
                                                               self.nn_structure, self.using_batch_norm,
-                                                              scope='generator')
+                                                              scope='generator', var_init=self.var_init)
 
         mean = g_outs['mean']
         scale = g_outs['scale']
@@ -69,18 +79,18 @@ class GMGAN:
 
     def discriminator(self, context, response):
         d_hidden_response = fully_connected_nn(response, self.nn_structure['d_response'][:-1],
-                                                    self.nn_structure['d_response'][-1], w_init=w_init_dis,
+                                                    self.nn_structure['d_response'][-1], w_init=self.var_init_dis,
                                                     latent_activation=leaky_relu_act,
                                                     out_activation=None, scope='discriminator_response')
 
         d_hidden_context = fully_connected_nn(context, self.nn_structure['d_context'][:-1],
-                                                   self.nn_structure['d_context'][-1], w_init=w_init_dis,
+                                                   self.nn_structure['d_context'][-1], w_init=self.var_init_dis,
                                                    latent_activation=leaky_relu_act,
                                                    out_activation=None, scope='discriminator_context')
 
         d_hidden_input = tf.concat([d_hidden_response, d_hidden_context], axis=1)
         d_output = fully_connected_nn(d_hidden_input, self.nn_structure['discriminator'], self.latent_dim,
-                                           w_init=w_init_dis,
+                                           w_init=self.var_init_dis,
                                            latent_activation=leaky_relu_act, out_activation=sigmoid_act,
                                            scope='discriminator')
 
@@ -90,7 +100,7 @@ class GMGAN:
 
     def create_lambda_network(self):
         self.lambda_input = tf.compat.v1.placeholder(tf.float32, shape=[None, 1], name='lambda_input')
-        self.lambda_output = fully_connected_nn(self.lambda_input, self.nn_structure['lambda'], self.latent_dim, w_init=w_init,
+        self.lambda_output = fully_connected_nn(self.lambda_input, self.nn_structure['lambda'], self.latent_dim, w_init=self.var_init,
                                                 latent_activation=leaky_relu_act, out_activation=sigmoid_act, scope='lambda')
         self.lambda_output = self.lambda_output * 5 - 2.5
         self.lambval, _ = gmm_likelihood_simplex(self.lambda_output, self.latent_dim)
@@ -241,7 +251,7 @@ class GMGAN:
         return out, outdict
 
 
-    def generate(self, cinput, n_samples=100):
+    def generate(self, cinput, n_samples=100, n_output=1):
         rinput = np.random.uniform(low=np.min(cinput, axis=0), high=np.max(cinput, axis=0),
                                    size=(1, np.shape(cinput)[1]))
         mean, scale, mc = self.sess.run([self.outputs['mean'], self.outputs['scale'], self.outputs['mc']],
@@ -257,19 +267,20 @@ class GMGAN:
         means = np.transpose(means, (0, 2, 1))
 
         n_data = np.shape(cinput)[0]
-        res = np.zeros(shape=(n_data, 1, self.response_dim), dtype=np.float32)
+        res = np.zeros(shape=(n_data, n_output, self.response_dim), dtype=np.float32)
         for i in range(n_data):
             souts, _ = sample_gmm(n_samples=n_samples, means=means[i, :, :], scales=scales[i, :, :] * self.scaling, mixing_coeffs=mc[i, :])
             sinputs = np.tile(cinput[i,:], [n_samples,1])
             k0 = 0
-            real_likelihood = []
+            real_likelihood = np.zeros(n_samples)
             while k0+100 < n_samples:
                 rlikelihood = self.sess.run(self.real_likelihood, feed_dict={self.context:sinputs[k0:k0+100,:],
                                                                                  self.real_context:sinputs[k0:k0+100,:],
                                                                                  self.real_response:souts[k0:k0+100,:]})
-                real_likelihood.append(rlikelihood)
+                real_likelihood[k0:k0+100] = rlikelihood
                 k0 = k0 + 100
 
-            res[i,0,:] = souts[np.argmax(real_likelihood),:]
+            ind = np.argsort(-np.array(real_likelihood), axis=-1)
+            res[i,:,:] = souts[ind[:n_output],:]
 
         return res

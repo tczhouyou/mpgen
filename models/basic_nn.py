@@ -49,7 +49,7 @@ else:
             return out
 
 
-def mdn_nn_v1(inputs, d_outputs, n_comps, nn_structure, using_batch_norm=False, scope='mdn_nn'):
+def mdn_nn_v1(inputs, d_outputs, n_comps, nn_structure, using_batch_norm=False, scope='mdn_nn', var_init=None):
     d_feat = nn_structure['d_feat']
     feat_layers = nn_structure['feat_layers']
     mean_layers = nn_structure['mean_layers']
@@ -57,7 +57,9 @@ def mdn_nn_v1(inputs, d_outputs, n_comps, nn_structure, using_batch_norm=False, 
     mixing_layers = nn_structure['mixing_layers']
 
     if tf.__version__ < "2.0.0": # if tf version is smaller than 2.0, using tflearn otherwise keras
-        var_init = tflearn.initializations.uniform(minval=-.003, maxval=.003)
+
+        if var_init is None:
+            var_init = tflearn.initializations.uniform(minval=-.003, maxval=.003)
 
         feats = fully_connected_nn(inputs,  feat_layers,  d_feat, scope=scope + "_feat", w_init=var_init,
                                    latent_activation=tflearn.activations.leaky_relu,
@@ -80,7 +82,9 @@ def mdn_nn_v1(inputs, d_outputs, n_comps, nn_structure, using_batch_norm=False, 
         mc = tf.nn.softmax(mc, axis=1)
     else:
         from tensorflow.keras import initializers
-        var_init = initializers.RandomNormal(stddev=0.003, seed=42)
+        if var_init is None:
+            var_init = initializers.RandomNormal(stddev=0.003, seed=42)
+
         feats = fully_connected_nn(inputs, feat_layers, d_feat, scope=scope + "_feat",
                                    latent_activation=leaky_relu_act,
                                    out_activation=leaky_relu_act, w_init=var_init)

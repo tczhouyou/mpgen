@@ -14,7 +14,8 @@ from experiments.evaluate_exps import evaluate_docking, evaluate_docking_for_all
 import matplotlib.pyplot as plt
 
 
-def train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000, sup_max_epoch=0):
+def train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000, sup_max_epoch=0,
+                                     sample_num=1):
     if use_entropy:
         gmgan.entropy_ratio = 1
     else:
@@ -36,7 +37,7 @@ def train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, use_entrop
     tqueries = tdata[:, 0:6]
     starts = tdata[:, 6:8]
     goals = tdata[:, 8:10]
-    wout = gmgan.generate(tqueries, 10000)
+    wout = gmgan.generate(tqueries, 10000, n_output=sample_num)
     srate, _ = evaluate_docking(wout, tqueries, starts, goals)
     return srate
 

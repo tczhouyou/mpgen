@@ -11,6 +11,7 @@ from armar6_controllers.armar6_high_controller import TaskSpaceVMPController, Ta
 from armar6_controllers.armar6_low_controller import RIGHT_HAND_JOINT_CONFIG, RIGHT_HAND_JOINT, get_actuator_data
 
 ENV_DIR = '/experiments/mujoco/robot-models/armar6-mujoco/environment/'
+EXP_DIR = '/experiments/mujoco/hitball/'
 INIT_BALL_POS = np.array([0.5, 0.8, 0.9])
 
 
@@ -145,10 +146,9 @@ class Armar6HitBallExp:
         return start, ball_pos.copy()
 
 
-def evaluate_hitball(mp, wout, queries, starts, goals, isdraw=False):
+def evaluate_hitball(wout, queries, starts, goals, low_ctrl, high_ctrl, env_path, isdraw=False):
     # wout: N x S x dim, N: number of experiments, S: number of samples, dim: dimension of MP
-    high_ctrl = TaskSpacePositionVMPController(mp)
-    env = Armar6HitBallExp(high_ctrl=high_ctrl, isdraw=isdraw)
+    env = Armar6HitBallExp(high_ctrl=high_ctrl, low_ctrl=low_ctrl, isdraw=isdraw, env_path=os.environ['MPGEN_DIR']+env_path)
 
     srate = 0.0
     for i in range(np.shape(wout)[0]):

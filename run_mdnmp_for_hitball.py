@@ -11,11 +11,24 @@ from models.mdnmp import MDNMP
 from mp.vmp import VMP
 
 from sklearn.model_selection import train_test_split
-from experiments.mujoco.hitball.hitball_exp import evaluate_hitball
 from optparse import OptionParser
 
+from experiments.mujoco.hitball.hitball_exp import evaluate_hitball, ENV_DIR, EXP_DIR
+from experiments.mujoco.armar6_controllers.armar6_low_controller import TaskSpaceVelocityController, TaskSpaceImpedanceController
+from experiments.mujoco.armar6_controllers.armar6_high_controller import TaskSpacePositionVMPController
 
-def train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000):
+import tensorflow as tf
+if tf.__version__ < '2.0.0':
+    import tflearn
+    VAR_INIT = tflearn.initializations.uniform(minval=-.1, maxval=.1, seed=42)
+else:
+    from tensorflow.keras import initializers
+    VAR_INIT = initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=42)
+
+
+
+def train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000, sample_num=1,
+                                     isvel=True, env_file="hitball_exp_v1.xml", isdraw=False, num_test=100, learning_rate=0.002):
     if use_entropy:
         mdnmp.lratio['entropy'] = 1000
     else:
@@ -23,22 +36,39 @@ def train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, use_entrop
 
     weights = np.ones(shape=(np.shape(trvmps)[0], 1))
     train_weights = np.copy(weights)
-    mdnmp.build_mdn(learning_rate=0.00003)
+    mdnmp.build_mdn(learning_rate=learning_rate)
     mdnmp.init_train()
     mdnmp.train(trqueries, trvmps, train_weights, max_epochs=max_epochs, is_load=False, is_save=False)
     mp = VMP(dim=2, kernel_num=10)
 
-    tqueries = tdata[:100, 0:2]
-    starts = tdata[:100, 2:4]
-    goals = tdata[:100, 4:6]
-    wout, _ = mdnmp.predict(tqueries, 1)
-    srate = evaluate_hitball(mp, wout, tqueries, starts, goals)
+    if num_test > np.shape(tdata)[0]:
+        num_test = np.shape(tdata)[0]-1
+
+    tqueries = tdata[:num_test, 0:2]
+    starts = tdata[:num_test, 2:4]
+    goals = tdata[:num_test, 4:6]
+    wout, _ = mdnmp.predict(tqueries, sample_num)
+
+    if isvel:
+        srate = evaluate_hitball(wout, tqueries, starts, goals,
+                                 low_ctrl=TaskSpaceVelocityController,
+                                 high_ctrl=TaskSpacePositionVMPController(mp),
+                                 env_path=ENV_DIR+env_file, isdraw=isdraw)
+    else:
+        srate = evaluate_hitball(wout, tqueries, starts, goals,
+                                 low_ctrl=TaskSpaceImpedanceController,
+                                 high_ctrl=TaskSpacePositionVMPController(mp),
+                                 env_path=ENV_DIR+env_file, isdraw=isdraw)
+
     return srate
 
 
-def run_mdnmp_for_hitball(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True], model_names=["Original MDN", "Entropy MDN"], nsamples=[1, 10, 30, 50, 70]):
+def run_mdnmp_for_hitball(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True],
+                          model_names=["Original MDN", "Entropy MDN"], nsamples=[1, 10, 30, 50, 70],
+                          env_file="hitball_exp_v0.xml", data_dir="hitball_mpdata_v0",
+                          isvel=False):
     # prepare data
-    data_dir = 'experiments/mujoco/hitball/hitball_mpdata'
+    data_dir = os.environ['MPGEN_DIR'] + EXP_DIR + data_dir
     queries = np.loadtxt(data_dir + '/hitball_queries.csv', delimiter=',')
     vmps = np.loadtxt(data_dir + '/hitball_weights.csv', delimiter=',')
     starts = np.loadtxt(data_dir + '/hitball_starts.csv', delimiter=',')
@@ -60,7 +90,7 @@ def run_mdnmp_for_hitball(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True
     d_output = np.shape(vmps)[1]
 
     mp = VMP(dim=2, kernel_num=10)
-    mdnmp = MDNMP(n_comps=nmodel, d_input=d_input, d_output=d_output, nn_structure=nn_structure)
+    mdnmp = MDNMP(n_comps=nmodel, d_input=d_input, d_output=d_output, nn_structure=nn_structure, var_init=VAR_INIT)
 
     rstates = np.random.randint(0, 100, size=MAX_EXPNUM)
     n_test = 100
@@ -92,7 +122,16 @@ def run_mdnmp_for_hitball(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True
 
             for sampleId in range(len(nsamples)):
                 wout, _ = mdnmp.predict(tqueries, nsamples[sampleId])
-                srate = evaluate_hitball(mp, wout, tqueries, tstarts, tgoals)
+                if isvel:
+                    srate = evaluate_hitball(wout, tqueries, tstarts, tgoals,
+                                             low_ctrl=TaskSpaceVelocityController,
+                                             high_ctrl=TaskSpacePositionVMPController(mp),
+                                             env_path=ENV_DIR + env_file)
+                else:
+                    srate = evaluate_hitball(wout, tqueries, tstarts, tgoals,
+                                             low_ctrl=TaskSpaceImpedanceController,
+                                             high_ctrl=TaskSpacePositionVMPController(mp),
+                                             env_path=ENV_DIR + env_file)
                 csrates[expId, sampleId] = srate
                 allres[modelId, expId, sampleId] = srate
 
@@ -101,20 +140,24 @@ def run_mdnmp_for_hitball(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True
     return srates, allres
 
 if __name__ == '__main__':
-    parser = OptionParser()
-    parser.add_option("-m", "--nmodel", dest="nmodel", type="int", default=None)
-    (options, args) = parser.parse_args(sys.argv)
-    nmodel = 3
-    if options.nmodel is not None:
-        nmodel = options.nmodel
 
+    parser = OptionParser()
+    parser.add_option("-m", "--nmodel", dest="nmodel", type="int", default=3)
+    parser.add_option("--env_file", dest="env_file", type="string", default="hitball_exp_v0.xml")
+    parser.add_option("--data_dir", dest="data_dir", type="string", default="hitball_mpdata_v0")
+    parser.add_option("--vel", dest="is_vel", action="store_true", default=False)
+    (options, args) = parser.parse_args(sys.argv)
+    nmodel = options.nmodel
 
     use_entropy_cost = [False, True]
     model_names = ["Original MDN", "Entropy MDN"]
-    MAX_EXPNUM = 5
-    nsamples = [1, 10, 30, 50]
+    MAX_EXPNUM = 1
+    nsamples = [1]
 
-    srates, allres = run_mdnmp_for_hitball(nmodel, MAX_EXPNUM, use_entropy_cost, model_names, nsamples)
+    srates, allres = run_mdnmp_for_hitball(nmodel, MAX_EXPNUM, use_entropy_cost, model_names, nsamples,
+                                           isvel=options.is_vel,
+                                           env_file=options.env_file,
+                                           data_dir=options.data_dir)
 
     res_file = open("result_mdnmp", 'a')
     for modelId in range(len(model_names)):

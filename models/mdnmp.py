@@ -16,7 +16,7 @@ tf.compat.v1.disable_eager_execution()
 
 class MDNMP(basicModel):
     def __init__(self, n_comps, d_input, d_output, nn_structure,
-                 batch_size=None, using_batch_norm=False, seed=42, eps=1e-20, scaling=0.1):
+                 batch_size=None, using_batch_norm=False, seed=42, eps=1e-20, scaling=0.1, var_init=None):
         basicModel.__init__(self, batch_size, using_batch_norm, seed, eps)
         self.n_comps = n_comps
         self.d_input = d_input
@@ -26,6 +26,7 @@ class MDNMP(basicModel):
         self.lratio = {'likelihood': 1, 'entropy': 100, 'regularization': 0.00001, 'failure': 0}
         self.scaling = scaling
         self.use_new_cost = False
+        self.var_init = var_init
 
     def create_network(self, scope='mdnmp', nn_type='v1'):
         tf.compat.v1.reset_default_graph()
@@ -33,7 +34,7 @@ class MDNMP(basicModel):
         self.target = tf.compat.v1.placeholder(tf.float32, shape=[None, self.d_output], name='target')
         self.is_positive = tf.compat.v1.placeholder(tf.float32, shape=[None, 1], name='is_positive')
         self.outputs = getattr(basic_nn, 'mdn_nn_'+nn_type)(self.input, self.d_output * self.n_comps, self.n_comps,
-                                                            self.nn_structure, self.using_batch_norm, scope=scope)
+                                                            self.nn_structure, self.using_batch_norm, scope=scope, var_init=self.var_init)
 
     def build_mdn(self, learning_rate=0.001, nn_type='v1'):
         self.create_network(nn_type=nn_type)
