@@ -23,7 +23,6 @@ from optparse import OptionParser
 _svr = SVR(gamma='scale', C=1.0, epsilon=0.1)
 svr = MultiDimSkRegressor(_svr)
 
-kernel = RBF(42, (1e-2, 1e2)) + WhiteKernel()
 _gpr = GaussianProcessRegressor()
 gpr = MultiDimSkRegressor(_gpr)
 possible_models = {'SVR': svr, 'GPR': gpr, 'Uniform': None}

@@ -20,14 +20,14 @@ def train_evaluate_gmgan_for_hitball(gmgan, trqueries, trvmps, tdata, use_entrop
     else:
         gmgan.entropy_ratio = 0
 
-    gmgan.lratio['entropy'] = 1000
+    gmgan.lratio['entropy'] = 500
     gmgan.lratio['adv_cost'] = 0
     gmgan.gen_sup_lrate = g_lrate
     gmgan.gen_adv_lrate = g_lrate
     gmgan.dis_lrate = d_lrate
     gmgan.sup_max_epoch = sup_max_epoch
 
-    train_input = np.random.uniform(low=np.min(trqueries, axis=0), high=np.max(trqueries, axis=0), size=(100, np.shape(trqueries)[1]))
+    train_input = np.random.uniform(low=np.min(trqueries, axis=0), high=np.max(trqueries, axis=0), size=(1000, np.shape(trqueries)[1]))
 
     gmgan.create_network()
     gmgan.init_train()

@@ -1,7 +1,7 @@
 clear
-num_type = 3;
+num_type = 4;
 num_comp = 3;
-filenames = {'original_mdn',  'entropy_mdn',  'entropy_gmgan'};
+filenames = {'baselines', 'original_mdn',  'entropy_mdn',  'entropy_gmgan'};
 means = zeros(num_type,num_comp);
 stds = zeros(num_type,num_comp);
 

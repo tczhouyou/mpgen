@@ -106,7 +106,7 @@ for expId in range(options.expnum):
         # omdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, False, max_epochs=20000,
         #                                                     sample_num=1)
 
-    with open(result_dir + "/baslines", "a") as f:
+    with open(result_dir + "/baselines", "a") as f:
         np.savetxt(f, np.array(baseline_res), delimiter=',', fmt='%.3f')
     # with open(result_dir + "/entropy_gmgan", "a") as f:
     #     np.savetxt(f, np.array(egmgan_res), delimiter=',', fmt='%.3f')

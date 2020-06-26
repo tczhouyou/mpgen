@@ -96,18 +96,18 @@ for expId in range(options.expnum):
         emdnmp_res[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, True, max_epochs=20000,
                                                             sample_num=10, isvel=True, env_file="hitball_exp_v1.xml",
                                                             isdraw=options.isdraw, num_test=options.ntest,
-                                                            learning_rate=0.0001)
+                                                            learning_rate=0.00003)
 
         print(">>>> train GMGANs")
         egmgan_res[0, i] = train_evaluate_gmgan_for_hitball(gmgan, trqueries, trvmps, tdata, False, max_epochs=20000,
                                                             sup_max_epoch=30001,
                                                             sample_num=10, isvel=True, env_file="hitball_exp_v1.xml",
-                                                            isdraw=options.isdraw, num_test=options.ntest, g_lrate=0.0001, d_lrate=0.002)
+                                                            isdraw=options.isdraw, num_test=options.ntest, g_lrate=0.00003, d_lrate=0.0002)
         #
         print(">>>> train original MDN")
         omdnmp_res[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, False, max_epochs=20000,
                                                             sample_num=10, isvel=True, env_file="hitball_exp_v1.xml",
-                                                            isdraw=options.isdraw, num_test=options.ntest, learning_rate=0.0001)
+                                                            isdraw=options.isdraw, num_test=options.ntest, learning_rate=0.00003)
 
 
     with open(result_dir + "/baselines", "a") as f:
