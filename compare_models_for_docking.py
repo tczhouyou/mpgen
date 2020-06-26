@@ -26,8 +26,11 @@ if tf.__version__ < '2.0.0':
     VAR_INIT_DIS = tflearn.initializations.normal(stddev=0.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    VAR_INIT = initializers.RandomNormal(stddev=0.003, seed=42)
-    VAR_INIT_DIS = initializers.RandomNormal(stddev=0.1, seed=42)
+    VAR_INIT = initializers.RandomNormal(stddev=0.0003, seed=42)
+    VAR_INIT_DIS = initializers.RandomNormal(stddev=0.02, seed=42)
+
+    # VAR_INIT = initializers.RandomNormal(stddev=0.003, seed=42)
+    # VAR_INIT_DIS = initializers.RandomNormal(stddev=0.1, seed=42)
 
 
 parser = OptionParser()
@@ -63,11 +66,12 @@ nn_structure = {'d_feat': 20,
                 'mean_layers': [40], #[60]
                 'scale_layers': [40], #[60]
                 'mixing_layers': [40],
-                'discriminator': [40,40],
+                'discriminator': [20],
                 'lambda': [10],
-                'd_response': [40,10],
-                'd_context': [20,10]}
-gmgan = GMGAN(n_comps=options.nmodel, context_dim=6, response_dim=knum, nn_structure=nn_structure, scaling=1, var_init=VAR_INIT, var_init_dis=VAR_INIT_DIS)
+                'd_response': [40,5],
+                'd_context': [20,5]}
+gmgan = GMGAN(n_comps=options.nmodel, context_dim=6, response_dim=knum, nn_structure=nn_structure, scaling=1,
+              var_init=VAR_INIT, var_init_dis=VAR_INIT_DIS, batch_size=100)
 
 # start experiment
 num_train_data = np.array([50, 100, 150])
@@ -80,9 +84,9 @@ if not os.path.exists(result_dir):
 
 for expId in range(options.expnum):
     baseline_res = np.zeros(shape=(1,len(tsize)))
-    # omdnmp_res = np.zeros(shape=(1, len(tsize)))
-    # emdnmp_res = np.zeros(shape=(1, len(tsize)))
-    # egmgan_res = np.zeros(shape=(1, len(tsize)))
+    omdnmp_res = np.zeros(shape=(1, len(tsize)))
+    emdnmp_res = np.zeros(shape=(1, len(tsize)))
+    egmgan_res = np.zeros(shape=(1, len(tsize)))
 
     for i in range(len(tsize)):
         tratio = tsize[i]
@@ -94,24 +98,24 @@ for expId in range(options.expnum):
         print(">>>> train baselines")
         baseline_res[0, i] = train_evaluate_baseline_for_docking('GPR', trqueries, trvmps, tdata, sample_num=1)
 
-        # print(">>>> train GMGANs")
-        # egmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, False, max_epochs=20000,
-        #                                                     sup_max_epoch=20001, sample_num=1)
-        #
-        # print(">>>> train entropy MDN")
-        # emdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, True, max_epochs=20000,
-        #                                                     sample_num=1)
-        #
-        # print(">>>> train original MDN")
-        # omdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, False, max_epochs=20000,
-        #                                                     sample_num=1)
+        print(">>>> train GMGANs")
+        egmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, False, max_epochs=20000,
+                                                            sup_max_epoch=10000, sample_num=1,g_lrate=0.0001, d_lrate=0.01)
+
+        print(">>>> train entropy MDN")
+        emdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, True, max_epochs=20000,
+                                                            sample_num=1, learning_rate=0.0001)
+
+        print(">>>> train original MDN")
+        omdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, False, max_epochs=20000,
+                                                            sample_num=1, learning_rate=0.0001)
 
     with open(result_dir + "/baselines", "a") as f:
         np.savetxt(f, np.array(baseline_res), delimiter=',', fmt='%.3f')
-    # with open(result_dir + "/entropy_gmgan", "a") as f:
-    #     np.savetxt(f, np.array(egmgan_res), delimiter=',', fmt='%.3f')
-    # with open(result_dir + "/original_mdn", "a") as f:
-    #     np.savetxt(f, np.array(omdnmp_res), delimiter=',', fmt='%.3f')
-    # with open(result_dir + "/entropy_mdn", "a") as f:
-    #     np.savetxt(f, np.array(emdnmp_res), delimiter=',', fmt='%.3f')
+    with open(result_dir + "/entropy_gmgan", "a") as f:
+        np.savetxt(f, np.array(egmgan_res), delimiter=',', fmt='%.3f')
+    with open(result_dir + "/original_mdn", "a") as f:
+        np.savetxt(f, np.array(omdnmp_res), delimiter=',', fmt='%.3f')
+    with open(result_dir + "/entropy_mdn", "a") as f:
+        np.savetxt(f, np.array(emdnmp_res), delimiter=',', fmt='%.3f')
 

@@ -14,7 +14,8 @@ from experiments.evaluate_exps import evaluate_docking, evaluate_docking_for_all
 import matplotlib.pyplot as plt
 
 
-def train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, use_entropy=True, max_epochs=20000, sample_num=1):
+def train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, use_entropy=True, max_epochs=20000, sample_num=1,
+                                     learning_rate=0.00003):
     if use_entropy:
         mdnmp.lratio['entropy'] = 500
     else:
@@ -22,7 +23,7 @@ def train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, use_entrop
 
     weights = np.ones(shape=(np.shape(trvmps)[0], 1))
     train_weights = np.copy(weights)
-    mdnmp.build_mdn(learning_rate=0.00003)
+    mdnmp.build_mdn(learning_rate=learning_rate)
     mdnmp.init_train()
     mdnmp.train(trqueries, trvmps, train_weights, max_epochs=max_epochs, is_load=False, is_save=False)
 

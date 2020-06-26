@@ -198,3 +198,9 @@ class cMDGAN(basicModel):
 
         return out
 
+    def next_batch(self, size):
+        idx = np.arange(0, size)
+        np.random.shuffle(idx)
+        idx = idx[:self.batch_size]
+
+        return idx

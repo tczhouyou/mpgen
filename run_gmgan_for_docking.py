@@ -15,20 +15,20 @@ import matplotlib.pyplot as plt
 
 
 def train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000, sup_max_epoch=0,
-                                     sample_num=1):
+                                     sample_num=1, g_lrate=0.0003, d_lrate=0.001):
     if use_entropy:
         gmgan.entropy_ratio = 1
     else:
         gmgan.entropy_ratio = 0
 
     gmgan.lratio['entropy'] = 500
-    gmgan.lratio['adv_cost'] = 0
-    gmgan.gen_sup_lrate = 0.00003
-    gmgan.gen_adv_lrate = 0.00003
-    gmgan.dis_lrate = 0.001
+    gmgan.lratio['adv_cost'] = 100
+    gmgan.gen_sup_lrate = g_lrate
+    gmgan.gen_adv_lrate = g_lrate
+    gmgan.dis_lrate = d_lrate
     gmgan.sup_max_epoch = sup_max_epoch
 
-    train_input = np.random.uniform(low=np.min(trqueries, axis=0), high=np.max(trqueries, axis=0), size=(100, np.shape(trqueries)[1]))
+    train_input = np.random.uniform(low=np.min(trqueries, axis=0), high=np.max(trqueries, axis=0), size=(10000, np.shape(trqueries)[1]))
 
     gmgan.create_network()
     gmgan.init_train()
@@ -37,7 +37,7 @@ def train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, use_entrop
     tqueries = tdata[:, 0:6]
     starts = tdata[:, 6:8]
     goals = tdata[:, 8:10]
-    wout = gmgan.generate(tqueries, 10000, n_output=sample_num)
+    wout = gmgan.generate(tqueries, 5000, n_output=sample_num)
     srate, _ = evaluate_docking(wout, tqueries, starts, goals)
     return srate
 

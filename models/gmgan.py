@@ -284,3 +284,10 @@ class GMGAN:
             res[i,:,:] = souts[ind[:n_output],:]
 
         return res
+
+    def next_batch(self, size):
+        idx = np.arange(0, size)
+        np.random.shuffle(idx)
+        idx = idx[:self.batch_size]
+
+        return idx

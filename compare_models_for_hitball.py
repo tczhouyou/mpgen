@@ -58,12 +58,12 @@ nn_structure = {'d_feat': 20,
                 'mean_layers': [40],
                 'scale_layers': [40],
                 'mixing_layers': [20],
-                'discriminator': [40],
+                'discriminator': [20],
                 'lambda': [10],
                 'd_response': [40,5],
-                'd_context': [10,5]}
+                'd_context': [20,5]}
 gmgan = GMGAN(n_comps=options.nmodel, context_dim=d_input, response_dim=d_output, nn_structure=nn_structure, scaling=1,
-              var_init=VAR_INIT, var_init_dis=VAR_INIT_DIS)
+              var_init=VAR_INIT, var_init_dis=VAR_INIT_DIS, batch_size=100)
 
 
 # start experiment
@@ -86,11 +86,14 @@ for expId in range(options.expnum):
         print("======== exp: %1d for training dataset: %1d =======" % (expId, np.shape(trdata)[0]))
         trqueries = trdata[:, 0:2]
 
-        print(">>>> train baselines")
-        baseline_res[0, i] = train_evaluate_baseline_for_hitball("GPR", trqueries, trvmps, tdata,
-                                                                 sample_num=10, isvel=True,
-                                                                 env_file="hitball_exp_v1.xml",
-                                                                 isdraw=options.isdraw, num_test=options.ntest)
+
+
+        print(">>>> train GMGANs")
+        egmgan_res[0, i] = train_evaluate_gmgan_for_hitball(gmgan, trqueries, trvmps, tdata, False, max_epochs=20000,
+                                                            sup_max_epoch=10000,
+                                                            sample_num=10, isvel=True, env_file="hitball_exp_v1.xml",
+                                                            isdraw=options.isdraw, num_test=options.ntest,
+                                                            g_lrate=0.00003, d_lrate=0.0002)
 
         print(">>>> train entropy MDN")
         emdnmp_res[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, True, max_epochs=20000,
@@ -98,12 +101,12 @@ for expId in range(options.expnum):
                                                             isdraw=options.isdraw, num_test=options.ntest,
                                                             learning_rate=0.00003)
 
-        print(">>>> train GMGANs")
-        egmgan_res[0, i] = train_evaluate_gmgan_for_hitball(gmgan, trqueries, trvmps, tdata, False, max_epochs=20000,
-                                                            sup_max_epoch=30001,
-                                                            sample_num=10, isvel=True, env_file="hitball_exp_v1.xml",
-                                                            isdraw=options.isdraw, num_test=options.ntest, g_lrate=0.00003, d_lrate=0.0002)
-        #
+        print(">>>> train baselines")
+        baseline_res[0, i] = train_evaluate_baseline_for_hitball("GPR", trqueries, trvmps, tdata,
+                                                                 sample_num=10, isvel=True,
+                                                                 env_file="hitball_exp_v1.xml",
+                                                                 isdraw=options.isdraw, num_test=options.ntest)
+
         print(">>>> train original MDN")
         omdnmp_res[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, False, max_epochs=20000,
                                                             sample_num=10, isvel=True, env_file="hitball_exp_v1.xml",
