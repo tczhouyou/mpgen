@@ -22,7 +22,7 @@ def train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, use_entrop
         gmgan.entropy_ratio = 0
 
     gmgan.lratio['entropy'] = 500
-    gmgan.lratio['adv_cost'] = 100
+    gmgan.lratio['adv_cost'] = 10
     gmgan.gen_sup_lrate = g_lrate
     gmgan.gen_adv_lrate = g_lrate
     gmgan.dis_lrate = d_lrate
@@ -37,7 +37,7 @@ def train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, use_entrop
     tqueries = tdata[:, 0:6]
     starts = tdata[:, 6:8]
     goals = tdata[:, 8:10]
-    wout = gmgan.generate(tqueries, 5000, n_output=sample_num)
+    wout = gmgan.generate(tqueries, 10000, n_output=sample_num)
     srate, _ = evaluate_docking(wout, tqueries, starts, goals)
     return srate
 

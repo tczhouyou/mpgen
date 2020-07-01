@@ -30,9 +30,9 @@ else:
 def train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000, sample_num=1,
                                      isvel=True, env_file="hitball_exp_v1.xml", isdraw=False, num_test=100, learning_rate=0.002):
     if use_entropy:
-        mdnmp.lratio['entropy'] = 500
+        mdnmp.lratio['mce'] = 500
     else:
-        mdnmp.lratio['entropy'] = 0
+        mdnmp.lratio['mce'] = 0
 
     weights = np.ones(shape=(np.shape(trvmps)[0], 1))
     train_weights = np.copy(weights)
@@ -99,9 +99,9 @@ def run_mdnmp_for_hitball(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True
     allres = np.zeros(shape=(len(model_names), MAX_EXPNUM, len(nsamples)))
     for modelId in range(len(model_names)):
         if use_entropy_cost[modelId]:
-            mdnmp.lratio['entropy'] = 1000
+            mdnmp.lratio['mce'] = 1000
         else:
-            mdnmp.lratio['entropy'] = 0
+            mdnmp.lratio['mce'] = 0
 
         csrates = np.zeros(shape=(MAX_EXPNUM,len(nsamples)))
         for expId in range(MAX_EXPNUM):

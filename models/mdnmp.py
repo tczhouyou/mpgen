@@ -9,7 +9,7 @@ import numpy as np
 import basic_nn
 from util import sample_gmm
 from basic_model import basicModel
-from costfcn import gmm_nll_cost, model_entropy_cost, failure_cost
+from costfcn import gmm_nll_cost, gmm_mce_cost, failure_cost, gmm_eub_cost
 
 tf.compat.v1.disable_eager_execution()
 
@@ -23,7 +23,7 @@ class MDNMP(basicModel):
         self.d_output = d_output
 
         self.nn_structure = nn_structure
-        self.lratio = {'likelihood': 1, 'entropy': 100, 'regularization': 0.00001, 'failure': 0}
+        self.lratio = {'likelihood': 1, 'mce': 100, 'regularization': 0.00001, 'failure': 0, 'eub':0}
         self.scaling = scaling
         self.use_new_cost = False
         self.var_init = var_init
@@ -50,20 +50,28 @@ class MDNMP(basicModel):
         mc = self.outputs['mc']
 
         nll = gmm_nll_cost(self.target, mean, scale, mc, self.is_positive)
-        entropy_loss = model_entropy_cost(self.n_comps, mc, self.is_positive, eps=1e-20)
+        mce_loss = gmm_mce_cost(mc, self.is_positive, eps=1e-20)
+        eub_loss = gmm_eub_cost(scale, mc, self.is_positive)
         floss = failure_cost(self.target, mean, mc, 1-self.is_positive, neg_scale=0.1)
 
-        cost = self.lratio['likelihood'] * nll + \
-               self.lratio['entropy'] * entropy_loss + \
-               self.lratio['regularization'] * reg_loss + \
-               self.lratio['failure'] * floss
+        cost = self.lratio['likelihood'] * nll + self.lratio['regularization'] * reg_loss
+
+        if self.lratio['mce'] != 0:
+            cost = cost + self.lratio['mce'] * mce_loss
+
+        if self.lratio['eub'] != 0:
+            cost = cost + self.lratio['eub'] * eub_loss
+
+        if self.lratio['failure'] != 0:
+            cost = cost + self.lratio['failure'] * floss
 
         self.opt_all = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=var_list)
         self.opt_mean = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=mean_var_list)
         self.opt_scale = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=scale_var_list)
         self.saver = tf.compat.v1.train.Saver()
 
-        self.loss_dict = {'nll': nll, 'eloss': entropy_loss, 'floss': floss, 'cost': cost}
+        self.loss_dict = {'nll': nll, 'mce': mce_loss, 'eub': eub_loss, 'floss': floss, 'cost': cost}
+
 
     def init_train(self, logfile='mdnmp_log'):
         tf.compat.v1.random.set_random_seed(self.seed)
@@ -94,17 +102,17 @@ class MDNMP(basicModel):
                 batch_ispos = is_positive
 
             feed_dict = {self.input: batch_input, self.target: batch_target, self.is_positive: batch_ispos}
-            _, nll, eloss, cost, floss = self.sess.run([self.opt_all, self.loss_dict['nll'], self.loss_dict['eloss'],
-                                                        self.loss_dict['cost'], self.loss_dict['floss']],
+            _, nll, mce, cost, eub = self.sess.run([self.opt_all, self.loss_dict['nll'], self.loss_dict['mce'],
+                                                        self.loss_dict['cost'], self.loss_dict['eub']],
                                                         feed_dict=feed_dict)
 
             if i != 0 and i % 1000 == 0 and is_save:
                 self.save(self.sess, self.saver, checkpoint_dir, model_dir, model_name)
                 self.global_step = self.global_step + 1
 
-            print("epoch: %1d, cost: %.3f, nll: %.3f, entropy_loss: %.3f, floss: %.3f" % (i, cost, nll, eloss, floss), end='\r', flush=True)
+            print("epoch: %1d, cost: %.3f, nll: %.3f, mce: %.3f, eub: %.3f" % (i, cost, nll, mce, eub), end='\r', flush=True)
 
-        print("Training Result: %1d, cost: %.3f, nll: %.3f, entropy_loss: %.3f, floss: %.3f" % (i, cost, nll, eloss, floss), end='\n')
+        print("Training Result: %1d, cost: %.3f, nll: %.3f, mce: %.3f, eub: %.3f" % (i, cost, nll, mce, eub), end='\n')
 
     def predict(self, cinput, n_samples=1):
         mean, scale, mc = self.sess.run([self.outputs['mean'], self.outputs['scale'], self.outputs['mc']],

@@ -90,10 +90,10 @@ for expId in range(options.expnum):
 
         print(">>>> train GMGANs")
         egmgan_res[0, i] = train_evaluate_gmgan_for_hitball(gmgan, trqueries, trvmps, tdata, False, max_epochs=20000,
-                                                            sup_max_epoch=10000,
-                                                            sample_num=10, isvel=True, env_file="hitball_exp_v1.xml",
+                                                            sup_max_epoch=20001,
+                                                            sample_num=1, isvel=True, env_file="hitball_exp_v1.xml",
                                                             isdraw=options.isdraw, num_test=options.ntest,
-                                                            g_lrate=0.00003, d_lrate=0.0002)
+                                                            g_lrate=0.00003, d_lrate=0.002)
 
         print(">>>> train entropy MDN")
         emdnmp_res[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, True, max_epochs=20000,

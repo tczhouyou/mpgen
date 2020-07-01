@@ -74,7 +74,7 @@ gmgan = GMGAN(n_comps=options.nmodel, context_dim=6, response_dim=knum, nn_struc
               var_init=VAR_INIT, var_init_dis=VAR_INIT_DIS, batch_size=100)
 
 # start experiment
-num_train_data = np.array([50, 100, 150])
+num_train_data = np.array([50])
 tsize = (np.shape(data)[0] -num_train_data)/np.shape(data)[0]
 print(tsize)
 
@@ -82,11 +82,14 @@ result_dir = options.result_dir
 if not os.path.exists(result_dir):
     os.makedirs(result_dir)
 
+mdnmp_lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0.00001, 'failure': 0, 'eub': 0}
+
 for expId in range(options.expnum):
     baseline_res = np.zeros(shape=(1,len(tsize)))
     omdnmp_res = np.zeros(shape=(1, len(tsize)))
     emdnmp_res = np.zeros(shape=(1, len(tsize)))
     egmgan_res = np.zeros(shape=(1, len(tsize)))
+    eubmdnmp_res = np.zeros(shape=(1, len(tsize)))
 
     for i in range(len(tsize)):
         tratio = tsize[i]
@@ -95,20 +98,33 @@ for expId in range(options.expnum):
 
         trqueries = trdata[:, 0:6]
 
-        print(">>>> train baselines")
-        baseline_res[0, i] = train_evaluate_baseline_for_docking('GPR', trqueries, trvmps, tdata, sample_num=1)
+        print(">>>> train eub MDN")
+        mdnmp_lratio['mce'] = 0
+        mdnmp_lratio['eub'] = 1
+        eubmdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, mdnmp_lratio, max_epochs=20000,
+                                                            sample_num=1, learning_rate=0.0001)
+
+        print(">>>> train mce MDN")
+        mdnmp_lratio['mce'] = 10
+        mdnmp_lratio['eub'] = 0
+        emdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, mdnmp_lratio,
+                                                            max_epochs=20000,
+                                                            sample_num=1, learning_rate=0.0001)
+
+        print(">>>> train ori MDN")
+        mdnmp_lratio['mce'] = 0
+        mdnmp_lratio['eub'] = 0
+        emdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, mdnmp_lratio,
+                                                            max_epochs=20000,
+                                                            sample_num=1, learning_rate=0.0001)
 
         print(">>>> train GMGANs")
         egmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, False, max_epochs=20000,
-                                                            sup_max_epoch=10000, sample_num=1,g_lrate=0.0001, d_lrate=0.01)
+                                                            sup_max_epoch=20001, sample_num=1, g_lrate=0.00003, d_lrate=0.002)
 
-        print(">>>> train entropy MDN")
-        emdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, True, max_epochs=20000,
-                                                            sample_num=1, learning_rate=0.0001)
+        print(">>>> train baselines")
+        baseline_res[0, i] = train_evaluate_baseline_for_docking('GPR', trqueries, trvmps, tdata, sample_num=1)
 
-        print(">>>> train original MDN")
-        omdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, False, max_epochs=20000,
-                                                            sample_num=1, learning_rate=0.0001)
 
     with open(result_dir + "/baselines", "a") as f:
         np.savetxt(f, np.array(baseline_res), delimiter=',', fmt='%.3f')
@@ -118,4 +134,5 @@ for expId in range(options.expnum):
         np.savetxt(f, np.array(omdnmp_res), delimiter=',', fmt='%.3f')
     with open(result_dir + "/entropy_mdn", "a") as f:
         np.savetxt(f, np.array(emdnmp_res), delimiter=',', fmt='%.3f')
-
+    with open(result_dir + "/eub_mdn", "a") as f:
+        np.savetxt(f, np.array(eubmdnmp_res), delimiter=',', fmt='%.3f')

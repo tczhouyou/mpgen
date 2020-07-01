@@ -11,12 +11,14 @@ def gmm_nll_cost(samples, vec_mus, vec_scales, mixing_coeffs, sample_valid):
     gmm_comps = [tfd.MultivariateNormalDiag(loc=mu, scale_diag=scale) for mu, scale in zip(mus, scales)]
     gmm = tfd.Mixture(cat=tfd.Categorical(probs=mixing_coeffs), components=gmm_comps)
     loss = gmm.log_prob(samples)
+    loss = tf.expand_dims(loss, axis=1)
     loss = tf.negative(tf.reduce_sum(tf.multiply(loss, sample_valid)))
     loss = tf.divide(loss, tf.reduce_sum(sample_valid))
     return loss
 
 
-def model_entropy_cost(n_comps, mixing_coeffs, sample_valid, eps=1e-5):
+def gmm_mce_cost(mixing_coeffs, sample_valid, eps=1e-20):
+    n_comps = mixing_coeffs.get_shape().as_list()[1]
     ratio = 1.0 / np.float(n_comps)
     max_entropy = - np.log(ratio)
 
@@ -24,6 +26,32 @@ def model_entropy_cost(n_comps, mixing_coeffs, sample_valid, eps=1e-5):
     prob = tf.divide(tf.reduce_sum(pos_mc, axis=0), tf.reduce_sum(sample_valid, axis=0))
     model_entropy = - tf.reduce_sum(tf.multiply(tf.math.log(prob + eps), prob))
     loss = max_entropy - model_entropy
+    return loss
+
+
+def gmm_eub_cost(vec_scales, mixing_coeffs, sample_valid, eps=1e-20):
+    n_comp = mixing_coeffs.get_shape().as_list()[1]
+    scales = tf.split(vec_scales, num_or_size_splits=n_comp, axis=1)
+    ratio = 1.0 / np.float(n_comp)
+    Hc = 0
+    Hp = 0
+
+    max_scale = 10
+    scale = scales[0]
+    n_dim = scale.get_shape().as_list()[1]
+    max_H = (-np.log(ratio)) + 0.5 * np.log(np.power(max_scale, n_dim) + eps)
+
+    for i in range(n_comp):
+        scale = scales[i]
+        scale = tf.clip_by_value(scale, 0, max_scale)
+        Hc = Hc + tf.negative(tf.multiply(mixing_coeffs[:,i], tf.math.log(mixing_coeffs[:,i]+eps)))
+        Hp = Hp + tf.multiply(mixing_coeffs[:,i], 0.5 * tf.math.log(tf.math.reduce_prod(scale, axis=1)+eps))
+
+    eub = Hc + 0.01 * Hp
+    eub = tf.expand_dims(eub, axis=1)
+    eub = tf.reduce_sum(tf.multiply(eub, sample_valid))
+    eub = tf.divide(eub, tf.reduce_sum(sample_valid))
+    loss = max_H - eub
     return loss
 
 

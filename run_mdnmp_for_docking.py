@@ -14,12 +14,14 @@ from experiments.evaluate_exps import evaluate_docking, evaluate_docking_for_all
 import matplotlib.pyplot as plt
 
 
-def train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, use_entropy=True, max_epochs=20000, sample_num=1,
+def train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, lratio, max_epochs=20000, sample_num=1,
                                      learning_rate=0.00003):
-    if use_entropy:
-        mdnmp.lratio['entropy'] = 500
-    else:
-        mdnmp.lratio['entropy'] = 0
+
+    mdnmp.lratio = lratio
+    # if use_entropy:
+    #     mdnmp.lratio['entropy'] = 500
+    # else:
+    #     mdnmp.lratio['entropy'] = 0
 
     weights = np.ones(shape=(np.shape(trvmps)[0], 1))
     train_weights = np.copy(weights)
@@ -61,9 +63,9 @@ def run_mdnmp_for_docking(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True
         mdnmp = MDNMP(n_comps=nmodel, d_input=6, d_output=knum, nn_structure=nn_structure, scaling=1)
 
         if use_entropy_cost[k]:
-            mdnmp.lratio['entropy'] = 200
+            mdnmp.lratio['mce'] = 200
         else:
-            mdnmp.lratio['entropy'] = 0
+            mdnmp.lratio['mce'] = 0
 
         csrates = np.zeros(shape=(MAX_EXPNUM,len(nsamples)))
 

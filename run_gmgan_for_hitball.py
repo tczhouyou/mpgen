@@ -41,7 +41,7 @@ def train_evaluate_gmgan_for_hitball(gmgan, trqueries, trvmps, tdata, use_entrop
     tqueries = tdata[:num_test, 0:2]
     starts = tdata[:num_test, 2:4]
     goals = tdata[:num_test, 4:6]
-    wout = gmgan.generate(tqueries, 5000, sample_num)
+    wout = gmgan.generate(tqueries, 8000, sample_num)
 
     if isvel:
         srate = evaluate_hitball(wout, tqueries, starts, goals,

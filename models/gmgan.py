@@ -9,7 +9,7 @@ import numpy as np
 import basic_nn
 from basic_nn import fully_connected_nn, sigmoid_act, tanh_act, leaky_relu_act
 from basic_model import basicModel
-from costfcn import gmm_likelihood_simplex, entropy_discriminator_cost, gmm_nll_cost, model_entropy_cost
+from costfcn import gmm_likelihood_simplex, entropy_discriminator_cost, gmm_nll_cost, gmm_mce_cost
 from tensorflow_probability import distributions as tfd
 from util import sample_gmm
 
@@ -147,7 +147,7 @@ class GMGAN:
 
         is_positive = tf.ones(shape=(num_real_data, 1), dtype=tf.float32)
         self.nll = gmm_nll_cost(self.real_response, mean, scale, mc, is_positive)
-        self.entropy_loss = model_entropy_cost(self.n_comps, mc, is_positive, eps=1e-20)
+        self.entropy_loss = gmm_mce_cost(mc, is_positive, eps=1e-20)
         self.gen_sup_cost = self.lratio['likelihood'] * self.nll + self.lratio['entropy'] * self.entropy_loss
 
         self.gen_adv_cost = tf.reduce_mean(tf.math.log(self.lamb - self.fake_likelihood + 1e-8))
