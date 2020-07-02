@@ -27,13 +27,16 @@ def train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, lratio, ma
     train_weights = np.copy(weights)
     mdnmp.build_mdn(learning_rate=learning_rate)
     mdnmp.init_train()
-    mdnmp.train(trqueries, trvmps, train_weights, max_epochs=max_epochs, is_load=False, is_save=False)
+    isSuccess = mdnmp.train(trqueries, trvmps, train_weights, max_epochs=max_epochs, is_load=False, is_save=False)
 
-    tqueries = tdata[:, 0:6]
-    wout, _ = mdnmp.predict(tqueries, sample_num)
-    starts = tdata[:, 6:8]
-    goals = tdata[:, 8:10]
-    srate, _ = evaluate_docking(wout, tqueries, starts, goals)
+    srate = 0
+    if isSuccess:
+        tqueries = tdata[:, 0:6]
+        wout, _ = mdnmp.predict(tqueries, sample_num)
+        starts = tdata[:, 6:8]
+        goals = tdata[:, 8:10]
+        srate, _ = evaluate_docking(wout, tqueries, starts, goals)
+
     return srate
 
 def run_mdnmp_for_docking(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True], model_names=["Original MDN", "Entropy MDN"], nsamples=[1, 10, 30, 50, 70]):

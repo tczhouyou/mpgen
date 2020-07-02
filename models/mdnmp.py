@@ -90,6 +90,7 @@ class MDNMP(basicModel):
             else:
                 print(" [!] Load failed...")
 
+        isSuccess = True
         for i in range(max_epochs):
             if self.batch_size is not None:
                 idx = self.next_batch(np.shape(input)[0])
@@ -102,9 +103,14 @@ class MDNMP(basicModel):
                 batch_ispos = is_positive
 
             feed_dict = {self.input: batch_input, self.target: batch_target, self.is_positive: batch_ispos}
-            _, nll, mce, cost, eub = self.sess.run([self.opt_all, self.loss_dict['nll'], self.loss_dict['mce'],
+            nll, mce, cost, eub = self.sess.run([self.opt_all, self.loss_dict['nll'], self.loss_dict['mce'],
                                                         self.loss_dict['cost'], self.loss_dict['eub']],
                                                         feed_dict=feed_dict)
+
+            if np.isnan(cost) or np.isinf(cost):
+                print('\n failed trained')
+                isSuccess = False
+                break
 
             if i != 0 and i % 1000 == 0 and is_save:
                 self.save(self.sess, self.saver, checkpoint_dir, model_dir, model_name)
@@ -113,6 +119,7 @@ class MDNMP(basicModel):
             print("epoch: %1d, cost: %.3f, nll: %.3f, mce: %.3f, eub: %.3f" % (i, cost, nll, mce, eub), end='\r', flush=True)
 
         print("Training Result: %1d, cost: %.3f, nll: %.3f, mce: %.3f, eub: %.3f" % (i, cost, nll, mce, eub), end='\n')
+        return isSuccess
 
     def predict(self, cinput, n_samples=1):
         mean, scale, mc = self.sess.run([self.outputs['mean'], self.outputs['scale'], self.outputs['mc']],

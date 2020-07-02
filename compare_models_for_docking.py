@@ -28,6 +28,7 @@ else:
     from tensorflow.keras import initializers
     VAR_INIT = initializers.RandomNormal(stddev=0.0003, seed=42)
     VAR_INIT_DIS = initializers.RandomNormal(stddev=0.02, seed=42)
+    # VAR_INIT = initializers.RandomNormal(stddev=0.01, seed=42)
 
 
 
@@ -35,8 +36,11 @@ else:
 parser = OptionParser()
 parser.add_option("-m", "--nmodel", dest="nmodel", type="int", default=3)
 parser.add_option("-n", "--num_exp", dest="expnum", type="int", default=1)
+parser.add_option("-r", "--rand_init", dest="rand", type="float", default=0.0003)
 parser.add_option("-d", "--result_dir", dest="result_dir", type="string", default="results_compare_docking")
 (options, args) = parser.parse_args(sys.argv)
+
+VAR_INIT = initializers.RandomNormal(stddev=options.rand, seed=42)
 
 queries = np.loadtxt('data/docking_queries.csv', delimiter=',')
 vmps = np.loadtxt('data/docking_weights.csv', delimiter=',')
@@ -110,14 +114,12 @@ for expId in range(options.expnum):
                                                             max_epochs=20000,
                                                             sample_num=1, learning_rate=0.0001)
 
-        for k in range(10):
-            print(">>>> train ori MDN")
-            mdnmp_lratio['mce'] = 0
-            mdnmp_lratio['eub'] = 0
-            mdnmp.var_init = initializers.RandomNormal(stddev=0.1, seed=42)
-            omdnmp_res[0, i, k] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, mdnmp_lratio,
-                                                                max_epochs=20000,
-                                                                sample_num=1, learning_rate=0.0001)
+        print(">>>> train ori MDN")
+        mdnmp_lratio['mce'] = 0
+        mdnmp_lratio['eub'] = 0
+        omdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, mdnmp_lratio,
+                                                            max_epochs=20000,
+                                                            sample_num=1, learning_rate=0.0001)
 
         # print(">>>> train GMGANs")
         # egmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, False, max_epochs=20000,
@@ -129,10 +131,10 @@ for expId in range(options.expnum):
 
     # with open(result_dir + "/baselines", "a") as f:
     #     np.savetxt(f, np.array(baseline_res), delimiter=',', fmt='%.3f')
-    # with open(result_dir + "/entropy_gmgan", "a") as f:
-    #     np.savetxt(f, np.array(egmgan_res), delimiter=',', fmt='%.3f')
-    # with open(result_dir + "/original_mdn", "a") as f:
-    #     np.savetxt(f, np.array(omdnmp_res), delimiter=',', fmt='%.3f')
+    with open(result_dir + "/entropy_gmgan", "a") as f:
+        np.savetxt(f, np.array(egmgan_res), delimiter=',', fmt='%.3f')
+    with open(result_dir + "/original_mdn", "a") as f:
+        np.savetxt(f, np.array(omdnmp_res), delimiter=',', fmt='%.3f')
     # with open(result_dir + "/entropy_mdn", "a") as f:
     #     np.savetxt(f, np.array(emdnmp_res), delimiter=',', fmt='%.3f')
     # with open(result_dir + "/eub_mdn", "a") as f:
