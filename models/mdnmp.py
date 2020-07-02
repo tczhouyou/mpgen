@@ -103,14 +103,16 @@ class MDNMP(basicModel):
                 batch_ispos = is_positive
 
             feed_dict = {self.input: batch_input, self.target: batch_target, self.is_positive: batch_ispos}
-            nll, mce, cost, eub = self.sess.run([self.opt_all, self.loss_dict['nll'], self.loss_dict['mce'],
+            nll, mce, cost, eub = self.sess.run([self.loss_dict['nll'], self.loss_dict['mce'],
                                                         self.loss_dict['cost'], self.loss_dict['eub']],
                                                         feed_dict=feed_dict)
-
+            
             if np.isnan(cost) or np.isinf(cost):
                 print('\n failed trained')
                 isSuccess = False
                 break
+
+            self.sess.run(self.opt_all, feed_dict=feed_dict)
 
             if i != 0 and i % 1000 == 0 and is_save:
                 self.save(self.sess, self.saver, checkpoint_dir, model_dir, model_name)
