@@ -89,7 +89,7 @@ mdnmp_lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0.00001, 'failure':
 
 for expId in range(options.expnum):
     baseline_res = np.zeros(shape=(1,len(tsize)))
-    omdnmp_res = np.zeros(shape=(1, len(tsize), 10))
+    omdnmp_res = np.zeros(shape=(1, len(tsize)))
     emdnmp_res = np.zeros(shape=(1, len(tsize)))
     egmgan_res = np.zeros(shape=(1, len(tsize)))
     eubmdnmp_res = np.zeros(shape=(1, len(tsize)))
