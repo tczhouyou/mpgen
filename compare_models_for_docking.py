@@ -131,11 +131,11 @@ for expId in range(options.expnum):
 
     # with open(result_dir + "/baselines", "a") as f:
     #     np.savetxt(f, np.array(baseline_res), delimiter=',', fmt='%.3f')
-    with open(result_dir + "/entropy_gmgan", "a") as f:
-        np.savetxt(f, np.array(egmgan_res), delimiter=',', fmt='%.3f')
+    # with open(result_dir + "/entropy_gmgan", "a") as f:
+    #     np.savetxt(f, np.array(egmgan_res), delimiter=',', fmt='%.3f')
     with open(result_dir + "/original_mdn", "a") as f:
         np.savetxt(f, np.array(omdnmp_res), delimiter=',', fmt='%.3f')
-    # with open(result_dir + "/entropy_mdn", "a") as f:
-    #     np.savetxt(f, np.array(emdnmp_res), delimiter=',', fmt='%.3f')
+    with open(result_dir + "/entropy_mdn", "a") as f:
+        np.savetxt(f, np.array(emdnmp_res), delimiter=',', fmt='%.3f')
     # with open(result_dir + "/eub_mdn", "a") as f:
     #     np.savetxt(f, np.array(eubmdnmp_res), delimiter=',', fmt='%.3f')
