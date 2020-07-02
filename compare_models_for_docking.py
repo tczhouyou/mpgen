@@ -26,11 +26,10 @@ if tf.__version__ < '2.0.0':
     VAR_INIT_DIS = tflearn.initializations.normal(stddev=0.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    # VAR_INIT = initializers.RandomNormal(stddev=0.0003, seed=42)
-    # VAR_INIT_DIS = initializers.RandomNormal(stddev=0.02, seed=42)
+    VAR_INIT = initializers.RandomNormal(stddev=0.0003, seed=42)
+    VAR_INIT_DIS = initializers.RandomNormal(stddev=0.02, seed=42)
 
-    VAR_INIT = initializers.RandomNormal(stddev=0.1, seed=42)
-    # VAR_INIT_DIS = initializers.RandomNormal(stddev=0.1, seed=42)
+
 
 
 parser = OptionParser()
@@ -105,18 +104,17 @@ for expId in range(options.expnum):
         #                                                     sample_num=1, learning_rate=0.0001)
 
         print(">>>> train mce MDN")
-        VAR_INIT = initializers.RandomNormal(stddev=0.0003, seed=42)
         mdnmp_lratio['mce'] = 10
         mdnmp_lratio['eub'] = 0
         emdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, mdnmp_lratio,
                                                             max_epochs=20000,
                                                             sample_num=1, learning_rate=0.0001)
 
-        VAR_INIT = initializers.RandomNormal(stddev=0.3, seed=42)
         for k in range(10):
             print(">>>> train ori MDN")
             mdnmp_lratio['mce'] = 0
             mdnmp_lratio['eub'] = 0
+            mdnmp.var_init = initializers.RandomNormal(stddev=0.1, seed=42)
             omdnmp_res[0, i, k] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, mdnmp_lratio,
                                                                 max_epochs=20000,
                                                                 sample_num=1, learning_rate=0.0001)
