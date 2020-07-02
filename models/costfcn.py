@@ -47,7 +47,7 @@ def gmm_eub_cost(vec_scales, mixing_coeffs, sample_valid, eps=1e-20):
         Hc = Hc + tf.negative(tf.multiply(mixing_coeffs[:,i], tf.math.log(mixing_coeffs[:,i]+eps)))
         Hp = Hp + tf.multiply(mixing_coeffs[:,i], 0.5 * tf.math.log(tf.math.reduce_prod(scale, axis=1)+eps))
 
-    eub = Hc + 0.01 * Hp
+    eub = Hc + 0.1 * Hp
     eub = tf.expand_dims(eub, axis=1)
     eub = tf.reduce_sum(tf.multiply(eub, sample_valid))
     eub = tf.divide(eub, tf.reduce_sum(sample_valid))
