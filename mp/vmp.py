@@ -35,7 +35,7 @@ class VMP:
         n_dim = np.shape(trajectories)[2] - 1
 
         self.dim = n_dim
-        X = self.linearDecayCanonicalSystem(1,0, self.n_samples )
+        X = self.linearDecay(trajectories[0,:,0])
         Psi = self.__Psi__(X)
 
         if self.ElementaryType is 'linear':
@@ -181,6 +181,11 @@ class VMP:
 
     def cansys(self, t):
         return 1 - t
+
+    def linearDecay(self, tvec):
+        T = tvec[-1]
+        X = np.divide((T - tvec), T)
+        return X
 
     def linearDecayCanonicalSystem(self, t0, t1, numOfSamples):
         return np.linspace(t0, t1, numOfSamples)

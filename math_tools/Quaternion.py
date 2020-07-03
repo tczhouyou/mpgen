@@ -31,6 +31,22 @@ class Quaternion:
             return np.array([q[0]/norm, q[1]/norm, q[2]/norm, q[3]/norm])
 
     @staticmethod
+    def normalize_traj(qtraj):
+        if np.shape(qtraj)[1] == 5:
+            is_time_included = True
+        else:
+            is_time_included = False
+
+        restraj = qtraj.copy()
+        for i in range(np.shape(qtraj)[0]):
+            if is_time_included:
+                restraj[i,1:] = Quaternion.normalize(qtraj[i,1:])
+            else:
+                restraj[i,:] = Quaternion.normalize(qtraj[i,:])
+
+        return restraj
+
+    @staticmethod
     def isquat(q):
         if np.sum(np.square(q)) == 1:
             return True
@@ -52,6 +68,8 @@ class Quaternion:
         l = np.min([np.shape(qtraj0)[0], np.shape(qtraj1)[0]])
         res = [Quaternion.qmulti(Quaternion.qinv(qtraj0[i,:]), qtraj1[i,:]) for i in range(l)]
         return np.stack(res)
+
+
 
     @staticmethod
     def slerp(t, q0, q1, deri=0):
@@ -94,6 +112,14 @@ class Quaternion:
 
         return qtraj
 
+    @staticmethod
+    def get_slerp_traj_(q0, q1, tvec, deri=0):
+        qtraj = np.zeros(shape=(len(tvec), 4))
+        for i in range(len(tvec)):
+            q = Quaternion.slerp(tvec[i], q0, q1, deri=deri)
+            qtraj[i,:] = q
+
+        return qtraj
 
     @staticmethod
     def to_matrix(q):
