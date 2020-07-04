@@ -23,7 +23,7 @@ if tf.__version__ < '2.0.0':
     VAR_INIT_DIS = tflearn.initializations.normal(stddev=0.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    VAR_INIT = initializers.RandomNormal(stddev=0.0003, seed=42)
+    #VAR_INIT = initializers.RandomNormal(stddev=0.0003, seed=42)
     VAR_INIT_DIS = initializers.RandomNormal(stddev=0.002, seed=42)
 
 parser = OptionParser()
@@ -32,7 +32,9 @@ parser.add_option("-n", "--num_exp", dest="expnum", type="int", default=1)
 parser.add_option("--num_test", dest="ntest", type="int", default=100)
 parser.add_option("-d", "--result_dir", dest="result_dir", type="string", default="results_compare_docking")
 parser.add_option("--draw", dest="isdraw", action="store_true", default=False)
+parser.add_option("--rand", dest='rand_init', type='float', default=0.003)
 (options, args) = parser.parse_args(sys.argv)
+VAR_INIT = initializers.RandomNormal(stddev=options.rand_init, seed=42)
 
 data_dir = 'experiments/mujoco/hitball/hitball_mpdata_v1'
 queries = np.loadtxt(data_dir + '/hitball_queries.csv', delimiter=',')
@@ -67,7 +69,7 @@ gmgan = GMGAN(n_comps=options.nmodel, context_dim=d_input, response_dim=d_output
 
 
 # start experiment
-num_train_data = np.array([50, 100, 200])
+num_train_data = np.array([50])
 tsize = (np.shape(data)[0] -num_train_data)/np.shape(data)[0]
 
 result_dir = options.result_dir
@@ -81,19 +83,17 @@ for expId in range(options.expnum):
     egmgan_res = np.zeros(shape=(1, len(tsize)))
 
     for i in range(len(tsize)):
-        tratio = tsize[i]
+        tratio = tsize[0]
         trdata, tdata, trvmps, tvmps = train_test_split(data, vmps, test_size=tratio, random_state=rstates[expId])
         print("======== exp: %1d for training dataset: %1d =======" % (expId, np.shape(trdata)[0]))
         trqueries = trdata[:, 0:2]
 
-
-
-        print(">>>> train GMGANs")
-        egmgan_res[0, i] = train_evaluate_gmgan_for_hitball(gmgan, trqueries, trvmps, tdata, False, max_epochs=20000,
-                                                            sup_max_epoch=20001,
-                                                            sample_num=1, isvel=True, env_file="hitball_exp_v1.xml",
-                                                            isdraw=options.isdraw, num_test=options.ntest,
-                                                            g_lrate=0.00003, d_lrate=0.002)
+        #print(">>>> train GMGANs")
+        #egmgan_res[0, i] = train_evaluate_gmgan_for_hitball(gmgan, trqueries, trvmps, tdata, False, max_epochs=20000,
+        #                                                    sup_max_epoch=20001,
+         #                                                   sample_num=1, isvel=True, env_file="hitball_exp_v1.xml",
+          #                                                  isdraw=options.isdraw, num_test=options.ntest,
+           #                                                 g_lrate=0.00003, d_lrate=0.002)
 
         print(">>>> train entropy MDN")
         emdnmp_res[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, True, max_epochs=20000,
@@ -101,11 +101,11 @@ for expId in range(options.expnum):
                                                             isdraw=options.isdraw, num_test=options.ntest,
                                                             learning_rate=0.00003)
 
-        print(">>>> train baselines")
-        baseline_res[0, i] = train_evaluate_baseline_for_hitball("GPR", trqueries, trvmps, tdata,
-                                                                 sample_num=10, isvel=True,
-                                                                 env_file="hitball_exp_v1.xml",
-                                                                 isdraw=options.isdraw, num_test=options.ntest)
+        #print(">>>> train baselines")
+        #baseline_res[0, i] = train_evaluate_baseline_for_hitball("GPR", trqueries, trvmps, tdata,
+         #                                                        sample_num=10, isvel=True,
+         #                                                        env_file="hitball_exp_v1.xml",
+         #                                                        isdraw=options.isdraw, num_test=options.ntest)
 
         print(">>>> train original MDN")
         omdnmp_res[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, False, max_epochs=20000,
@@ -113,12 +113,12 @@ for expId in range(options.expnum):
                                                             isdraw=options.isdraw, num_test=options.ntest, learning_rate=0.00003)
 
 
-    with open(result_dir + "/baselines", "a") as f:
-        np.savetxt(f, np.array(baseline_res), delimiter=',', fmt='%.3f')
+    #with open(result_dir + "/baselines", "a") as f:
+    #    np.savetxt(f, np.array(baseline_res), delimiter=',', fmt='%.3f')
     with open(result_dir + "/entropy_mdn", "a") as f:
         np.savetxt(f, np.array(emdnmp_res), delimiter=',', fmt='%.3f')
-    with open(result_dir + "/entropy_gmgan", "a") as f:
-        np.savetxt(f, np.array(egmgan_res), delimiter=',', fmt='%.3f')
+    #with open(result_dir + "/entropy_gmgan", "a") as f:
+   #     np.savetxt(f, np.array(egmgan_res), delimiter=',', fmt='%.3f')
     with open(result_dir + "/original_mdn", "a") as f:
         np.savetxt(f, np.array(omdnmp_res), delimiter=',', fmt='%.3f')
 
