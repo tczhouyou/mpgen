@@ -58,10 +58,10 @@ for expID in range(MAX_EXP):
     print('=========== Exp: %1d ============' % (expID))
     for kid in range(len(use_entropy_cost)):
         if use_entropy_cost[kid]:
-            mdnmp.lratio['entropy'] = 100.0
+            mdnmp.lratio['mce'] = 1.0
             print("===> train entropy MDN")
         else:
-            mdnmp.lratio['entropy'] = 0.0
+            mdnmp.lratio['mce'] = 0.0
             print("===> train original MDN")
 
         mdnmp.build_mdn(learning_rate=0.00005)

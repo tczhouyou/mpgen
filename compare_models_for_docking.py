@@ -36,11 +36,9 @@ else:
 parser = OptionParser()
 parser.add_option("-m", "--nmodel", dest="nmodel", type="int", default=3)
 parser.add_option("-n", "--num_exp", dest="expnum", type="int", default=1)
-parser.add_option("-r", "--rand_init", dest="rand", type="float", default=0.0003)
 parser.add_option("-d", "--result_dir", dest="result_dir", type="string", default="results_compare_docking")
 (options, args) = parser.parse_args(sys.argv)
 
-VAR_INIT = initializers.RandomNormal(stddev=options.rand, seed=42)
 
 queries = np.loadtxt('data/docking_queries.csv', delimiter=',')
 vmps = np.loadtxt('data/docking_weights.csv', delimiter=',')
