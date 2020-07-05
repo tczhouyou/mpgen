@@ -32,9 +32,9 @@ parser.add_option("-n", "--num_exp", dest="expnum", type="int", default=1)
 parser.add_option("--num_test", dest="ntest", type="int", default=100)
 parser.add_option("-d", "--result_dir", dest="result_dir", type="string", default="results_compare_docking")
 parser.add_option("--draw", dest="isdraw", action="store_true", default=False)
-parser.add_option("--rand", dest='rand_init', type='float', default=0.003)
+parser.add_option("--rand", dest='rand_init', type='float', default=0.0003)
 (options, args) = parser.parse_args(sys.argv)
-VAR_INIT = initializers.RandomNormal(stddev=options.rand_init, seed=42)
+VAR_INIT = initializers.RandomNormal(stddev=options.rand_init)
 
 data_dir = 'experiments/mujoco/hitball/hitball_mpdata_v1'
 queries = np.loadtxt(data_dir + '/hitball_queries.csv', delimiter=',')
@@ -52,7 +52,7 @@ mdnmp_struct = {'d_feat': 20,
                 'mean_layers': [40],
                 'scale_layers': [40],
                 'mixing_layers': [20]}
-mdnmp = MDNMP(n_comps=options.nmodel, d_input=d_input, d_output=d_output, nn_structure=mdnmp_struct, scaling=1,
+mdnmp = MDNMP(n_comps=options.nmodel, d_input=d_input, d_output=d_output, nn_structure=mdnmp_struct, scaling=1.0,
               var_init=VAR_INIT)
 
 nn_structure = {'d_feat': 20,
@@ -83,7 +83,7 @@ for expId in range(options.expnum):
     egmgan_res = np.zeros(shape=(1, len(tsize)))
 
     for i in range(len(tsize)):
-        tratio = tsize[0]
+        tratio = tsize[i]
         trdata, tdata, trvmps, tvmps = train_test_split(data, vmps, test_size=tratio, random_state=rstates[expId])
         print("======== exp: %1d for training dataset: %1d =======" % (expId, np.shape(trdata)[0]))
         trqueries = trdata[:, 0:2]
@@ -95,22 +95,23 @@ for expId in range(options.expnum):
           #                                                  isdraw=options.isdraw, num_test=options.ntest,
            #                                                 g_lrate=0.00003, d_lrate=0.002)
 
+      #  print(">>>> train baselines")
+      #  baseline_res[0, i] = train_evaluate_baseline_for_hitball("GPR", trqueries, trvmps, tdata,
+      #                                                           sample_num=10, isvel=True,
+      #                                                           env_file="hitball_exp_v1.xml",
+      #                                                           isdraw=options.isdraw, num_test=options.ntest)
         print(">>>> train entropy MDN")
-        emdnmp_res[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, True, max_epochs=20000,
+        emdnmp_res[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, True, max_epochs=5000,
                                                             sample_num=10, isvel=True, env_file="hitball_exp_v1.xml",
                                                             isdraw=options.isdraw, num_test=options.ntest,
                                                             learning_rate=0.00003)
 
-        #print(">>>> train baselines")
-        #baseline_res[0, i] = train_evaluate_baseline_for_hitball("GPR", trqueries, trvmps, tdata,
-         #                                                        sample_num=10, isvel=True,
-         #                                                        env_file="hitball_exp_v1.xml",
-         #                                                        isdraw=options.isdraw, num_test=options.ntest)
 
         print(">>>> train original MDN")
-        omdnmp_res[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, False, max_epochs=20000,
+        omdnmp_res[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, False, max_epochs=5000,
                                                             sample_num=10, isvel=True, env_file="hitball_exp_v1.xml",
                                                             isdraw=options.isdraw, num_test=options.ntest, learning_rate=0.00003)
+
 
 
     #with open(result_dir + "/baselines", "a") as f:

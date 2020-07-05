@@ -56,9 +56,9 @@ rstates = np.random.randint(0, 100, size=options.expnum)
 # create mdnmp
 mdnmp_struct = {'d_feat': 20,
                 'feat_layers': [40], #[60]
-                'mean_layers': [40], #[60]
-                'scale_layers': [40],
-                'mixing_layers': [40]}
+                'mean_layers': [60], #[60]
+                'scale_layers': [60],
+                'mixing_layers': [20]}
 mdnmp = MDNMP(n_comps=options.nmodel, d_input=6, d_output=knum, nn_structure=mdnmp_struct, scaling=1, var_init=VAR_INIT)
 
 # create gmgan
@@ -110,14 +110,14 @@ for expId in range(options.expnum):
         mdnmp_lratio['eub'] = 0
         emdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, mdnmp_lratio,
                                                             max_epochs=20000,
-                                                            sample_num=1, learning_rate=0.0001)
+                                                            sample_num=1, learning_rate=0.00003)
 
         print(">>>> train ori MDN")
         mdnmp_lratio['mce'] = 0
         mdnmp_lratio['eub'] = 0
         omdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, mdnmp_lratio,
                                                             max_epochs=20000,
-                                                            sample_num=1, learning_rate=0.0001)
+                                                            sample_num=1, learning_rate=0.00003)
 
         # print(">>>> train GMGANs")
         # egmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, False, max_epochs=20000,

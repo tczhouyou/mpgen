@@ -23,7 +23,7 @@ class MDNMP(basicModel):
         self.d_output = d_output
 
         self.nn_structure = nn_structure
-        self.lratio = {'likelihood': 1, 'mce': 100, 'regularization': 0.00001, 'failure': 0, 'eub':0}
+        self.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0.00001, 'failure': 0, 'eub':0}
         self.scaling = scaling
         self.use_new_cost = False
         self.var_init = var_init
@@ -106,7 +106,7 @@ class MDNMP(basicModel):
             nll, mce, cost, eub = self.sess.run([self.loss_dict['nll'], self.loss_dict['mce'],
                                                         self.loss_dict['cost'], self.loss_dict['eub']],
                                                         feed_dict=feed_dict)
-            
+
             if np.isnan(cost) or np.isinf(cost):
                 print('\n failed trained')
                 isSuccess = False

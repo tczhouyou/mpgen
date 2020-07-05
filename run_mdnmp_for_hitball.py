@@ -30,7 +30,7 @@ else:
 def train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000, sample_num=1,
                                      isvel=True, env_file="hitball_exp_v1.xml", isdraw=False, num_test=100, learning_rate=0.002):
     if use_entropy:
-        mdnmp.lratio['mce'] = 500
+        mdnmp.lratio['mce'] = 10
     else:
         mdnmp.lratio['mce'] = 0
 

@@ -14,15 +14,10 @@ def autolabel(rects):
                     ha='center', va='bottom')
 
 
-parser = OptionParser()
-parser.add_option("-d", "--dir", dest='dirname', type='string')
-(options, args) = parser.parse_args(sys.argv)
+#'results_hitball_v3_81','results_hitball_v3_82',
+dirnames = ['results_hitball_v3_83','results_hitball_v3_84', 'results_hitball_v3_85']
 
-dirname = options.dirname + '/'
-
-
-tnames = ['50']
-#tnames = ['50', '100', '150']
+tnames = ['50']#['50', '100', '150']
 fnames = ['original_mdn', 'entropy_mdn']#['baselines', 'original_mdn', 'entropy_mdn', 'eub_mdn']
 
 fig, ax = plt.subplots()
@@ -30,13 +25,17 @@ width = 0.35
 blank = 0.2
 npos = (len(tnames)-1) * (len(fnames) * 0.35 + blank)
 rects = []
-for i in range(len(fnames)):
-    fname = fnames[i]
-    data = np.loadtxt(dirname+fname, delimiter=',')
-    if data.ndim == 1:
-        data = np.expand_dims(data, axis=1)
 
-    data = data[np.all(data,axis=1),:]
+for i in range(len(fnames)):
+    ds = []
+    for j in range(len(dirnames)):
+        cdata = np.loadtxt(dirnames[j] + '/' + fnames[i], delimiter=',')
+        if cdata.ndim == 1:
+            cdata = np.expand_dims(cdata, axis=1)
+
+        ds.append(cdata)
+
+    data = np.concatenate(ds, axis=0)
     mean = np.mean(data, axis=0)
     std = np.std(data, axis=0)
     x = np.linspace(i*width, npos+i*width, len(tnames))
