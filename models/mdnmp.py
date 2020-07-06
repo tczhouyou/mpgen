@@ -54,10 +54,12 @@ class MDNMP(basicModel):
         eub_loss = gmm_eub_cost(scale, mc, self.is_positive)
         floss = failure_cost(self.target, mean, mc, 1-self.is_positive, neg_scale=0.1)
 
-        cost = self.lratio['likelihood'] * nll + self.lratio['regularization'] * reg_loss
+        cost = self.lratio['likelihood'] * nll +\
+                self.lratio['regularization'] * reg_loss+\
+                self.lratio['mce'] * mce_loss
 
-        if self.lratio['mce'] != 0:
-            cost = cost + self.lratio['mce'] * mce_loss
+      #  if self.lratio['mce'] != 0:
+      #      cost = cost + self.lratio['mce'] * mce_loss
 
         if self.lratio['eub'] != 0:
             cost = cost + self.lratio['eub'] * eub_loss
@@ -103,8 +105,8 @@ class MDNMP(basicModel):
                 batch_ispos = is_positive
 
             feed_dict = {self.input: batch_input, self.target: batch_target, self.is_positive: batch_ispos}
-            nll, mce, cost, eub = self.sess.run([self.loss_dict['nll'], self.loss_dict['mce'],
-                                                        self.loss_dict['cost'], self.loss_dict['eub']],
+            _, nll, mce, cost, floss = self.sess.run([self.opt_all, self.loss_dict['nll'], self.loss_dict['mce'],
+                                                        self.loss_dict['cost'], self.loss_dict['floss']],
                                                         feed_dict=feed_dict)
 
             if np.isnan(cost) or np.isinf(cost):
@@ -112,15 +114,14 @@ class MDNMP(basicModel):
                 isSuccess = False
                 break
 
-            self.sess.run(self.opt_all, feed_dict=feed_dict)
 
             if i != 0 and i % 1000 == 0 and is_save:
                 self.save(self.sess, self.saver, checkpoint_dir, model_dir, model_name)
                 self.global_step = self.global_step + 1
 
-            print("epoch: %1d, cost: %.3f, nll: %.3f, mce: %.3f, eub: %.3f" % (i, cost, nll, mce, eub), end='\r', flush=True)
+            print("epoch: %1d, cost: %.3f, nll: %.3f, mce: %.3f" % (i, cost, nll, mce), end='\r', flush=True)
 
-        print("Training Result: %1d, cost: %.3f, nll: %.3f, mce: %.3f, eub: %.3f" % (i, cost, nll, mce, eub), end='\n')
+        print("Training Result: %1d, cost: %.3f, nll: %.3f, mce: %.3f" % (i, cost, nll, mce), end='\n')
         return isSuccess
 
     def predict(self, cinput, n_samples=1):

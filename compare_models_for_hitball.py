@@ -16,6 +16,7 @@ from run_mdnmp_for_hitball import train_evaluate_mdnmp_for_hitball
 from run_gmgan_for_hitball import train_evaluate_gmgan_for_hitball
 from run_baselines_for_hitball import train_evaluate_baseline_for_hitball
 import tensorflow as tf
+from experiments.mujoco.hitball.hitball_exp import evaluate_hitball, ENV_DIR, EXP_DIR, Armar6HitBallExpV0, Armar6HitBallExpV1
 
 if tf.__version__ < '2.0.0':
     import tflearn
@@ -23,7 +24,7 @@ if tf.__version__ < '2.0.0':
     VAR_INIT_DIS = tflearn.initializations.normal(stddev=0.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    #VAR_INIT = initializers.RandomNormal(stddev=0.0003, seed=42)
+    VAR_INIT = initializers.RandomUniform(minval=-0.003, maxval=0.003, seed=42)
     VAR_INIT_DIS = initializers.RandomNormal(stddev=0.002, seed=42)
 
 parser = OptionParser()
@@ -32,9 +33,7 @@ parser.add_option("-n", "--num_exp", dest="expnum", type="int", default=1)
 parser.add_option("--num_test", dest="ntest", type="int", default=100)
 parser.add_option("-d", "--result_dir", dest="result_dir", type="string", default="results_compare_docking")
 parser.add_option("--draw", dest="isdraw", action="store_true", default=False)
-parser.add_option("--rand", dest='rand_init', type='float', default=0.0003)
 (options, args) = parser.parse_args(sys.argv)
-VAR_INIT = initializers.RandomNormal(stddev=options.rand_init)
 
 data_dir = 'experiments/mujoco/hitball/hitball_mpdata_v1'
 queries = np.loadtxt(data_dir + '/hitball_queries.csv', delimiter=',')
@@ -104,13 +103,13 @@ for expId in range(options.expnum):
         emdnmp_res[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, True, max_epochs=5000,
                                                             sample_num=10, isvel=True, env_file="hitball_exp_v1.xml",
                                                             isdraw=options.isdraw, num_test=options.ntest,
-                                                            learning_rate=0.00003)
+                                                            learning_rate=0.00003, EXP=Armar6HitBallExpV1)
 
 
         print(">>>> train original MDN")
         omdnmp_res[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, False, max_epochs=5000,
                                                             sample_num=10, isvel=True, env_file="hitball_exp_v1.xml",
-                                                            isdraw=options.isdraw, num_test=options.ntest, learning_rate=0.00003)
+                                                            isdraw=options.isdraw, num_test=options.ntest, learning_rate=0.00003, EXP=Armar6HitBallExpV1)
 
 
 

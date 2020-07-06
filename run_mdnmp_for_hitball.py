@@ -13,7 +13,7 @@ from mp.vmp import VMP
 from sklearn.model_selection import train_test_split
 from optparse import OptionParser
 
-from experiments.mujoco.hitball.hitball_exp import evaluate_hitball, ENV_DIR, EXP_DIR
+from experiments.mujoco.hitball.hitball_exp import evaluate_hitball, ENV_DIR, EXP_DIR, Armar6HitBallExpV0, Armar6HitBallExpV1
 from experiments.mujoco.armar6_controllers.armar6_low_controller import TaskSpaceVelocityController, TaskSpaceImpedanceController
 from experiments.mujoco.armar6_controllers.armar6_high_controller import TaskSpacePositionVMPController
 
@@ -23,12 +23,12 @@ if tf.__version__ < '2.0.0':
     VAR_INIT = tflearn.initializations.uniform(minval=-.1, maxval=.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    VAR_INIT = initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=42)
+    VAR_INIT = initializers.RandomUniform(minval=-0.003, maxval=0.003, seed=42)
 
 
 
 def train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000, sample_num=1,
-                                     isvel=True, env_file="hitball_exp_v1.xml", isdraw=False, num_test=100, learning_rate=0.002):
+                                     isvel=True, env_file="hitball_exp_v1.xml", isdraw=False, num_test=100, learning_rate=0.002, EXP=Armar6HitBallExpV1):
     if use_entropy:
         mdnmp.lratio['mce'] = 10
     else:
@@ -53,12 +53,12 @@ def train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, use_entrop
         srate = evaluate_hitball(wout, tqueries, starts, goals,
                                  low_ctrl=TaskSpaceVelocityController,
                                  high_ctrl=TaskSpacePositionVMPController(mp),
-                                 env_path=ENV_DIR+env_file, isdraw=isdraw)
+                                 env_path=ENV_DIR+env_file, isdraw=isdraw, EXP=EXP)
     else:
         srate = evaluate_hitball(wout, tqueries, starts, goals,
                                  low_ctrl=TaskSpaceImpedanceController,
                                  high_ctrl=TaskSpacePositionVMPController(mp),
-                                 env_path=ENV_DIR+env_file, isdraw=isdraw)
+                                 env_path=ENV_DIR+env_file, isdraw=isdraw, EXP=EXP)
 
     return srate
 
@@ -66,7 +66,7 @@ def train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, use_entrop
 def run_mdnmp_for_hitball(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True],
                           model_names=["Original MDN", "Entropy MDN"], nsamples=[1, 10, 30, 50, 70],
                           env_file="hitball_exp_v0.xml", data_dir="hitball_mpdata_v0",
-                          isvel=False):
+                          isvel=False, EXP=Armar6HitBallExpV0):
     # prepare data
     data_dir = os.environ['MPGEN_DIR'] + EXP_DIR + data_dir
     queries = np.loadtxt(data_dir + '/hitball_queries.csv', delimiter=',')
@@ -99,7 +99,7 @@ def run_mdnmp_for_hitball(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True
     allres = np.zeros(shape=(len(model_names), MAX_EXPNUM, len(nsamples)))
     for modelId in range(len(model_names)):
         if use_entropy_cost[modelId]:
-            mdnmp.lratio['mce'] = 1000
+            mdnmp.lratio['mce'] = 10
         else:
             mdnmp.lratio['mce'] = 0
 
@@ -126,12 +126,13 @@ def run_mdnmp_for_hitball(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True
                     srate = evaluate_hitball(wout, tqueries, tstarts, tgoals,
                                              low_ctrl=TaskSpaceVelocityController,
                                              high_ctrl=TaskSpacePositionVMPController(mp),
-                                             env_path=ENV_DIR + env_file)
+                                             env_path=ENV_DIR + env_file, EXP=EXP)
                 else:
                     srate = evaluate_hitball(wout, tqueries, tstarts, tgoals,
                                              low_ctrl=TaskSpaceImpedanceController,
                                              high_ctrl=TaskSpacePositionVMPController(mp),
-                                             env_path=ENV_DIR + env_file)
+                                             env_path=ENV_DIR + env_file, EXP=EXP)
+
                 csrates[expId, sampleId] = srate
                 allres[modelId, expId, sampleId] = srate
 
@@ -146,20 +147,21 @@ if __name__ == '__main__':
     parser.add_option("--env_file", dest="env_file", type="string", default="hitball_exp_v0.xml")
     parser.add_option("--data_dir", dest="data_dir", type="string", default="hitball_mpdata_v0")
     parser.add_option("--vel", dest="is_vel", action="store_true", default=False)
+    parser.add_option("--file", dest="fname", type="string", default="res_mdnmp_hitball")
     (options, args) = parser.parse_args(sys.argv)
     nmodel = options.nmodel
 
     use_entropy_cost = [False, True]
     model_names = ["Original MDN", "Entropy MDN"]
-    MAX_EXPNUM = 1
-    nsamples = [1]
+    MAX_EXPNUM = 5
+    nsamples = [10, 30, 50]
 
     srates, allres = run_mdnmp_for_hitball(nmodel, MAX_EXPNUM, use_entropy_cost, model_names, nsamples,
                                            isvel=options.is_vel,
                                            env_file=options.env_file,
                                            data_dir=options.data_dir)
 
-    res_file = open("result_mdnmp", 'a')
+    res_file = open(options.fname, 'a')
     for modelId in range(len(model_names)):
         res_file.write(model_names[modelId] + '\n')
         np.savetxt(res_file, np.array(allres[modelId,:,:]), delimiter=',')

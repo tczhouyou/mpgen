@@ -9,19 +9,19 @@ os.sys.path.insert(0, './experiments/mujoco')
 import numpy as np
 from mp.vmp import VMP
 
-from experiments.mujoco.hitball.hitball_exp import evaluate_hitball, ENV_DIR
 from experiments.mujoco.armar6_controllers.armar6_low_controller import TaskSpaceVelocityController, TaskSpaceImpedanceController
 from experiments.mujoco.armar6_controllers.armar6_high_controller import TaskSpacePositionVMPController
+from experiments.mujoco.hitball.hitball_exp import evaluate_hitball, ENV_DIR, EXP_DIR, Armar6HitBallExpV0, Armar6HitBallExpV1
 
 def train_evaluate_gmgan_for_hitball(gmgan, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000, sup_max_epoch=0,
                                      isvel=True, env_file="hitball_exp_v1.xml", sample_num=1, isdraw=False, num_test=100,
-                                     g_lrate=0.002, d_lrate=0.002):
+                                     g_lrate=0.002, d_lrate=0.002, EXP=Armar6HitBallExpV1):
     if use_entropy:
         gmgan.entropy_ratio = 1
     else:
         gmgan.entropy_ratio = 0
 
-    gmgan.lratio['entropy'] = 500
+    gmgan.lratio['entropy'] = 10
     gmgan.lratio['adv_cost'] = 100
     gmgan.gen_sup_lrate = g_lrate
     gmgan.gen_adv_lrate = g_lrate
@@ -47,12 +47,12 @@ def train_evaluate_gmgan_for_hitball(gmgan, trqueries, trvmps, tdata, use_entrop
         srate = evaluate_hitball(wout, tqueries, starts, goals,
                                  low_ctrl=TaskSpaceVelocityController,
                                  high_ctrl=TaskSpacePositionVMPController(mp),
-                                 env_path=ENV_DIR+env_file, isdraw=isdraw)
+                                 env_path=ENV_DIR+env_file, isdraw=isdraw, EXP=EXP)
     else:
         srate = evaluate_hitball(wout, tqueries, starts, goals,
                                  low_ctrl=TaskSpaceImpedanceController,
                                  high_ctrl=TaskSpacePositionVMPController(mp),
-                                 env_path=ENV_DIR+env_file, isdraw=isdraw)
+                                 env_path=ENV_DIR+env_file, isdraw=isdraw, EXP=EXP)
 
     return srate
 

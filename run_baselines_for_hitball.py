@@ -15,10 +15,10 @@ from sklearn.svm import SVR
 from sklearn.model_selection import train_test_split
 from mp.vmp import VMP
 
-from experiments.mujoco.hitball.hitball_exp import evaluate_hitball, ENV_DIR, EXP_DIR
 from experiments.mujoco.armar6_controllers.armar6_low_controller import TaskSpaceVelocityController, TaskSpaceImpedanceController
 from experiments.mujoco.armar6_controllers.armar6_high_controller import TaskSpacePositionVMPController
 from optparse import OptionParser
+from experiments.mujoco.hitball.hitball_exp import evaluate_hitball, ENV_DIR, EXP_DIR, Armar6HitBallExpV0, Armar6HitBallExpV1
 
 _svr = SVR(gamma='scale', C=1.0, epsilon=0.1)
 svr = MultiDimSkRegressor(_svr)
@@ -28,7 +28,7 @@ gpr = MultiDimSkRegressor(_gpr)
 possible_models = {'SVR': svr, 'GPR': gpr, 'Uniform': None}
 
 def train_evaluate_baseline_for_hitball(model_name, trqueries, trvmps, tdata, sample_num=1,
-                                        isvel=True, env_file="hitball_exp_v1.xml", isdraw=False, num_test=100):
+                                        isvel=True, env_file="hitball_exp_v1.xml", isdraw=False, num_test=100, EXP=Armar6HitBallExpV1):
 
     model = possible_models[model_name]
     if model is not None:
@@ -54,17 +54,17 @@ def train_evaluate_baseline_for_hitball(model_name, trqueries, trvmps, tdata, sa
         srate = evaluate_hitball(wouts, tqueries, tstarts, tgoals,
                                  low_ctrl=TaskSpaceVelocityController,
                                  high_ctrl=TaskSpacePositionVMPController(mp),
-                                 env_path=ENV_DIR + env_file, isdraw=isdraw)
+                                 env_path=ENV_DIR + env_file, isdraw=isdraw, EXP=EXP)
     else:
         srate = evaluate_hitball(wouts, tqueries, tstarts, tgoals,
                                  low_ctrl=TaskSpaceImpedanceController,
                                  high_ctrl=TaskSpacePositionVMPController(mp),
-                                 env_path=ENV_DIR + env_file, isdraw=isdraw)
+                                 env_path=ENV_DIR + env_file, isdraw=isdraw, EXP=EXP)
     return srate
 
 
 def run_baselines_for_hitball(MAX_EXPNUM=20, nsamples=[1, 10, 30, 50], model_names=['Uniform', 'SVR', 'GPR'],
-                              isvel=False, env_file="hitball_exp_v0.xml", data_dir="hitball_mpdata_v0"):
+                              isvel=False, env_file="hitball_exp_v0.xml", data_dir="hitball_mpdata_v0", EXP=Armar6HitBallExpV0):
     data_dir = os.environ['MPGEN_DIR'] + EXP_DIR + data_dir
     queries = np.loadtxt(data_dir + '/hitball_queries.csv', delimiter=',')
     vmps = np.loadtxt(data_dir + '/hitball_weights.csv', delimiter=',')
@@ -120,12 +120,12 @@ def run_baselines_for_hitball(MAX_EXPNUM=20, nsamples=[1, 10, 30, 50], model_nam
                     srate = evaluate_hitball(wouts, tqueries, tstarts, tgoals,
                                              low_ctrl=TaskSpaceVelocityController,
                                              high_ctrl=TaskSpacePositionVMPController(mp),
-                                             env_path=ENV_DIR + env_file)
+                                             env_path=ENV_DIR + env_file, EXP=EXP)
                 else:
                     srate = evaluate_hitball(wouts, tqueries, tstarts, tgoals,
                                              low_ctrl=TaskSpaceImpedanceController,
                                              high_ctrl=TaskSpacePositionVMPController(mp),
-                                             env_path=ENV_DIR + env_file)
+                                             env_path=ENV_DIR + env_file, EXP=EXP)
 
                 csrates[expId, sampleId] = srate
                 allres[modelId, expId, sampleId] = srate
