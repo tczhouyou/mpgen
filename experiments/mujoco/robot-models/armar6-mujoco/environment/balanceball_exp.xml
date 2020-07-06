@@ -1,0 +1,55 @@
+<!-- ======================================================
+    Model: Armar6 free motion test
+    Mujoco Version: 2.0.x
+	Author: You Zhou
+====================================================== -->
+<mujoco model="ur5">
+    <compiler angle="radian" coordinate="local" balanceinertia="true" inertiafromgeom="auto" settotalmass="2.3"/>
+
+<!--    <option gravity="0 0 0" cone="elliptic" timestep="0.02" />-->
+<!--    <option solver="CG" tolerance="1e-6"/>-->
+
+    <statistic extent="2" meansize=".05"/>
+    <option timestep="0.01" solver="Newton" iterations="10" tolerance="1e-5" jacobian="sparse" cone="pyramidal"/>
+
+
+    <visual>
+        <map znear="0.001" />
+    </visual>
+
+
+    <include file="../../world.xml"/>
+    <include file="../robot/Armar6-BalanceBall-Velocity.xml"/>
+    <size njmax="8000" nconmax="4000"/>
+
+    <worldbody>
+        <body pos="-0.16 0.90 0.02" euler="4.71238898 0 3.14159265">
+            <body euler="0 -0.82 0">
+                <camera name="workbench_camera" euler="0.25 0 0" fovy="43" />
+            </body>
+        </body>
+        <body pos="-1 1.52 0.64" euler="4.71238898 0 3.14159265">
+            <body euler="-0.23 0 0">
+                <camera name="upper_camera" euler="0 0.09 0" fovy="41" />
+            </body>
+        </body>
+
+        <body name="Ball" pos="0 0 0">
+            <geom type="cylinder" pos="0 0 0" size="0.02 0.01" friction="0 0"/>
+            <joint name="box_x" type="slide" axis="1 0 0" />
+            <joint name="box_y" type="slide" axis="0 1 0" />
+            <joint name="box_z" type="slide" axis="0 0 1" />
+        </body>
+
+        <body name="reference" pos="0 0 0">
+            <geom type="box" pos="5 5 5" size="0.0001 0.0001 0.0001" condim="1" mass="1"/>
+            <joint name="ref_box_x" type="slide" axis="1 0 0" />
+            <joint name="ref_box_y" type="slide" axis="0 1 0" />
+            <!--<joint name="ref_box_z" type="slide" axis="0 0 1" />-->
+            <site type="box" pos="0 0 1" size="0.1 0.1 0.1" rgba=".5 .5 .5 0.2"/>
+        </body>
+
+
+    </worldbody>
+
+</mujoco>
