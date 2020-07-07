@@ -99,7 +99,7 @@ def run_mdnmp_for_hitball(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True
     allres = np.zeros(shape=(len(model_names), MAX_EXPNUM, len(nsamples)))
     for modelId in range(len(model_names)):
         if use_entropy_cost[modelId]:
-            mdnmp.lratio['mce'] = 10
+            mdnmp.lratio['mce'] = 20
         else:
             mdnmp.lratio['mce'] = 0
 
@@ -151,9 +151,9 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args(sys.argv)
     nmodel = options.nmodel
 
-    use_entropy_cost = [False, True]
-    model_names = ["Original MDN", "Entropy MDN"]
-    MAX_EXPNUM = 5
+    use_entropy_cost = [True]
+    model_names = ["Entropy MDN"]
+    MAX_EXPNUM = 10
     nsamples = [10, 30, 50]
 
     srates, allres = run_mdnmp_for_hitball(nmodel, MAX_EXPNUM, use_entropy_cost, model_names, nsamples,
@@ -165,8 +165,9 @@ if __name__ == '__main__':
     for modelId in range(len(model_names)):
         res_file.write(model_names[modelId] + '\n')
         np.savetxt(res_file, np.array(allres[modelId,:,:]), delimiter=',')
-        np.savetxt(res_file, np.array(srates[model_names[modelId]]), delimiter=',')
+    #    np.savetxt(res_file, np.array(srates[model_names[modelId]]), delimiter=',')
 
+    res_file.close()
     # import matplotlib.pyplot as plt
     # x = np.arange(len(nsamples))
     # fig, ax = plt.subplots()
