@@ -13,7 +13,7 @@ from mp.vmp import VMP
 from sklearn.model_selection import train_test_split
 from optparse import OptionParser
 
-from experiments.mujoco.hitball.hitball_exp import evaluate_hitball, ENV_DIR, EXP_DIR, Armar6HitBallExpV0, Armar6HitBallExpV1
+from experiments.mujoco.hitball.hitball_exp import evaluate_hitball, ENV_DIR, EXP_DIR, Armar6HitBallExpV0, Armar6HitBallExpV1, evaluate_hitball_multiprocess
 from experiments.mujoco.armar6_controllers.armar6_low_controller import TaskSpaceVelocityController, TaskSpaceImpedanceController
 from experiments.mujoco.armar6_controllers.armar6_high_controller import TaskSpacePositionVMPController
 
@@ -123,12 +123,12 @@ def run_mdnmp_for_hitball(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True
             for sampleId in range(len(nsamples)):
                 wout, _ = mdnmp.predict(tqueries, nsamples[sampleId])
                 if isvel:
-                    srate = evaluate_hitball(wout, tqueries, tstarts, tgoals,
+                    srate = evaluate_hitball_multiprocess(wout, tqueries, tstarts, tgoals,
                                              low_ctrl=TaskSpaceVelocityController,
                                              high_ctrl=TaskSpacePositionVMPController(mp),
                                              env_path=ENV_DIR + env_file, EXP=EXP)
                 else:
-                    srate = evaluate_hitball(wout, tqueries, tstarts, tgoals,
+                    srate = evaluate_hitball_multiprocess(wout, tqueries, tstarts, tgoals,
                                              low_ctrl=TaskSpaceImpedanceController,
                                              high_ctrl=TaskSpacePositionVMPController(mp),
                                              env_path=ENV_DIR + env_file, EXP=EXP)
