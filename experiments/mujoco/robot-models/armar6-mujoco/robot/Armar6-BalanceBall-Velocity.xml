@@ -44,9 +44,6 @@
         <mesh class="Armar6" name="Index L 1 Body" file="../robot/mesh/index_prox.stl"/>
         <mesh class="Armar6" name="Index L 2 Body" file="../robot/mesh/index_inter.stl"/>
         <mesh class="Armar6" name="Index L 3 Body" file="../robot/mesh/index_dist.stl"/>
-        <mesh class="Armar6" name="Index R 1 Body" file="../robot/mesh/index_prox.stl"/>
-        <mesh class="Armar6" name="Index R 2 Body" file="../robot/mesh/index_inter.stl"/>
-        <mesh class="Armar6" name="Index R 3 Body" file="../robot/mesh/index_dist.stl"/>
         <mesh class="Armar6" name="Middle L 1 Body" file="../robot/mesh/middle_prox.stl"/>
         <mesh class="Armar6" name="Middle L 2 Body" file="../robot/mesh/middle_inter.stl"/>
         <mesh class="Armar6" name="Middle L 3 Body" file="../robot/mesh/middle_dist.stl"/>
@@ -217,76 +214,11 @@
                                                                     </body>
                                                                     <site name="Hand R GCP" pos="0.135 -0.055 -0.0250001" quat="0.653281 0.653283 0.270599 0.270598"/>
                                                                     <body name="Hand R Palm" pos="0 0 0" quat="1 0 0 0">
-                                                                        <body name="Index R 1 Joint~Index R 1 Body" pos="0.145309 3.8147e-09 -0.0392211" quat="0.477656 -0.477656 0.521297 0.521296">
-                                                                            <joint name="Index R 1 Joint" type="hinge" axis="1 0 0" limited="true" range="0 1.5708"/>
-                                                                            <body name="Index R 2 Joint~Index R 2 Body" pos="0 -0.0559536 -7.45761e-17" quat="0.999896 0 0 0">
-                                                                                <joint name="Index R 2 Joint" type="hinge" axis="1 0 0" limited="true" range="0 1.5708"/>
-                                                                                <body name="Index R 3 Joint~Index R 3 Body" pos="0 -0.0319735 -4.2615e-17" quat="0.999896 0 0 0">
-                                                                                    <joint name="Index R 3 Joint" type="hinge" axis="1 0 0" limited="true" range="0 1.5708"/>
-                                                                                    <geom type="mesh" mesh="Index R 3 Body" name="Index R 3 Body" pos="0 0 0" quat="-4.37069e-08 0 0.999896 1.11034e-16"/>
-                                                                                </body>
-                                                                                <geom type="mesh" mesh="Index R 2 Body" name="Index R 2 Body" pos="0 0 0" quat="0.999896 0 0 0"/>
-                                                                            </body>
-                                                                            <geom type="mesh" mesh="Index R 1 Body" name="Index R 1 Body" pos="0 0 0" quat="0.999896 0 0 0"/>
-                                                                        </body>
-                                                                        <body name="Middle R 1 Joint~Middle R 1 Body" pos="0.15172 0 -0.00750006" quat="0.5 -0.5 0.5 0.5">
-                                                                            <joint name="Middle R 1 Joint" type="hinge" axis="1 0 0" limited="true" range="0 1.5708"/>
-                                                                            <body name="Middle R 2 Joint~Middle R 2 Body" pos="0 -0.0600001 2.13163e-16" quat="1 0 0 0">
-                                                                                <joint name="Middle R 2 Joint" type="hinge" axis="1 0 0" limited="true" range="0 1.5708"/>
-                                                                                <body name="Middle R 3 Joint~Middle R 3 Body" pos="0 -0.039 1.38556e-16" quat="1 0 0 0">
-                                                                                    <joint name="Middle R 3 Joint" type="hinge" axis="1 0 0" limited="true" range="0 1.5708"/>
-                                                                                    <geom type="mesh" mesh="Middle R 3 Body" name="Middle R 3 Body" pos="0 0 0" quat="-4.37114e-08 0 1 0"/>
-                                                                                </body>
-                                                                                <geom type="mesh" mesh="Middle R 2 Body" name="Middle R 2 Body" pos="0 0 0" quat="1 0 0 0"/>
-                                                                            </body>
-                                                                            <geom type="mesh" mesh="Middle R 1 Body" name="Middle R 1 Body" pos="0 0 0" quat="1 0 0 0"/>
-                                                                        </body>
-                                                                        <body name="Pinky R 1 Joint~Pinky R 1 Body" pos="0.130318 3.8147e-09 0.0553" quat="0.589703 -0.589703 0.390451 0.390451">
-                                                                            <joint name="Pinky R 1 Joint" type="hinge" axis="1 0 0" limited="true" range="0 1.5708"/>
-                                                                            <body name="Pinky R 2 Joint~Pinky R 2 Body" pos="1.52759e-08 -0.0461033 1.22706e-15" quat="1.00028 0 0 0">
-                                                                                <joint name="Pinky R 2 Joint" type="hinge" axis="1 0 0" limited="true" range="0 1.5708"/>
-                                                                                <body name="Pinky R 3 Joint~Pinky R 3 Body" pos="1.76183e-22 -0.0270607 -3.8147e-09" quat="1.00028 0 0 0">
-                                                                                    <joint name="Pinky R 3 Joint" type="hinge" axis="1 0 0" limited="true" range="0 1.5708"/>
-                                                                                    <geom type="mesh" mesh="Pinky R 3 Body" name="Pinky R 3 Body" pos="0 0 0" quat="-4.37237e-08 0 1.00028 4.43965e-16"/>
-                                                                                </body>
-                                                                                <geom type="mesh" mesh="Pinky R 2 Body" name="Pinky R 2 Body" pos="0 0 0" quat="1.00028 0 0 0"/>
-                                                                            </body>
-                                                                            <geom type="mesh" mesh="Pinky R 1 Body" name="Pinky R 1 Body" pos="0 0 0" quat="1.00028 0 0 0"/>
-                                                                        </body>
-                                                                        <body name="RightHandFingers" pos="0.130318 3.8147e-09 0.0553" quat="0.589703 -0.589703 0.390451 0.390451">
-                                                                            <joint name="RightHandFingers" type="hinge" axis="1 0 0" limited="true" range="0 1"/>
-                                                                            <inertial pos="0 0 0" mass="9.99999975e-05" diaginertia="1 1 1"/>
-                                                                        </body>
-                                                                        <body name="RightHandThumb" pos="0.081114 -0.046914 -0.0395" quat="0.562361 0.0231168 -0.825538 -0.0342307">
-                                                                            <joint name="RightHandThumb" type="hinge" axis="1 0 0" limited="true" range="0 1"/>
-                                                                            <inertial pos="0 0 0" mass="9.99999975e-05" diaginertia="1 1 1"/>
-                                                                        </body>
-                                                                        <body name="Ring R 1 Joint~Ring R 1 Body" pos="0.146516 0 0.026304" quat="0.541756 -0.541756 0.45454 0.45454">
-                                                                            <joint name="Ring R 1 Joint" type="hinge" axis="1 0 0" limited="true" range="0 1.5708"/>
-                                                                            <body name="Ring R 2 Joint~Ring R 2 Body" pos="3.05329e-08 -0.0550552 6.84239e-16" quat="1.00013 0 0 0">
-                                                                                <joint name="Ring R 2 Joint" type="hinge" axis="1 0 0" limited="true" range="0 1.5708"/>
-                                                                                <body name="Ring R 3 Joint~Ring R 3 Body" pos="-3.05329e-08 -0.0370372 4.60309e-16" quat="1.00013 0 0 0">
-                                                                                    <joint name="Ring R 3 Joint" type="hinge" axis="1 0 0" limited="true" range="0 1.5708"/>
-                                                                                    <geom type="mesh" mesh="Ring R 3 Body" name="Ring R 3 Body" pos="0 0 0" quat="-3.09202e-08 3.09048e-08 0.707195 0.707195"/>
-                                                                                </body>
-                                                                                <geom type="mesh" mesh="Ring R 2 Body" name="Ring R 2 Body" pos="0 0 0" quat="1.00013 0 0 0"/>
-                                                                            </body>
-                                                                            <geom type="mesh" mesh="Ring R 1 Body" name="Ring R 1 Body" pos="0 0 0" quat="1.00013 0 0 0"/>
-                                                                        </body>
-                                                                        <body name="Thumb R 1 Joint~Thumb R 1 Body" pos="0.081114 -0.046914 -0.0395" quat="0.562361 0.0231168 -0.825538 -0.0342307">
-                                                                            <joint name="Thumb R 1 Joint" type="hinge" axis="1 0 0" limited="true" range="0 1.5708"/>
-                                                                            <body name="Thumb R 2 Joint~Thumb R 2 Body" pos="-1.51603e-05 -0.0440791 -5.38475e-05" quat="0.999992 0 0 0">
-                                                                                <joint name="Thumb R 2 Joint" type="hinge" axis="1 0 0" limited="true" range="0 1.5708"/>
-                                                                                <geom type="mesh" mesh="Thumb R 2 Body" name="Thumb R 2 Body" pos="1.52588e-05 0 -3.05176e-05" quat="-5.21545e-08 0 0.999992 0"/>
-                                                                            </body>
-                                                                            <geom type="mesh" mesh="Thumb R 1 Body" name="Thumb R 1 Body" pos="0 0 0" quat="0.999992 0 0 0"/>
-                                                                        </body>
-                                                                        <geom type="mesh" mesh="Hand R Palm" name="Hand R Palm"/>
+                                                                        <geom type="cylinder" pos="0 0 0" quat="0.7071 0 0.7071 0" size="0.01 0.1" mass="0.00001"/>
+                                                                        <geom margin="0.003" type="box" pos="0.35 0.005 0" size="0.3 0.005 0.3" friction="0.05 0.05" solref="0.01 1" rgba="1 1 1 1" mass="0.00001"/>
                                                                     </body>
-                                                                    <site name="Hand R Power TCP" pos="0.135 -0.055 -0.0250001" quat="0.653281 0.653283 0.270599 0.270598"/>
-                                                                    <site name="Hand R Precision TCP" pos="0.14 -0.1 -0.0350001" quat="0.653281 0.653283 0.270599 0.270598"/>
-                                                                    <site name="Hand R TCP" pos="0.12 -0.03 -3.05176e-08" quat="0.5 0.5 0.5 0.5"/>
-                                                                    <inertial pos="0 0 0" mass="9.99999975e-05" diaginertia="1 1 1"/>
+                                                                    <site name="Hand R TCP" pos="0.08 0 0" quat="0.5 0.5 0.5 0.5"/>
+                                                                    <!--<inertial pos="0 0 0" mass="9.99999975e-05" diaginertia="1 1 1"/>-->
                                                                 </body>
                                                                 <geom type="mesh" mesh="ArmR8_Wri2_body" name="ArmR8_Wri2_body" pos="0 0 0" quat="1 0 0 0"/>
                                                             </body>
@@ -360,8 +292,6 @@
         <exclude body1="ArmR1_Cla1~ArmR1_Cla1_body" body2="Head Base"/>
         <exclude body1="ArmR6_Elb2~ArmR6_Elb2_body" body2="ArmR8_Wri2~ArmR8_Wri2_body"/>
         <exclude body1="ArmR8_Wri2~ArmR8_Wri2_body" body2="ArmR6_Elb2~ArmR6_Elb2_body"/>
-        <exclude body1="Hand L Col" body2="Thumb L 2 Joint~Thumb L 2 Body"/>
-        <exclude body1="Hand R Col" body2="Thumb R 2 Joint~Thumb R 2 Body"/>
         <exclude body1="Head Base" body2="ArmR1_Cla1~ArmR1_Cla1_body"/>
         <exclude body1="Head Base" body2="ArmL1_Cla1~ArmL1_Cla1_body"/>
         <exclude body1="Neck_1_Yaw~Neck_1_Yaw_body" body2="Neck_2_Pitch~Neck_2_Pitch_body"/>
@@ -417,22 +347,6 @@
         <exclude body1="ArmR8_Wri2~ArmR8_Wri2_body" body2="HandR_Base~Hand R Root"/>
         <exclude body1="HandR_Base~Hand R Root" body2="Hand R Col"/>
         <exclude body1="HandR_Base~Hand R Root" body2="Hand R Palm"/>
-        <exclude body1="Hand R Palm" body2="Index R 1 Joint~Index R 1 Body"/>
-        <exclude body1="Index R 1 Joint~Index R 1 Body" body2="Index R 2 Joint~Index R 2 Body"/>
-        <exclude body1="Index R 2 Joint~Index R 2 Body" body2="Index R 3 Joint~Index R 3 Body"/>
-        <exclude body1="Hand R Palm" body2="Middle R 1 Joint~Middle R 1 Body"/>
-        <exclude body1="Middle R 1 Joint~Middle R 1 Body" body2="Middle R 2 Joint~Middle R 2 Body"/>
-        <exclude body1="Middle R 2 Joint~Middle R 2 Body" body2="Middle R 3 Joint~Middle R 3 Body"/>
-        <exclude body1="Hand R Palm" body2="Pinky R 1 Joint~Pinky R 1 Body"/>
-        <exclude body1="Pinky R 1 Joint~Pinky R 1 Body" body2="Pinky R 2 Joint~Pinky R 2 Body"/>
-        <exclude body1="Pinky R 2 Joint~Pinky R 2 Body" body2="Pinky R 3 Joint~Pinky R 3 Body"/>
-        <exclude body1="Hand R Palm" body2="RightHandFingers"/>
-        <exclude body1="Hand R Palm" body2="RightHandThumb"/>
-        <exclude body1="Hand R Palm" body2="Ring R 1 Joint~Ring R 1 Body"/>
-        <exclude body1="Ring R 1 Joint~Ring R 1 Body" body2="Ring R 2 Joint~Ring R 2 Body"/>
-        <exclude body1="Ring R 2 Joint~Ring R 2 Body" body2="Ring R 3 Joint~Ring R 3 Body"/>
-        <exclude body1="Hand R Palm" body2="Thumb R 1 Joint~Thumb R 1 Body"/>
-        <exclude body1="Thumb R 1 Joint~Thumb R 1 Body" body2="Thumb R 2 Joint~Thumb R 2 Body"/>
         <exclude body1="CenterArms" body2="Head Base"/>
         <exclude body1="Head Base" body2="Neck_1_Yaw~Neck_1_Yaw_body"/>
         <exclude body1="Neck_1_Yaw~Neck_1_Yaw_body" body2="Neck_2_Pitch~Neck_2_Pitch_body"/>

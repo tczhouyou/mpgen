@@ -21,7 +21,7 @@ class Armar6BalanceBallExp:
         self.world = mujoco_py.load_model_from_path(env_path)
         self.sim = mujoco_py.MjSim(self.world)
 
-        high_ctrl.motion_duration = 1.8
+        high_ctrl.motion_duration = 5
         self.high_ctrl = high_ctrl
         self.high_ctrl.low_ctrl = low_ctrl(model=self.world, sim=self.sim, config=low_ctrl_config, \
                                            arm_name=arm_name, desired_joints=desired_joints)
@@ -31,7 +31,7 @@ class Armar6BalanceBallExp:
             self.viewer = mujoco_py.MjViewer(self.sim)
             self.viewer._paused = True
 
-        self.init_joints = np.array([0, -0.2, 0, 0, 1.8, 3.14, 0, 0])
+        self.init_joints = np.array([0, -0.42, 0, 0, 2.0, 3.14, 0, 0])
         self.is_ball_pos_change = False
 
     def run(self, stop_sim_after=True):
@@ -47,13 +47,6 @@ class Armar6BalanceBallExp:
             motion_done = self.high_ctrl.control(sim_duration)
             ball_pos = self.sim.data.get_body_xpos("Ball")
             ball_vel = self.sim.data.get_body_xvelp("Ball")
-
-            if np.linalg.norm(ball_vel[:2]) > 0.01:
-                has_moved = True
-
-            if has_moved and np.linalg.norm(ball_vel[:2]) < 0.01:
-                final_ball_pos = ball_pos
-                done = True
 
             if not motion_done:
                 tcp_pos = self.sim.data.get_site_xpos(self.high_ctrl.low_ctrl.tcp_name)
@@ -72,9 +65,6 @@ class Armar6BalanceBallExp:
             except:
                 print('mujoco step error')
 
-            if ball_pos[2] < 0.8 or (sim_duration > 5 and not has_moved):
-                is_error = True
-                break
 
             if self.isdraw:
                 self.viewer.render()
@@ -94,7 +84,7 @@ class Armar6BalanceBallExp:
         #     addr = self.sim.model.get_joint_qpos_addr(joint)
         #     states.qpos[addr] = RIGHT_HAND_JOINT_CONFIG[joint][1]
 
-        height = 0.98
+        height = 1.07
         if target_pos is not None:
             addr = self.sim.model.get_joint_qpos_addr("ref_box_x")
             states.qpos[addr] = target_pos[0]
@@ -157,7 +147,7 @@ def evaluate_hitball(wout, queries, starts, goals, low_ctrl, high_ctrl, env_path
             st, _ = env.reset(init_ball_pos=goals[i,:], target_pos=queries[i,:])
             env.high_ctrl.target_quat = st[3:]
             env.high_ctrl.target_z = st[2]
-            env.high_ctrl.desired_joints = np.array([0, -0.2, 0, 0, 1.8, 3.14, 0, 0])
+            env.high_ctrl.desired_joints = np.array([0, -0.42, 0, 0, 2.0, 3.14, 0, 0])
             env.high_ctrl.vmp.set_weights(wout[i,sampleId,:])
             env.high_ctrl.vmp.set_start_goal(starts[i,:], goals[i,:])
             final_ball_pos, traj, _, is_error = env.run()
