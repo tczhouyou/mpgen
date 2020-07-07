@@ -114,14 +114,25 @@ class TaskSpaceVMPController:
 
 
 class TaskSpacePositionVMPController:
-    def __init__(self, vmp, low_ctrl=None, periodic=False, motion_duration=1, velocity_mode=False):
+    def __init__(self, vmp=None, qvmp=None, low_ctrl=None, periodic=False, motion_duration=1, velocity_mode=False):
         self.low_ctrl = low_ctrl
-        self.vmp = vmp
         self.motion_duration = motion_duration
         self.periodic = periodic
         self.velocity_mode = velocity_mode
         self.last_period_end_time = 0.0
-        self.get_target_func = self.vmp.get_target
+        self.vmp = vmp
+        self.qvmp = qvmp
+
+        if vmp is not None:
+            self.get_target_func = vmp.get_target
+        else:
+            self.get_target_func = None
+
+        if qvmp is not None:
+            self.get_target_quat_func = qvmp.get_target
+        else:
+            self.get_target_quat_func = None
+
         self.desired_joints = None
         self.firstRun = True
 
@@ -147,13 +158,17 @@ class TaskSpacePositionVMPController:
 
             return done
         else:
-            target = self.get_target_func(normalizedTime)
-            target_xyz = np.zeros(3)
-            target_xyz[:2] = np.asarray(target).flatten()
-            target_xyz[2] = self.target_z
-            target_quat = Quaternion.normalize(self.target_quat)
-            targets = self.pack(target_xyz, target_quat, normalizedTime, self.desired_joints)
+            target_xyz = self.target_posi
+            target_quat = self.target_quat
+            if self.get_target_func is not None:
+                target = np.asarray(self.get_target_func(normalizedTime)).flatten()
+                for i in range(len(target)):
+                    target_xyz[i] = target[i]
 
+            if self.get_target_quat_func is not None:
+                target_quat = self.get_target_quat_func(normalizedTime)
+
+            targets = self.pack(target_xyz, target_quat, normalizedTime, self.desired_joints)
             self.low_ctrl.control(targets)
             self.last_targets = targets
             return done

@@ -18,6 +18,10 @@ class QVMP(VMP):
     def set_start_goal(self, q0, qg):
         self.q0 = q0
         self.qg = qg
+        ts = np.array([0, 1])
+        ts = np.expand_dims(ts, axis=1)
+        q = np.stack([self.q0, self.qg], axis=0)
+        self.qs = np.concatenate([ts, q], axis=1)
 
     def train(self, trajectory):
         self.n_samples = np.shape(trajectory)[0]
@@ -32,38 +36,48 @@ class QVMP(VMP):
         pseudo_inv = np.linalg.inv(np.matmul(np.transpose(Psi), Psi) + self.lamb * np.eye(self.kernel_num))
         self.muW = np.matmul(np.matmul(pseudo_inv, np.transpose(Psi)), F_q)
 
+        ts = np.array([0, 1])
+        ts = np.expand_dims(ts, axis=1)
+        q = np.stack([self.q0, self.qg], axis=0)
+        self.qs = np.concatenate([ts, q], axis=1)
         return F_q
 
-    def roll(self, qs=None, X=None):
-        if qs is None:
-            ts = np.array([0,1])
-            ts = np.expand_dims(ts, axis=1)
-            q = np.stack([self.q0,self.qg], axis=0)
-            qs = np.concatenate([ts, q], axis=1)
+    def set_qs(self, ts, qlist):
+        ts = np.expand_dims(ts, axis=1)
+        q = np.stack(qlist, axis=0)
+        self.qs = np.concatenate([ts, q], axis=1)
 
+    def get_target(self, t):
+        ts = self.qs[:,0]
+        ind = np.searchsorted(ts, t)
+        if ind != 0:
+            q0 = self.qs[ind - 1, :]
+            q1 = self.qs[ind, :]
+        else:
+            q0 = self.qs[0, :]
+            q1 = self.qs[1, :]
+
+        tq = (t - q0[0]) / (q1[0] - q0[0])
+        h_q = self.h(tq, q0[1:], q1[1:])
+        f_q = self.get_position(t)
+        y_q = Quaternion.qmulti(h_q, f_q)
+        y_q = Quaternion.normalize(y_q)
+        return y_q
+
+    def get_position(self, t):
+        x = 1 - t
+        return np.matmul(self.__psi__(x), self.muW)
+
+    def roll(self, X=None):
         if X is None:
             X = self.linearDecayCanonicalSystem(1, 0, self.n_samples)
 
-        ts = qs[:,0]
-        H_q = np.zeros(shape=(len(X), 4))
+        Xi = np.zeros(shape=(len(X),4))
         for i in range(len(X)):
             x = X[i]
             t = 1 - x
-            ind = np.searchsorted(ts, t)
+            Xi[i,:] = self.get_target(t)
 
-            if ind != 0:
-                q0 = qs[ind-1,:]
-                q1 = qs[ind, :]
-            else:
-                q0 = qs[0,:]
-                q1 = qs[1,:]
-
-            tq = (t - q0[0]) / (q1[0] - q0[0])
-            H_q[i,:] = self.h(tq, q0[1:], q1[1:])
-
-        Psi = self.__Psi__(X)
-        F_q = np.matmul(Psi,self.muW)
-        Xi = Quaternion.get_multi_qtraj(H_q, F_q)
         t = 1 - np.expand_dims(X,1)
         traj = np.concatenate([t, Xi], axis=1)
         return Quaternion.normalize_traj(traj)
@@ -83,8 +97,6 @@ class QVMP(VMP):
             rvec = 6 * np.power(1-X, 5) - 15 * np.power(1-X, 4) + 10 * np.power(1-X,3)
             return Quaternion.get_slerp_traj_(q0, q1, rvec)
 
-
-
 if __name__ == '__main__':
     qvmp = QVMP(kernel_num=10, elementary_type='minjerk')
     qtraj = np.loadtxt('quaterniontest.csv', delimiter=',')
@@ -94,11 +106,8 @@ if __name__ == '__main__':
     qg = qtraj[-1, 1:]
 
     ts = np.array([0, 0.5, 1])
-    ts = np.expand_dims(ts, axis=1)
-    q = np.stack([q0, qvia, qg], axis=0)
-    qs = np.concatenate([ts, q], axis=1)
-
-    qnewtraj = qvmp.roll(qs)
+    qvmp.set_qs(ts, [q0, qvia,q0])
+    qnewtraj = qvmp.roll()
     for i in range(4):
         plt.plot(qtraj[:,0], qtraj[:,i+1], 'k-.')
         plt.plot(qnewtraj[:,0], qnewtraj[:,i+1], 'r-')

@@ -6,7 +6,7 @@ os.sys.path.insert(0, '..')
 from vmp import VMP
 import numpy as np
 from math_tools.process_traj import TrajNormalizer
-
+from math_tools.Quaternion import Quaternion
 
 class VMPDataTools:
     def __init__(self, vmp, trajectory_data_directory, basic_data_filename):
@@ -14,7 +14,7 @@ class VMPDataTools:
         self.data_dir = trajectory_data_directory
         self.basic_fname = basic_data_filename
 
-    def get_flatten_weights_file(self, max_num_data=10000):
+    def get_flatten_weights_file(self, max_num_data=10000, ind=[0,1,2], process=None):
         weights = []
         starts = []
         goals = []
@@ -27,7 +27,12 @@ class VMPDataTools:
 
             print(fstr)
             traj = np.loadtxt(fstr, delimiter=',')
-            traj = traj[:, :3]
+            if ind is not None:
+                traj = traj[:, ind]
+
+            if process is not None:
+                traj = process(traj)
+
             tprocessor = TrajNormalizer(traj)
             traj = tprocessor.normalize_timestamp()
 

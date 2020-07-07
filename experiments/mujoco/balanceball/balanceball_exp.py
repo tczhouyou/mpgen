@@ -12,8 +12,8 @@ from armar6_controllers.armar6_low_controller import RIGHT_HAND_JOINT_CONFIG, RI
 
 ENV_DIR = '/experiments/mujoco/robot-models/armar6-mujoco/environment/'
 EXP_DIR = '/experiments/mujoco/balanceball/'
-INIT_BALL_POS = np.array([0.5, 0.8, 0.9])
-
+INIT_BALL_POS = np.array([0.38, 0.75, 0.9])
+INIT_JOINT_POS = np.array([0, -0.42, 0, -0.1, 2.0, 3.14, 0, 0])
 
 class Armar6BalanceBallExp:
     def __init__(self, high_ctrl, low_ctrl, env_path,
@@ -21,7 +21,7 @@ class Armar6BalanceBallExp:
         self.world = mujoco_py.load_model_from_path(env_path)
         self.sim = mujoco_py.MjSim(self.world)
 
-        high_ctrl.motion_duration = 5
+        high_ctrl.motion_duration = 1.6
         self.high_ctrl = high_ctrl
         self.high_ctrl.low_ctrl = low_ctrl(model=self.world, sim=self.sim, config=low_ctrl_config, \
                                            arm_name=arm_name, desired_joints=desired_joints)
@@ -31,14 +31,14 @@ class Armar6BalanceBallExp:
             self.viewer = mujoco_py.MjViewer(self.sim)
             self.viewer._paused = True
 
-        self.init_joints = np.array([0, -0.42, 0, 0, 2.0, 3.14, 0, 0])
+        self.init_joints = INIT_JOINT_POS
         self.is_ball_pos_change = False
 
     def run(self, stop_sim_after=True):
         start_time = self.sim.data.time
         done = False
-        ts_traj = []
-        js_traj = []
+        qtraj = []
+        jtraj = []
         is_error = False
         final_ball_pos = self.sim.data.get_body_xpos("Ball")
         has_moved = False
@@ -48,17 +48,26 @@ class Armar6BalanceBallExp:
             ball_pos = self.sim.data.get_body_xpos("Ball")
             ball_vel = self.sim.data.get_body_xvelp("Ball")
 
+            if has_moved and np.linalg.norm(ball_vel[:2]) < 0.001:
+                final_ball_pos = ball_pos
+                done = True
+
+            if np.linalg.norm(ball_vel[:2]) > 0.05:
+                has_moved = True
+
+            if ball_pos[2] < 0.5 or (sim_duration > 3 and not has_moved):
+                is_error = True
+                break
+
             if not motion_done:
-                tcp_pos = self.sim.data.get_site_xpos(self.high_ctrl.low_ctrl.tcp_name)
                 tcp_xmat = self.sim.data.get_site_xmat(self.high_ctrl.low_ctrl.tcp_name)
                 tcp_quat = np.zeros(4)
                 mujoco_py.functions.mju_mat2Quat(tcp_quat, np.reshape(tcp_xmat, (-1,), order='C'))
-                t_pose = np.concatenate([[sim_duration], tcp_pos.copy(), tcp_quat.copy()], axis=0)
-                ts_traj.append(t_pose[:3])
-
+                t_pose = np.concatenate([[sim_duration], tcp_quat.copy()], axis=0)
+                qtraj.append(t_pose)
                 qpos = get_actuator_data(self.sim.data.qpos,  self.high_ctrl.low_ctrl.actuator_id_in_order)
                 t_qpos = np.concatenate([[sim_duration], qpos.copy()], axis=0)
-                js_traj.append(t_qpos)
+                jtraj.append(t_qpos)
 
             try:
                 self.sim.step()
@@ -69,9 +78,9 @@ class Armar6BalanceBallExp:
             if self.isdraw:
                 self.viewer.render()
 
-        ts_traj = np.stack(ts_traj)
-        js_traj = np.stack(js_traj)
-        return final_ball_pos.copy(), ts_traj, js_traj, is_error
+        qtraj = np.stack(qtraj)
+        jtraj = np.stack(jtraj)
+        return final_ball_pos.copy(), qtraj, jtraj, is_error
 
     def reset(self, init_ball_pos=None, target_pos=None):
         states = self.sim.get_state()
@@ -79,10 +88,6 @@ class Armar6BalanceBallExp:
         for joint_id, joint in enumerate(joint_name_list):
             addr = self.sim.model.get_joint_qpos_addr(joint)
             states.qpos[addr] = self.init_joints[joint_id]
-
-        # for joint_id, joint in enumerate(RIGHT_HAND_JOINT):
-        #     addr = self.sim.model.get_joint_qpos_addr(joint)
-        #     states.qpos[addr] = RIGHT_HAND_JOINT_CONFIG[joint][1]
 
         height = 1.07
         if target_pos is not None:
@@ -136,7 +141,7 @@ class Armar6BalanceBallExp:
         return start, ball_pos.copy()
 
 
-def evaluate_hitball(wout, queries, starts, goals, low_ctrl, high_ctrl, env_path, isdraw=False):
+def evaluate_balanceball(wout, queries, starts, goals, low_ctrl, high_ctrl, env_path, isdraw=False):
     # wout: N x S x dim, N: number of experiments, S: number of samples, dim: dimension of MP
     env = Armar6BalanceBallExp(high_ctrl=high_ctrl, low_ctrl=low_ctrl, isdraw=isdraw, env_path=os.environ['MPGEN_DIR']+env_path)
 
@@ -146,10 +151,10 @@ def evaluate_hitball(wout, queries, starts, goals, low_ctrl, high_ctrl, env_path
         for sampleId in range(np.shape(wout)[1]):
             st, _ = env.reset(init_ball_pos=goals[i,:], target_pos=queries[i,:])
             env.high_ctrl.target_quat = st[3:]
-            env.high_ctrl.target_z = st[2]
-            env.high_ctrl.desired_joints = np.array([0, -0.42, 0, 0, 2.0, 3.14, 0, 0])
-            env.high_ctrl.vmp.set_weights(wout[i,sampleId,:])
-            env.high_ctrl.vmp.set_start_goal(starts[i,:], goals[i,:])
+            env.high_ctrl.target_posi = st[:3]
+            env.high_ctrl.desired_joints = INIT_JOINT_POS
+            env.high_ctrl.qvmp.set_weights(wout[i,sampleId,:])
+            env.high_ctrl.qvmp.set_start_goal(starts[i,:], goals[i,:])
             final_ball_pos, traj, _, is_error = env.run()
 
             if not is_error and np.linalg.norm(queries[i,:] - final_ball_pos[:2]) < 0.18:

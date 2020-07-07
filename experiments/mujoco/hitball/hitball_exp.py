@@ -273,6 +273,44 @@ class Armar6HitBallExpV1:
         return start, ball_pos.copy()
 
 
+def run_env(data, q):
+    final_ball_pos, _, _, is_error = data['env'].run()
+
+    if not is_error and np.linalg.norm(data['query']- final_ball_pos[:2]) < 0.18:
+        q.put(1)
+    else:
+        q.put(0)
+
+def evaluate_hitball_multiprocess(wout, queries, starts, goals, low_ctrl, high_ctrl, env_path, EXP=Armar6HitBallExpV1):
+    import multiprocessing
+    processes = []
+    q = multiprocessing.Queue()
+    for i in range(np.shape(wout)[0]):
+        for sampleId in range(np.shape(wout)[1]):
+            env = EXP(high_ctrl=high_ctrl, low_ctrl=low_ctrl, isdraw=False, env_path=os.environ['MPGEN_DIR'] + env_path)
+            st, _ = env.reset(init_ball_pos=goals[i, :], target_pos=queries[i, :])
+            env.high_ctrl.target_quat = st[3:]
+            env.high_ctrl.target_posi = st[:3]
+            env.high_ctrl.desired_joints = np.array([0, -0.2, 0, 0, 1.8, 3.14, 0, 0])
+            env.high_ctrl.vmp.set_weights(wout[i, sampleId, :])
+            env.high_ctrl.vmp.set_start_goal(starts[i, :], goals[i, :])
+            data = {'env': env, 'query': queries[i,:]}
+            p = multiprocessing.Process(target=run_env, args=(data,q,))
+            processes.append(p)
+            p.start()
+
+    for process in processes:
+        process.join()
+
+    srate = 0.0
+    for i in range(np.shape(wout)[0]):
+        for sampleId in range(np.shape(wout)[1]):
+            srate = srate + q.get()
+
+    print('srate: {}'.format(srate/np.shape(wout)[0]))
+    return srate/np.shape(wout)[0]
+
+
 def evaluate_hitball(wout, queries, starts, goals, low_ctrl, high_ctrl, env_path, EXP=Armar6HitBallExpV1, isdraw=False):
     # wout: N x S x dim, N: number of experiments, S: number of samples, dim: dimension of MP
     env = EXP(high_ctrl=high_ctrl, low_ctrl=low_ctrl, isdraw=isdraw, env_path=os.environ['MPGEN_DIR']+env_path)
@@ -283,11 +321,11 @@ def evaluate_hitball(wout, queries, starts, goals, low_ctrl, high_ctrl, env_path
         for sampleId in range(np.shape(wout)[1]):
             st, _ = env.reset(init_ball_pos=goals[i,:], target_pos=queries[i,:])
             env.high_ctrl.target_quat = st[3:]
-            env.high_ctrl.target_z = st[2]
+            env.high_ctrl.target_posi = st[:3]
             env.high_ctrl.desired_joints = np.array([0, -0.2, 0, 0, 1.8, 3.14, 0, 0])
             env.high_ctrl.vmp.set_weights(wout[i,sampleId,:])
             env.high_ctrl.vmp.set_start_goal(starts[i,:], goals[i,:])
-            final_ball_pos, traj, _, is_error = env.run()
+            final_ball_pos, _, _, is_error = env.run()
 
             if not is_error and np.linalg.norm(queries[i,:] - final_ball_pos[:2]) < 0.18:
                 success_counter = success_counter + 1

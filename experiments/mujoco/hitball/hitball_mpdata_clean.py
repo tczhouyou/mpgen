@@ -9,17 +9,16 @@ import numpy as np
 from mp.vmp import VMP
 from armar6_controllers.armar6_low_controller import TaskSpaceImpedanceController, TaskSpaceVelocityController, get_actuator_data
 from armar6_controllers.armar6_high_controller import TaskSpacePositionVMPController
-from hitball_exp import Armar6HitBallExp, ENV_DIR, INIT_BALL_POS
+from hitball_exp import Armar6HitBallExpV0, Armar6HitBallExpV1, ENV_DIR, INIT_BALL_POS
 from optparse import OptionParser
 
 
 env_dir = os.environ['MPGEN_DIR'] + ENV_DIR
 
 parser = OptionParser()
-parser.add_option("-m", "--env_path", dest="env_path", type="string", default="hitball_exp_v0.xml")
 parser.add_option("-d", "--mp_dir", dest="mp_dir", type="string", default="hitball_mpdata_v0")
-parser.add_option("-c", "--vel", action="store_true", dest="is_vel", default=False)
 parser.add_option("-p", "--draw", action="store_true", dest="is_draw", default=False)
+parser.add_option("-v", "--version", dest="exp_version", type="string", default="v1")
 
 (options, args) = parser.parse_args(sys.argv)
 
@@ -33,10 +32,12 @@ ogoals = np.loadtxt(mp_dir + '/hitball_goals.csv', delimiter=',')
 oqueries = np.loadtxt(mp_dir + '/hitball_queries.csv', delimiter=',')
 oweights = np.loadtxt(mp_dir + '/hitball_weights.csv', delimiter=',')
 
-if options.is_vel:
-    env = Armar6HitBallExp(low_ctrl=TaskSpaceVelocityController, high_ctrl=TaskSpacePositionVMPController(vmp), env_path=env_path, isdraw=options.is_draw)
+if options.exp_version == "v1":
+    env_path = env_dir + "hitball_exp_v1.xml"
+    env = Armar6HitBallExpV1(low_ctrl=TaskSpaceVelocityController, high_ctrl=TaskSpacePositionVMPController(vmp), env_path=env_path, isdraw=options.is_draw)
 else:
-    env = Armar6HitBallExp(low_ctrl=TaskSpaceImpedanceController, high_ctrl=TaskSpacePositionVMPController(vmp), env_path=env_path, isdraw=options.is_draw)
+    env_path = env_dir + "hitball_exp_v0.xml"
+    env = Armar6HitBallExpV0(low_ctrl=TaskSpaceImpedanceController, high_ctrl=TaskSpacePositionVMPController(vmp), env_path=env_path, isdraw=options.is_draw)
 
 success_rate = 0
 num_exp = np.shape(oqueries)[0]
@@ -55,7 +56,7 @@ for i in range(num_exp):
     st, _ = env.reset(init_ball_pos=INIT_BALL_POS, target_pos=query)
 
     env.high_ctrl.target_quat = st[3:]
-    env.high_ctrl.target_z = st[2]
+    env.high_ctrl.target_posi = st[:3]
     env.high_ctrl.desired_joints = np.array([0, -0.2, 0, 0, 1.8, 3.14, 0, 0])
 
     vmp.set_weights(weight)

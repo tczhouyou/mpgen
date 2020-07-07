@@ -137,7 +137,7 @@ DEFAULT_PD_CONFIG = {
 
 DEFAULT_PD_VEL_CONFIG = {
     'kpos': [100, 100, 100],
-    'kori': [1, 1, 1],
+    'kori': [20, 20, 20],
     # 'kori': [100,100,100],
     'dpos': [0, 0, 0],
     'dori': [0, 0, 0]

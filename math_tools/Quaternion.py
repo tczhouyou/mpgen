@@ -150,6 +150,38 @@ class Quaternion:
         sig, vec = LA.eig(M)
         return vec[:,np.argmax(sig)]
 
+    @staticmethod
+    def from_axis_angle(axis, angle):
+        res = np.zeros(4)
+        res[0] = np.cos(angle/2)
+        res[1] = np.sin(angle/2) * axis[0]
+        res[2] = np.sin(angle/2) * axis[1]
+        res[3] = np.sin(angle/2) * axis[2]
+        res = Quaternion.normalize(res)
+        return res
+
+    @staticmethod
+    def plot(qtraj, line_spec='k-.'):
+        import matplotlib.pyplot as plt
+        for i in range(4):
+            plt.plot(qtraj[:, 0], qtraj[:, i + 1], line_spec)
+
+        plt.show()
+
+    @staticmethod
+    def process_qtraj(qtraj):
+        q0 = qtraj[0,1:]
+        processed = qtraj.copy()
+        for i in range(np.shape(qtraj)[0]):
+            q1 = qtraj[i,1:]
+            if np.all(np.multiply(q0,q1) < 0):
+                q1 = -q1
+
+            processed[i, 1:] = q1
+            q0 = q1
+
+        return processed
+
 if __name__ == '__main__':
     q0 = np.array([1,0,0,0])
     q1 = np.array([0,0,-1,0])

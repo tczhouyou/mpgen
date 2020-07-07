@@ -9,31 +9,34 @@ import numpy as np
 from mp.vmp import VMP
 from armar6_controllers.armar6_low_controller import TaskSpaceImpedanceController, TaskSpaceVelocityController
 from armar6_controllers.armar6_high_controller import TaskSpaceVMPController, TaskSpacePositionVMPController
-from hitball_exp import Armar6HitBallExp, ENV_DIR, INIT_BALL_POS
+from hitball_exp import Armar6HitBallExpV0, Armar6HitBallExpV1, ENV_DIR, INIT_BALL_POS
 import progressbar
 from optparse import OptionParser
 
 parser = OptionParser()
 parser.add_option("-n", "--num_data", dest="n_data", type="int", default=10)
-parser.add_option("-m", "--env_path", dest="env_path", type="string", default="hitball_exp_v0.xml")
-parser.add_option("-d", "--mp_dir", dest="mp_dir", type="string", default="hitball_mpdata_v0")
-parser.add_option("-c", "--vel", action="store_true", dest="is_vel", default=False)
+parser.add_option("-d", "--mp_dir", dest="mp_dir", type="string", default="hitball_mpdata")
 parser.add_option("-p", "--draw", action="store_true", dest="is_draw", default=False)
-parser.add_option("-r", "--raw_dir", dest="raw_dir", type="string", default="hitball_mpdata_v0")
+parser.add_option("-r", "--raw_dir", dest="raw_dir", type="string", default="hitball_rawdata")
+parser.add_option("-v", "--exp_version", dest="exp_version", type="string", default="v0")
 (options, args) = parser.parse_args(sys.argv)
-
 env_dir = os.environ['MPGEN_DIR'] + ENV_DIR
-env_path = env_dir + options.env_path
 mp_dir = options.mp_dir
 
 
 EXP_NUM = options.n_data
 vmp = VMP(dim=2, elementary_type='minjerk')
 
-if options.is_vel:
-    env = Armar6HitBallExp(low_ctrl=TaskSpaceVelocityController, high_ctrl=TaskSpacePositionVMPController(vmp), env_path=env_path, isdraw=options.is_draw)
+if options.exp_version == "v1":
+    env_path = env_dir + "hitball_exp_v1.xml"
+    env = Armar6HitBallExpV1(low_ctrl=TaskSpaceVelocityController, high_ctrl=TaskSpacePositionVMPController(vmp),
+                             env_path=env_path, isdraw=options.is_draw)
+elif options.exp_version == "v0":
+    env_path = env_dir + "hitball_exp_v0.xml"
+    env = Armar6HitBallExpV0(low_ctrl=TaskSpaceImpedanceController, high_ctrl=TaskSpacePositionVMPController(vmp),
+                             env_path=env_path, isdraw=options.is_draw)
 else:
-    env = Armar6HitBallExp(low_ctrl=TaskSpaceImpedanceController, high_ctrl=TaskSpacePositionVMPController(vmp), env_path=env_path, isdraw=options.is_draw)
+    raise Exception("Unknown Experiment Version")
 
 env.is_ball_pos_change = False
 
@@ -62,7 +65,7 @@ for i in progressbar.progressbar(range(EXP_NUM)):
         dgy = np.random.uniform(low=-2.3, high=-.9)
         env.high_ctrl.vmp.set_start_goal(start[:2], goal[:2], dg=[dgx, dgy])
         env.high_ctrl.target_quat = start[3:]
-        env.high_ctrl.target_z = start[2]
+        env.high_ctrl.target_posi = start[:3]
         env.high_ctrl.desired_joints = np.array([0, -0.2, 0, 0, 1.8, 3.14, 0, 0])
 
         final_ball_pos, ts_traj, js_traj, is_error = env.run()
