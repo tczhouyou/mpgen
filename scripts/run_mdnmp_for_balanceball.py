@@ -103,7 +103,7 @@ def run_mdnmp_for_balanceball(nmodels, MAX_EXPNUM=20, use_entropy_cost=[False, T
                 print("======== Exp: {} with nmodels {} and {} ========".format(expId, nmodels[modelId], model_names[en]))
 
                 if use_entropy_cost[en] is True:
-                    mdnmp.lratio['mce'] = 5
+                    mdnmp.lratio['mce'] = 10
                 else:
                     mdnmp.lratio['mce'] = 0
 
@@ -138,10 +138,10 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args(sys.argv)
     nmodel = options.nmodel
 
-    use_entropy_cost = [False, True]
-    model_names = ["Original MDN", "Entropy MDN"]
+    use_entropy_cost = [True, False]
+    model_names = ["Entropy MDN", "Original MDN"]
 
-    nmodels = [3, 5, 7, 9]
+    nmodels = [5]
     MAX_EXPNUM = 5
     nsamples = [10]
 

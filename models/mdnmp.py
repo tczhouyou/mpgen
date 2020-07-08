@@ -56,8 +56,9 @@ class MDNMP(basicModel):
         nll_cost = self.lratio['likelihood'] * nll + self.lratio['regularization'] * reg_loss
 
         self.opt_nll = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(nll_cost, var_list=var_list)
+        cost = nll_cost
         if self.lratio['mce'] != 0:
-            cost = nll_cost + self.lratio['mce'] * mce_loss
+            cost = cost + self.lratio['mce'] * mce_loss
 
         # if self.lratio['eub'] != 0:
         #     eub_loss = gmm_eub_cost(scale, mc, self.is_positive)
