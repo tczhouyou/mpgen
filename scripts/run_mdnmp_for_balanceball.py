@@ -87,7 +87,7 @@ def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, model_names=["original_md
     mp = QVMP(kernel_num=10)
 
     rstates = np.random.randint(0, 100, size=MAX_EXPNUM)
-    n_test = 1
+    n_test = 100
 
     for expId in range(MAX_EXPNUM):
         trdata, tdata, trvmps, tvmps = train_test_split(inputs, vmps, test_size=0.95, random_state=rstates[expId])
