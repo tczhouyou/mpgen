@@ -78,8 +78,8 @@ def run_mdnmp_for_balanceball(nmodels, MAX_EXPNUM=20, use_entropy_cost=[False, T
     # prepare model
     nn_structure = {'d_feat': 20,
                     'feat_layers': [40],
-                    'mean_layers': [120],
-                    'scale_layers': [120],
+                    'mean_layers': [80],
+                    'scale_layers': [80],
                     'mixing_layers': [10]}
 
     d_input = np.shape(queries)[-1]
@@ -111,7 +111,7 @@ def run_mdnmp_for_balanceball(nmodels, MAX_EXPNUM=20, use_entropy_cost=[False, T
                 mdnmp.init_train()
                 is_pos = np.ones(shape=(np.shape(trvmps)[0], 1))
                 trqueries = trdata[:,0:d_input]
-                mdnmp.train(trqueries, trvmps, is_pos, max_epochs=10000, is_load=False, is_save=False)
+                mdnmp.train(trqueries, trvmps, is_pos, max_epochs=20000, is_load=False, is_save=False)
 
                 tqueries = tdata[:n_test, 0:d_input]
                 starts = tdata[:n_test, d_input:d_input+4]
