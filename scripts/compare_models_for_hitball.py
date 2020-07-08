@@ -4,6 +4,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 os.sys.path.insert(0, currentdir)
 os.sys.path.insert(0, '..')
+os.sys.path.insert(0, '../experiments/mujoco')
 
 from models.mdnmp import MDNMP
 from models.gmgan import GMGAN
@@ -36,7 +37,7 @@ parser.add_option("-d", "--result_dir", dest="result_dir", type="string", defaul
 parser.add_option("--draw", dest="isdraw", action="store_true", default=False)
 (options, args) = parser.parse_args(sys.argv)
 
-data_dir = 'experiments/mujoco/hitball/hitball_mpdata_v1'
+data_dir = '../experiments/mujoco/hitball/hitball_mpdata_v1'
 queries = np.loadtxt(data_dir + '/hitball_queries.csv', delimiter=',')
 vmps = np.loadtxt(data_dir + '/hitball_weights.csv', delimiter=',')
 starts = np.loadtxt(data_dir + '/hitball_starts.csv', delimiter=',')

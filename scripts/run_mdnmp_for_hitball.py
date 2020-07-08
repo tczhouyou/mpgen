@@ -4,6 +4,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 os.sys.path.insert(0, currentdir)
 os.sys.path.insert(0, '..')
+os.sys.path.insert(0, '../experiments/mujoco')
 
 import numpy as np
 from models.mdnmp import MDNMP
