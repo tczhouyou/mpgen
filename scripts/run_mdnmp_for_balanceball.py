@@ -77,9 +77,9 @@ def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, model_names=["original_md
     # prepare model
     nn_structure = {'d_feat': 20,
                     'feat_layers': [40],
-                    'mean_layers': [80],
-                    'scale_layers': [80],
-                    'mixing_layers': [10]}
+                    'mean_layers': [120,80],
+                    'scale_layers': [120,80],
+                    'mixing_layers': [20]}
 
     d_input = np.shape(queries)[-1]
     d_output = np.shape(vmps)[1]
