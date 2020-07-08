@@ -53,10 +53,11 @@ class MDNMP(basicModel):
         mce_loss = gmm_mce_cost(mc, self.is_positive, eps=1e-20)
         floss = failure_cost(self.target, mean, mc, 1-self.is_positive, neg_scale=0.1)
 
-        cost = self.lratio['likelihood'] * nll + self.lratio['regularization'] * reg_loss
+        nll_cost = self.lratio['likelihood'] * nll + self.lratio['regularization'] * reg_loss
 
+        self.opt_nll = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(nll_cost, var_list=var_list)
         if self.lratio['mce'] != 0:
-            cost = cost + self.lratio['mce'] * mce_loss
+            cost = nll_cost + self.lratio['mce'] * mce_loss
 
         # if self.lratio['eub'] != 0:
         #     eub_loss = gmm_eub_cost(scale, mc, self.is_positive)
@@ -103,9 +104,15 @@ class MDNMP(basicModel):
                 batch_ispos = is_positive
 
             feed_dict = {self.input: batch_input, self.target: batch_target, self.is_positive: batch_ispos}
-            _, nll, mce, cost, floss = self.sess.run([self.opt_all, self.loss_dict['nll'], self.loss_dict['mce'],
+            nll, mce, cost, floss = self.sess.run([ self.loss_dict['nll'], self.loss_dict['mce'],
                                                         self.loss_dict['cost'], self.loss_dict['floss']],
                                                         feed_dict=feed_dict)
+
+            if i < 0.5 * max_epochs:
+                self.sess.run(self.opt_all, feed_dict=feed_dict)
+            else:
+                self.sess.run(self.opt_nll, feed_dict=feed_dict)
+
 
             if np.isnan(cost) or np.isinf(cost):
                 print('\n failed trained')
