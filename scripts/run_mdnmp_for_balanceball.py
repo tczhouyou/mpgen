@@ -25,7 +25,7 @@ if tf.__version__ < '2.0.0':
     VAR_INIT = tflearn.initializations.uniform(minval=-.1, maxval=.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    VAR_INIT = initializers.RandomUniform(minval=-0.0003, maxval=0.0003, seed=42)
+    VAR_INIT = initializers.RandomUniform(minval=-0.003, maxval=0.003, seed=42)
 
 
 ENV_FILE = "balanceball_exp.xml"
@@ -103,15 +103,15 @@ def run_mdnmp_for_balanceball(nmodels, MAX_EXPNUM=20, use_entropy_cost=[False, T
                 print("======== Exp: {} with nmodels {} and {} ========".format(expId, nmodels[modelId], model_names[en]))
 
                 if use_entropy_cost[en] is True:
-                    mdnmp.lratio['mce'] = 10
+                    mdnmp.lratio['mce'] = 1
                 else:
                     mdnmp.lratio['mce'] = 0
 
-                mdnmp.build_mdn(learning_rate=0.0001)
+                mdnmp.build_mdn(learning_rate=0.0003)
                 mdnmp.init_train()
                 is_pos = np.ones(shape=(np.shape(trvmps)[0], 1))
                 trqueries = trdata[:,0:d_input]
-                mdnmp.train(trqueries, trvmps, is_pos, max_epochs=20000, is_load=False, is_save=False)
+                mdnmp.train(trqueries, trvmps, is_pos, max_epochs=10000, is_load=False, is_save=False)
 
                 tqueries = tdata[:n_test, 0:d_input]
                 starts = tdata[:n_test, d_input:d_input+4]

@@ -109,11 +109,7 @@ class MDNMP(basicModel):
                                                         self.loss_dict['cost'], self.loss_dict['floss']],
                                                         feed_dict=feed_dict)
 
-            if i > 0.3 * max_epochs and i < 0.7 * max_epochs:
-                self.sess.run(self.opt_all, feed_dict=feed_dict)
-            else:
-                self.sess.run(self.opt_nll, feed_dict=feed_dict)
-
+            self.sess.run(self.opt_all, feed_dict=feed_dict)
             if np.isnan(cost) or np.isinf(cost):
                 print('\n failed trained')
                 isSuccess = False
