@@ -58,7 +58,7 @@ mdnmp_struct = {'d_feat': 20,
                 'feat_layers': [40], #[60]
                 'mean_layers': [60], #[60]
                 'scale_layers': [60],
-                'mixing_layers': [20]}
+                'mixing_layers': [10]}
 mdnmp = MDNMP(n_comps=options.nmodel, d_input=6, d_output=knum, nn_structure=mdnmp_struct, scaling=1, var_init=VAR_INIT)
 
 # create gmgan
