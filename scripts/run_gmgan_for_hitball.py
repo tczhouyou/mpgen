@@ -2,9 +2,8 @@ import os, inspect, sys
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-print("current_dir=" + currentdir)
 os.sys.path.insert(0, currentdir)
-os.sys.path.insert(0, './experiments/mujoco')
+os.sys.path.insert(0, '..')
 
 import numpy as np
 from mp.vmp import VMP

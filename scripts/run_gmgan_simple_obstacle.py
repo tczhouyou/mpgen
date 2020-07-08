@@ -3,8 +3,9 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 os.sys.path.insert(0, currentdir)
+os.sys.path.insert(0, '..')
 
-from models.mdgan import cMDGAN
+from models.gmgan import GMGAN
 from mp.vmp import VMP
 import sys
 from optparse import OptionParser
@@ -39,30 +40,38 @@ train_ws = np.copy(vmps)
 
 fig, axe = plt.subplots(nrows=1, ncols=1)
 
-nn_structure = {'generator': [40,40],
+nn_structure = {'d_feat': 20,
+                'feat_layers': [40],
+                'mean_layers': [40],
+                'scale_layers': [40],
+                'mixing_layers': [40],
                 'discriminator': [10],
-                'lambda': [10], 'd_response': [40,5], 'd_context': [10,5]}
+                'lambda': [10],
+                'd_response': [40,5],
+                'd_context': [10,5]}
 
-mdgan = cMDGAN(n_comps=2, context_dim=2, response_dim=20, noise_dim=1, nn_structure=nn_structure)
+gmgan = GMGAN(n_comps=2, context_dim=2, response_dim=20,  nn_structure=nn_structure)
 
-mdgan.gen_lrate = 0.0002
-mdgan.dis_lrate = 0.0002
-mdgan.entropy_ratio = 1
-
-mdgan.create_network(num_real_data=n_data)
-mdgan.init_train()
+gmgan.lratio['entropy'] = 100
+gmgan.gen_sup_lrate = 0.00005
+gmgan.gen_adv_lrate = 0.0002
+gmgan.dis_lrate = 0.0002
+gmgan.entropy_ratio = 0.0
+gmgan.sup_max_epoch = 5000
+gmgan.create_network(num_real_data=n_data)
+gmgan.init_train()
 
 train_input = np.random.uniform(low=np.min(train_goals, axis=0), high=np.max(train_goals, axis=0),
                                 size=(1000, np.shape(train_goals)[1]))
-mdgan.train(train_context=train_input, real_context=train_goals, real_response=train_ws, max_epochs=30000, is_load=False, is_save=False)
+gmgan.train(train_context=train_input, real_context=train_goals, real_response=train_ws, max_epochs=10000, is_load=False, is_save=False)
 
-wout = mdgan.generate(testgoals)
+wout, _ = gmgan.predict(testgoals)
+axe.set_ylim([-2, 2])
+axe.set_xlim([-2.5, 2.5])
+obs.plot(axe)
 for k in range(np.shape(wout)[0]):
-    axe.set_ylim([-2, 2])
-    axe.set_xlim([-2.5, 2.5])
-    obs.plot(axe)
     cgoals = testgoals[k, :]
-    vmp.set_weights(wout[k,:])
+    vmp.set_weights(wout[k,0,:])
     traj = vmp.roll(start, cgoals)
     axe.plot(traj[:, 1], traj[:, 2], '-', color='r', linewidth=2)
     axe.plot(cgoals[0], cgoals[1], 'bo')

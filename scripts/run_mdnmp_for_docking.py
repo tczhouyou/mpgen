@@ -4,7 +4,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 os.sys.path.insert(0, currentdir)
 os.sys.path.insert(0, '..')
-os.sys.path.insert(0, '../mp')
+
 from models.mdnmp import MDNMP
 import sys
 from optparse import OptionParser
@@ -14,15 +14,8 @@ from experiments.evaluate_exps import evaluate_docking, evaluate_docking_for_all
 import matplotlib.pyplot as plt
 
 
-def train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, lratio, max_epochs=20000, sample_num=1,
+def train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, max_epochs=20000, sample_num=1,
                                      learning_rate=0.00003):
-
-    mdnmp.lratio = lratio
-    # if use_entropy:
-    #     mdnmp.lratio['entropy'] = 500
-    # else:
-    #     mdnmp.lratio['entropy'] = 0
-
     weights = np.ones(shape=(np.shape(trvmps)[0], 1))
     train_weights = np.copy(weights)
     mdnmp.build_mdn(learning_rate=learning_rate)

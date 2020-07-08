@@ -149,7 +149,7 @@ def evaluate_balanceball(wout, queries, starts, goals, low_ctrl, high_ctrl, env_
     for i in range(np.shape(wout)[0]):
         success_counter = 0
         for sampleId in range(np.shape(wout)[1]):
-            st, _ = env.reset(init_ball_pos=goals[i,:], target_pos=queries[i,:])
+            st, _ = env.reset(init_ball_pos=INIT_BALL_POS, target_pos=queries[i,:])
             env.high_ctrl.target_quat = st[3:]
             env.high_ctrl.target_posi = st[:3]
             env.high_ctrl.desired_joints = INIT_JOINT_POS
@@ -157,7 +157,7 @@ def evaluate_balanceball(wout, queries, starts, goals, low_ctrl, high_ctrl, env_
             env.high_ctrl.qvmp.set_start_goal(starts[i,:], goals[i,:])
             final_ball_pos, traj, _, is_error = env.run()
 
-            if not is_error and np.linalg.norm(queries[i,:] - final_ball_pos[:2]) < 0.18:
+            if not is_error and np.linalg.norm(queries[i,:] - final_ball_pos[:2]) < 0.05:
                 success_counter = success_counter + 1
                 break
 

@@ -4,8 +4,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 os.sys.path.insert(0, currentdir)
 os.sys.path.insert(0, '..')
-os.sys.path.insert(0, '../mp')
-from models.mdgan import cMDGAN
+
+from models.gmgan import GMGAN
 import sys
 from optparse import OptionParser
 import numpy as np
@@ -14,27 +14,34 @@ from experiments.evaluate_exps import evaluate_docking, evaluate_docking_for_all
 import matplotlib.pyplot as plt
 
 
-def train_evaluate_mdgan_for_docking(mdgan, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000):
+def train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000, sup_max_epoch=0,
+                                     sample_num=1, g_lrate=0.0003, d_lrate=0.001):
     if use_entropy:
-        mdgan.entropy_ratio = 0.2
+        gmgan.entropy_ratio = 1
     else:
-        mdgan.entropy_ratio = 0.0
+        gmgan.entropy_ratio = 0
 
-    train_input = np.random.uniform(low=np.min(trqueries, axis=0), high=np.max(trqueries, axis=0),
-                                    size=(10000, np.shape(trqueries)[1]))
-    mdgan.create_network(num_real_data=np.shape(trqueries)[0])
-    mdgan.init_train()
-    mdgan.train(train_context=train_input, real_context=trqueries, real_response=trvmps, max_epochs=max_epochs,
-                is_load=False, is_save=False)
+    gmgan.lratio['entropy'] = 500
+    gmgan.lratio['adv_cost'] = 10
+    gmgan.gen_sup_lrate = g_lrate
+    gmgan.gen_adv_lrate = g_lrate
+    gmgan.dis_lrate = d_lrate
+    gmgan.sup_max_epoch = sup_max_epoch
+
+    train_input = np.random.uniform(low=np.min(trqueries, axis=0), high=np.max(trqueries, axis=0), size=(10000, np.shape(trqueries)[1]))
+
+    gmgan.create_network()
+    gmgan.init_train()
+    gmgan.train(train_context=train_input, real_context=trqueries, real_response=trvmps, max_epochs=max_epochs, is_load=False, is_save=False)
 
     tqueries = tdata[:, 0:6]
     starts = tdata[:, 6:8]
     goals = tdata[:, 8:10]
-    wout = mdgan.generate_multi(tqueries, 1)
+    wout = gmgan.generate(tqueries, 10000, n_output=sample_num)
     srate, _ = evaluate_docking(wout, tqueries, starts, goals)
     return srate
 
-def run_mdgan_for_docking(nmodel=3, MAX_EXPNUM=1, nsamples=[1, 10, 30, 50], num_train_input=1000):
+def run_gmgan_for_docking(nmodel=3, MAX_EXPNUM=1, nsamples=[1, 10, 30, 50], num_train_input=100, sup_max_epoch=10000, max_epochs=20000):
     queries = np.loadtxt('data/docking_queries.csv', delimiter=',')
     vmps = np.loadtxt('data/docking_weights.csv', delimiter=',')
     starts = np.loadtxt('data/docking_starts.csv', delimiter=',')
@@ -49,14 +56,26 @@ def run_mdgan_for_docking(nmodel=3, MAX_EXPNUM=1, nsamples=[1, 10, 30, 50], num_
     knum = np.shape(vmps)[1]
     rstates = np.random.randint(0, 100, size=MAX_EXPNUM)
 
-    nn_structure = {'generator': [40], 'discriminator': [20], 'lambda': [10], 'd_response': [40,5], 'd_context': [10,5]}
-    mdgan = cMDGAN(n_comps=nmodel, context_dim=6, response_dim=knum, noise_dim=1, nn_structure=nn_structure)
-    mdgan.gen_lrate = 0.0002
-    mdgan.dis_lrate = 0.0002
-    mdgan.entropy_ratio = 0.0
+    nn_structure = {'d_feat': 20,
+                    'feat_layers': [40],
+                    'mean_layers': [60],
+                    'scale_layers': [60],
+                    'mixing_layers': [60],
+                    'discriminator': [20],
+                    'lambda': [10],
+                    'd_response': [40,5],
+                    'd_context': [10,5]}
+    gmgan = GMGAN(n_comps=nmodel, context_dim=6, response_dim=knum, nn_structure=nn_structure)
+
+    gmgan.entropy_ratio = 0.0
+
+    gmgan.lratio['entropy'] = 200
+    gmgan.gen_sup_lrate = 0.00005
+    gmgan.gen_adv_lrate = 0.00005
+    gmgan.dis_lrate = 0.0002
+    gmgan.sup_max_epoch = sup_max_epoch
 
     csrates = np.zeros(shape=(MAX_EXPNUM, len(nsamples)))
-    # generate training context
     train_input = np.random.uniform(low=np.min(queries, axis=0), high=np.max(queries, axis=0), size=(num_train_input, np.shape(queries)[1]))
 
     for expId in range(MAX_EXPNUM):
@@ -66,13 +85,13 @@ def run_mdgan_for_docking(nmodel=3, MAX_EXPNUM=1, nsamples=[1, 10, 30, 50], num_
         print("======== Exp: {} ========".format(expId))
         trqueries = trdata[:,0:6]
 
-        mdgan.create_network(num_real_data=np.shape(trdata)[0])
-        mdgan.init_train()
-        mdgan.train(train_context=train_input, real_context=trqueries, real_response=trvmps, max_epochs=150000, is_load=False, is_save=False)
+        gmgan.create_network()#num_real_data=np.shape(trdata)[0])
+        gmgan.init_train()
+        gmgan.train(train_context=train_input, real_context=trqueries, real_response=trvmps, max_epochs=max_epochs, is_load=False, is_save=False)
 
         tqueries = tdata[:, 0:6]
         for i in range(len(nsamples)):
-            wout = mdgan.generate_multi(tqueries, nsamples[i])
+            wout = gmgan.generate(tqueries, nsamples[i])
             starts = tdata[:, 6:8]
             goals = tdata[:, 8:10]
             srate, _ = evaluate_docking(wout, tqueries, starts, goals)
@@ -83,7 +102,7 @@ def run_mdgan_for_docking(nmodel=3, MAX_EXPNUM=1, nsamples=[1, 10, 30, 50], num_
 
 
 if __name__ == '__main__':
-    nsamples = [1, 10, 30, 50, 70]
+    nsamples = [1, 10, 30]
     MAX_EXPNUM = 5
 
     parser = OptionParser()
@@ -93,14 +112,14 @@ if __name__ == '__main__':
     if options.nmodel is not None:
         nmodel = options.nmodel
 
-    srates = run_mdgan_for_docking(nmodel, MAX_EXPNUM, nsamples, num_train_input=10000)
+    srates = run_gmgan_for_docking(nmodel, MAX_EXPNUM, nsamples, num_train_input=100, sup_max_epoch=10000, max_epochs=20000)
 
     print(srates)
     x = np.arange(len(nsamples))
     fig, ax = plt.subplots()
     width = 0.35
-    rects1 = ax.bar(x , srates, width, label='MDGAN')
-    ax.set_ylabel('Success Rate - MDGAN for Docking')
+    rects1 = ax.bar(x , srates, width, label='gmgan')
+    ax.set_ylabel('Success Rate - gmgan for Docking')
     ax.set_title('Sample Number')
     ax.set_xticks(x)
     ax.set_xticklabels(nsamples)

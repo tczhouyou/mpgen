@@ -2,14 +2,12 @@ import os, inspect, sys
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 print("current_dir=" + currentdir)
 os.sys.path.insert(0, currentdir)
-os.sys.path.insert(0, './experiments/mujoco')
-
+os.sys.path.insert(0, '..')
 
 import numpy as np
 from models.baselines import MultiDimSkRegressor, sample_baseline
 
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import DotProduct, WhiteKernel, RBF
 from sklearn.svm import SVR
 from experiments.evaluate_exps import evaluate_docking
 

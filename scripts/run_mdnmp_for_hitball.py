@@ -2,9 +2,8 @@ import os, inspect, sys
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-print("current_dir=" + currentdir)
 os.sys.path.insert(0, currentdir)
-os.sys.path.insert(0, './experiments/mujoco')
+os.sys.path.insert(0, '..')
 
 import numpy as np
 from models.mdnmp import MDNMP
@@ -13,7 +12,7 @@ from mp.vmp import VMP
 from sklearn.model_selection import train_test_split
 from optparse import OptionParser
 
-from experiments.mujoco.hitball.hitball_exp import evaluate_hitball, ENV_DIR, EXP_DIR, Armar6HitBallExpV0, Armar6HitBallExpV1, evaluate_hitball_multiprocess
+from experiments.mujoco.hitball.hitball_exp import evaluate_hitball, ENV_DIR, EXP_DIR, Armar6HitBallExpV0, Armar6HitBallExpV1
 from experiments.mujoco.armar6_controllers.armar6_low_controller import TaskSpaceVelocityController, TaskSpaceImpedanceController
 from experiments.mujoco.armar6_controllers.armar6_high_controller import TaskSpacePositionVMPController
 
@@ -27,12 +26,8 @@ else:
 
 
 
-def train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000, sample_num=1,
+def train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,  max_epochs=20000, sample_num=1,
                                      isvel=True, env_file="hitball_exp_v1.xml", isdraw=False, num_test=100, learning_rate=0.002, EXP=Armar6HitBallExpV1):
-    if use_entropy:
-        mdnmp.lratio['mce'] = 10
-    else:
-        mdnmp.lratio['mce'] = 0
 
     weights = np.ones(shape=(np.shape(trvmps)[0], 1))
     train_weights = np.copy(weights)

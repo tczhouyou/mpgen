@@ -2,9 +2,10 @@ import os, inspect, sys
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-print("current_dir=" + currentdir)
 os.sys.path.insert(0, currentdir)
-os.sys.path.insert(0, './experiments/mujoco')
+os.sys.path.insert(0, '..')
+os.sys.path.insert(0, '../mp')
+
 
 import numpy as np
 from models.mdnmp import MDNMP
@@ -115,7 +116,7 @@ def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, 
             starts = tdata[:n_test, d_input:d_input+4]
             goals = tdata[:n_test, d_input+4:]
 
-            
+
 
             for sampleId in range(len(nsamples)):
                 wout, _ = mdnmp.predict(tqueries, nsamples[sampleId])
@@ -141,14 +142,14 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args(sys.argv)
     nmodel = options.nmodel
 
-    use_entropy_cost = [True]
-    model_names = ["Entropy MDN"]
-    MAX_EXPNUM = 10
+    use_entropy_cost = [False, True]
+    model_names = ["Original MDN", "Entropy MDN"]
+    MAX_EXPNUM = 5
     nsamples = [10, 30, 50]
 
     srates, allres = run_mdnmp_for_balanceball(nmodel, MAX_EXPNUM, use_entropy_cost, model_names, nsamples,
                                            env_file=options.env_file,
-                                           data_dir=options.data_dir, isdraw=True)
+                                           data_dir=options.data_dir, isdraw=False)
 
     res_file = open(options.fname, 'a')
     for modelId in range(len(model_names)):

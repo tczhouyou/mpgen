@@ -1,32 +1,53 @@
 import matplotlib.pyplot as plt
-
-x = [0,0.5,1,1.5]
-methods = ['GPR/SVR', 'TP-GMM', 'Original MDN', 'Entropy MDN']
-fig, ax = plt.subplots()
-width = 0.35
-rects3 = ax.bar(x[2], 0.77, width, label='Original MDN')
-rects4 = ax.bar(x[3], 0.81, width, label='Entropy MDN')
-rects1 = ax.bar(x[0], 0.30, width, label='GPR/SVR')
-rects2 = ax.bar(x[1], 0.45, width, label='TP-GMM')
-
-ax.set_ylabel('Success Rate')
-ax.set_xlabel('Methods')
-ax.set_xticks(x)
-ax.set_xticklabels(methods)
+import numpy as np
+from optparse import OptionParser
+import sys
 
 def autolabel(rects):
     """Attach a text label above each bar in *rects*, displaying its height."""
     for rect in rects:
         height = rect.get_height()
         ax.annotate('%.2f' % (height),
-                    xy=(rect.get_x() + rect.get_width() / 2, height),
+                    xy=(rect.get_x() + rect.get_width() / 2, 0.01),
                     xytext=(0, 3),  # 3 points vertical offset
                     textcoords="offset points",
                     ha='center', va='bottom')
 
-autolabel(rects1)
-autolabel(rects2)
-autolabel(rects3)
-autolabel(rects4)
+
+parser = OptionParser()
+parser.add_option("-d", "--dir", dest='dirname', type='string')
+(options, args) = parser.parse_args(sys.argv)
+
+dirname = options.dirname + '/'
+
+
+tnames = ['50']
+#tnames = ['50', '100', '150']
+fnames = ['original_mdn', 'entropy_mdn']#['baselines', 'original_mdn', 'entropy_mdn', 'eub_mdn']
+
+fig, ax = plt.subplots()
+width = 0.35
+blank = 0.2
+npos = (len(tnames)-1) * (len(fnames) * 0.35 + blank)
+rects = []
+for i in range(len(fnames)):
+    fname = fnames[i]
+    data = np.loadtxt(dirname+fname, delimiter=',')
+    if data.ndim == 1:
+        data = np.expand_dims(data, axis=1)
+
+    data = data[np.all(data,axis=1),:]
+    mean = np.mean(data, axis=0)
+    std = np.std(data, axis=0)
+    x = np.linspace(i*width, npos+i*width, len(tnames))
+    for j in range(len(tnames)):
+        rect = ax.bar(x[j], mean[j], width, yerr=std[j], label=fnames[i])
+        autolabel(rect)
+
+x = np.linspace(0, npos, len(tnames))
+ax.set_ylabel('Success Rate')
+ax.set_xlabel('Training Data Size')
+ax.set_xticks(x)
+ax.set_xticklabels(tnames)
 fig.tight_layout()
 plt.show()

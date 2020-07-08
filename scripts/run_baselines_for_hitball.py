@@ -2,8 +2,7 @@ import os, inspect, sys
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 print("current_dir=" + currentdir)
 os.sys.path.insert(0, currentdir)
-os.sys.path.insert(0, './experiments/mujoco')
-
+os.sys.path.insert(0, '..')
 
 import numpy as np
 from models.baselines import MultiDimSkRegressor, sample_baseline

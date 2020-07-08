@@ -1,24 +1,25 @@
+clear
+num_type = 2;
+num_comp = 3;
+filenames = {'original_mdn',  'entropy_mdn'};
+means = zeros(num_type,num_comp);
+stds = zeros(num_type,num_comp);
 
-bl = importdata('result_uniform.csv');
-bl = sort(bl);
-bl = bl(2:end-1,:);
-gpr = importdata('result_gpr.csv');
-% gpr = sort(gpr);
-% gpr = gpr(2:end-1,:);
-omdn = importdata('result_orig.csv');
-omdn = sort(omdn);
-omdn = omdn(2:end-1,2:end);
-emdn = importdata('result_entropy.csv');
-emdn = sort(emdn);
-emdn = emdn(2:end-1,2:end);
+for i = 1 : length(filenames)
+    filename = filenames{i};
+    data = importdata(filename);
+    data = sort(data);
+    data = data(2:end-1,:);
+    means(i,:) = mean(data);
+    stds(i,:) = std(data);
+end
 
-means = [mean(bl); mean(gpr); mean(omdn); mean(emdn)]; % mean velocity
-stds = [std(bl); std(gpr); std(omdn); std(emdn)];
 figure
 hold on
-hb = bar(1:4,means');
+hb = bar([1,1.5, 2],means');
 pause(0.1); %pause allows the figure to be created
 for ib = 1:numel(hb)
     xData = hb(ib).XData+hb(ib).XOffset;
     errorbar(xData,means(ib,:),stds(ib,:),'k.')
 end
+% legend(hb, {'original MDN','entropy MDN','entropy MDN + discriminator'});

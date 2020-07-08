@@ -54,12 +54,10 @@ class MDNMP(basicModel):
         eub_loss = gmm_eub_cost(scale, mc, self.is_positive)
         floss = failure_cost(self.target, mean, mc, 1-self.is_positive, neg_scale=0.1)
 
-        cost = self.lratio['likelihood'] * nll +\
-                self.lratio['regularization'] * reg_loss+\
-                self.lratio['mce'] * mce_loss
+        cost = self.lratio['likelihood'] * nll + self.lratio['regularization'] * reg_loss
 
-      #  if self.lratio['mce'] != 0:
-      #      cost = cost + self.lratio['mce'] * mce_loss
+        if self.lratio['mce'] != 0:
+            cost = cost + self.lratio['mce'] * mce_loss
 
         if self.lratio['eub'] != 0:
             cost = cost + self.lratio['eub'] * eub_loss
