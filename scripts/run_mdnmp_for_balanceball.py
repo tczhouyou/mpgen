@@ -61,9 +61,8 @@ def train_evaluate_mdnmp_for_balanceball(mdnmp, trqueries, trvmps, tdata, use_en
     return srate
 
 
-def run_mdnmp_for_balanceball(nmodels, MAX_EXPNUM=20, use_entropy_cost=[False, True],
-                          model_names=["Original MDN", "Entropy MDN"], nsamples=[10, 30, 50],
-                          env_file="balanceball_exp.xml", data_dir="balanceball_mpdata", isdraw=False):
+def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, model_names=["original_mdn", "entropy_mdn"], nsamples=[10, 30, 50],
+                          env_file="balanceball_exp.xml", data_dir="balanceball_mpdata", isdraw=False, dirname='result'):
     # prepare data
     data_dir = os.environ['MPGEN_DIR'] + EXP_DIR + data_dir
     queries = np.loadtxt(data_dir + '/balanceball_queries.csv', delimiter=',')
@@ -88,43 +87,47 @@ def run_mdnmp_for_balanceball(nmodels, MAX_EXPNUM=20, use_entropy_cost=[False, T
     mp = QVMP(kernel_num=10)
 
     rstates = np.random.randint(0, 100, size=MAX_EXPNUM)
-    n_test = 100
-    allres = np.zeros(shape=(len(nmodels), MAX_EXPNUM, len(nsamples), 2))
+    n_test = 1
 
     for expId in range(MAX_EXPNUM):
         trdata, tdata, trvmps, tvmps = train_test_split(inputs, vmps, test_size=0.95, random_state=rstates[expId])
         print("use {} data for training and {} data for testing".format(np.shape(trdata)[0], np.shape(tdata)[0]))
 
-        for modelId in range(len(nmodels)):
-            mdnmp = MDNMP(n_comps=nmodels[modelId], d_input=d_input, d_output=d_output, nn_structure=nn_structure,
+
+        for modelId in range(len(model_names)):
+            print("======== Exp: {} with {} ========".format(expId, model_names[modelId]))
+
+            mdnmp = MDNMP(n_comps=nmodel, d_input=d_input, d_output=d_output, nn_structure=nn_structure,
                           var_init=VAR_INIT,
                           scaling=1.0)
-            for en in range(2):
-                print("======== Exp: {} with nmodels {} and {} ========".format(expId, nmodels[modelId], model_names[en]))
 
-                if use_entropy_cost[en] is True:
-                    mdnmp.lratio['mce'] = 1
-                else:
-                    mdnmp.lratio['mce'] = 0
+            if model_names[modelId] == "entropy_mdn":
+                mdnmp.lratio['mce'] = 1
+            else:
+                mdnmp.lratio['mce'] = 0
 
-                mdnmp.build_mdn(learning_rate=0.0003)
-                mdnmp.init_train()
-                is_pos = np.ones(shape=(np.shape(trvmps)[0], 1))
-                trqueries = trdata[:,0:d_input]
-                mdnmp.train(trqueries, trvmps, is_pos, max_epochs=10000, is_load=False, is_save=False)
+            mdnmp.build_mdn(learning_rate=0.0001)
+            mdnmp.init_train()
+            is_pos = np.ones(shape=(np.shape(trvmps)[0], 1))
+            trqueries = trdata[:,0:d_input]
+            mdnmp.train(trqueries, trvmps, is_pos, max_epochs=10000, is_load=False, is_save=False)
 
-                tqueries = tdata[:n_test, 0:d_input]
-                starts = tdata[:n_test, d_input:d_input+4]
-                goals = tdata[:n_test, d_input+4:]
+            tqueries = tdata[:n_test, 0:d_input]
+            starts = tdata[:n_test, d_input:d_input+4]
+            goals = tdata[:n_test, d_input+4:]
 
-                for sampleId in range(len(nsamples)):
-                    wout, _ = mdnmp.predict(tqueries, nsamples[sampleId])
-                    srate = evaluate_balanceball(wout, tqueries, starts, goals,
-                                                 low_ctrl=TaskSpaceVelocityController,
-                                                 high_ctrl=TaskSpacePositionVMPController(qvmp=mp),
-                                                 env_path=ENV_DIR + env_file, isdraw=isdraw)
+            res = np.zeros(shape=(1, len(nsamples)))
+            for sampleId in range(len(nsamples)):
+                wout, _ = mdnmp.predict(tqueries, nsamples[sampleId])
+                srate = evaluate_balanceball(wout, tqueries, starts, goals,
+                                             low_ctrl=TaskSpaceVelocityController,
+                                             high_ctrl=TaskSpacePositionVMPController(qvmp=mp),
+                                             env_path=ENV_DIR + env_file, isdraw=isdraw)
 
-                    allres[modelId, expId, sampleId, en] = srate
+                res[0, sampleId] = srate
+
+            with open(dirname + "/" + model_names[modelId], "a") as f:
+                np.savetxt(f, np.array(res), delimiter=',', fmt='%.3f')
 
     return allres
 
@@ -134,28 +137,25 @@ if __name__ == '__main__':
     parser.add_option("-m", "--nmodel", dest="nmodel", type="int", default=3)
     parser.add_option("--env_file", dest="env_file", type="string", default="balanceball_exp.xml")
     parser.add_option("--data_dir", dest="data_dir", type="string", default="balanceball_mpdata")
-    parser.add_option("--file", dest="fname", type="string", default="res_mdnmp_balanceball")
+    parser.add_option("--result_dir", dest="result_dir", type="string", default="res_mdnmp_balanceball")
     (options, args) = parser.parse_args(sys.argv)
     nmodel = options.nmodel
 
-    use_entropy_cost = [True, False]
-    model_names = ["Entropy MDN", "Original MDN"]
+    model_names = ["original_mdn", "entropy_mdn"]
 
-    nmodels = [5]
-    MAX_EXPNUM = 5
+    MAX_EXPNUM = 100
     nsamples = [10]
 
-    allres = run_mdnmp_for_balanceball(nmodels, MAX_EXPNUM, use_entropy_cost, model_names, nsamples,
+    result_dir = options.result_dir
+    if not os.path.exists(result_dir):
+        os.makedirs(result_dir)
+
+    run_mdnmp_for_balanceball(nmodel, MAX_EXPNUM, model_names, nsamples,
                                            env_file=options.env_file,
-                                           data_dir=options.data_dir, isdraw=False)
+                                           data_dir=options.data_dir, isdraw=False, dirname=options.result_dir)
 
-    res_file = open(options.fname, 'a')
-    for i in range(2):
-        for j in range(len(nmodels)):
-            res_file.write(model_names[i] + ' with '+ str(nmodels[j]) + '\n')
-            np.savetxt(res_file, np.array(allres[j,:,:,i]), delimiter=',')
 
-    res_file.close()
+
     # import matplotlib.pyplot as plt
     # x = np.arange(len(nsamples))
     # fig, ax = plt.subplots()
