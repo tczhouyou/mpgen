@@ -25,7 +25,7 @@ if tf.__version__ < '2.0.0':
     VAR_INIT = tflearn.initializations.uniform(minval=-.1, maxval=.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    VAR_INIT = initializers.RandomUniform(minval=-0.003, maxval=0.003, seed=42)
+    VAR_INIT = initializers.RandomUniform(minval=-0.0003, maxval=0.0003, seed=42)
 
 
 ENV_FILE = "balanceball_exp.xml"
@@ -61,7 +61,7 @@ def train_evaluate_mdnmp_for_balanceball(mdnmp, trqueries, trvmps, tdata, use_en
     return srate
 
 
-def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True],
+def run_mdnmp_for_balanceball(nmodels, MAX_EXPNUM=20, use_entropy_cost=[False, True],
                           model_names=["Original MDN", "Entropy MDN"], nsamples=[10, 30, 50],
                           env_file="balanceball_exp.xml", data_dir="balanceball_mpdata", isdraw=False):
     # prepare data
@@ -78,59 +78,55 @@ def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, 
     # prepare model
     nn_structure = {'d_feat': 20,
                     'feat_layers': [40],
-                    'mean_layers': [60],
-                    'scale_layers': [60],
+                    'mean_layers': [120],
+                    'scale_layers': [120],
                     'mixing_layers': [10]}
 
     d_input = np.shape(queries)[-1]
     d_output = np.shape(vmps)[1]
 
     mp = QVMP(kernel_num=10)
-    mdnmp = MDNMP(n_comps=nmodel, d_input=d_input, d_output=d_output, nn_structure=nn_structure, var_init=VAR_INIT)
 
     rstates = np.random.randint(0, 100, size=MAX_EXPNUM)
     n_test = 100
+    allres = np.zeros(shape=(len(nmodels), MAX_EXPNUM, len(nsamples), 2))
 
-    srates = {}
-    allres = np.zeros(shape=(len(model_names), MAX_EXPNUM, len(nsamples)))
-    for modelId in range(len(model_names)):
-        if use_entropy_cost[modelId]:
-            mdnmp.lratio['mce'] = 20
-        else:
-            mdnmp.lratio['mce'] = 0
+    for expId in range(MAX_EXPNUM):
+        trdata, tdata, trvmps, tvmps = train_test_split(inputs, vmps, test_size=0.95, random_state=rstates[expId])
+        print("use {} data for training and {} data for testing".format(np.shape(trdata)[0], np.shape(tdata)[0]))
 
-        csrates = np.zeros(shape=(MAX_EXPNUM,len(nsamples)))
-        for expId in range(MAX_EXPNUM):
-            mdnmp.build_mdn(learning_rate=0.0001)
-            mdnmp.init_train()
+        for modelId in range(len(nmodels)):
+            mdnmp = MDNMP(n_comps=nmodels[modelId], d_input=d_input, d_output=d_output, nn_structure=nn_structure,
+                          var_init=VAR_INIT,
+                          scaling=1.0)
+            for en in range(2):
+                print("======== Exp: {} with nmodels {} and {} ========".format(expId, nmodels[modelId], model_names[en]))
 
-            trdata, tdata, trvmps, tvmps = train_test_split(inputs, vmps, test_size=0.9, random_state=rstates[expId])
-            print("use {} data for training and {} data for testing".format(np.shape(trdata)[0], np.shape(tdata)[0]))
-            print("======== Exp: {} with {} ========".format(expId, model_names[modelId]))
+                if use_entropy_cost[en] is True:
+                    mdnmp.lratio['mce'] = 10
+                else:
+                    mdnmp.lratio['mce'] = 0
 
-            is_pos = np.ones(shape=(np.shape(trvmps)[0], 1))
-            trqueries = trdata[:,0:d_input]
-            mdnmp.train(trqueries, trvmps, is_pos, max_epochs=10000, is_load=False, is_save=False)
+                mdnmp.build_mdn(learning_rate=0.0001)
+                mdnmp.init_train()
+                is_pos = np.ones(shape=(np.shape(trvmps)[0], 1))
+                trqueries = trdata[:,0:d_input]
+                mdnmp.train(trqueries, trvmps, is_pos, max_epochs=5000, is_load=False, is_save=False)
 
-            tqueries = tdata[:n_test, 0:d_input]
-            starts = tdata[:n_test, d_input:d_input+4]
-            goals = tdata[:n_test, d_input+4:]
+                tqueries = tdata[:n_test, 0:d_input]
+                starts = tdata[:n_test, d_input:d_input+4]
+                goals = tdata[:n_test, d_input+4:]
 
+                for sampleId in range(len(nsamples)):
+                    wout, _ = mdnmp.predict(tqueries, nsamples[sampleId])
+                    srate = evaluate_balanceball(wout, tqueries, starts, goals,
+                                                 low_ctrl=TaskSpaceVelocityController,
+                                                 high_ctrl=TaskSpacePositionVMPController(qvmp=mp),
+                                                 env_path=ENV_DIR + env_file, isdraw=isdraw)
 
+                    allres[modelId, expId, sampleId, en] = srate
 
-            for sampleId in range(len(nsamples)):
-                wout, _ = mdnmp.predict(tqueries, nsamples[sampleId])
-                srate = evaluate_balanceball(wout, tqueries, starts, goals,
-                                             low_ctrl=TaskSpaceVelocityController,
-                                             high_ctrl=TaskSpacePositionVMPController(qvmp=mp),
-                                             env_path=ENV_DIR + env_file, isdraw=isdraw)
-
-                csrates[expId, sampleId] = srate
-                allres[modelId, expId, sampleId] = srate
-
-        srates[model_names[modelId]] = np.mean(csrates, axis=0)
-
-    return srates, allres
+    return allres
 
 if __name__ == '__main__':
 
@@ -142,19 +138,22 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args(sys.argv)
     nmodel = options.nmodel
 
-    use_entropy_cost = [False, True]
-    model_names = ["Original MDN", "Entropy MDN"]
-    MAX_EXPNUM = 5
-    nsamples = [10, 30, 50]
+    use_entropy_cost = [True, False]
+    model_names = ["Entropy MDN", "Original MDN"]
 
-    srates, allres = run_mdnmp_for_balanceball(nmodel, MAX_EXPNUM, use_entropy_cost, model_names, nsamples,
+    nmodels = [2, 3, 4, 5]
+    MAX_EXPNUM = 5
+    nsamples = [5]
+
+    allres = run_mdnmp_for_balanceball(nmodels, MAX_EXPNUM, use_entropy_cost, model_names, nsamples,
                                            env_file=options.env_file,
                                            data_dir=options.data_dir, isdraw=False)
 
     res_file = open(options.fname, 'a')
-    for modelId in range(len(model_names)):
-        res_file.write(model_names[modelId] + '\n')
-        np.savetxt(res_file, np.array(allres[modelId,:,:]), delimiter=',')
+    for i in range(2):
+        for j in range(len(nmodels)):
+            res_file.write(model_names[i] + ' with '+ str(nmodels[j]) + '\n')
+            np.savetxt(res_file, np.array(allres[j,:,:,i]), delimiter=',')
 
     res_file.close()
     # import matplotlib.pyplot as plt

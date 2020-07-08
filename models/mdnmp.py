@@ -51,7 +51,6 @@ class MDNMP(basicModel):
 
         nll = gmm_nll_cost(self.target, mean, scale, mc, self.is_positive)
         mce_loss = gmm_mce_cost(mc, self.is_positive, eps=1e-20)
-        eub_loss = gmm_eub_cost(scale, mc, self.is_positive)
         floss = failure_cost(self.target, mean, mc, 1-self.is_positive, neg_scale=0.1)
 
         cost = self.lratio['likelihood'] * nll + self.lratio['regularization'] * reg_loss
@@ -59,8 +58,9 @@ class MDNMP(basicModel):
         if self.lratio['mce'] != 0:
             cost = cost + self.lratio['mce'] * mce_loss
 
-        if self.lratio['eub'] != 0:
-            cost = cost + self.lratio['eub'] * eub_loss
+        # if self.lratio['eub'] != 0:
+        #     eub_loss = gmm_eub_cost(scale, mc, self.is_positive)
+        #     cost = cost + self.lratio['eub'] * eub_loss
 
         if self.lratio['failure'] != 0:
             cost = cost + self.lratio['failure'] * floss
@@ -70,7 +70,7 @@ class MDNMP(basicModel):
         self.opt_scale = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=scale_var_list)
         self.saver = tf.compat.v1.train.Saver()
 
-        self.loss_dict = {'nll': nll, 'mce': mce_loss, 'eub': eub_loss, 'floss': floss, 'cost': cost}
+        self.loss_dict = {'nll': nll, 'mce': mce_loss, 'floss': floss, 'cost': cost}
 
 
     def init_train(self, logfile='mdnmp_log'):
