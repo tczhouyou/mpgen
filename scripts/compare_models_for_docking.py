@@ -40,10 +40,10 @@ parser.add_option("-d", "--result_dir", dest="result_dir", type="string", defaul
 (options, args) = parser.parse_args(sys.argv)
 
 
-queries = np.loadtxt('data/docking_queries.csv', delimiter=',')
-vmps = np.loadtxt('data/docking_weights.csv', delimiter=',')
-starts = np.loadtxt('data/docking_starts.csv', delimiter=',')
-goals = np.loadtxt('data/docking_goals.csv', delimiter=',')
+queries = np.loadtxt('../data/docking_queries.csv', delimiter=',')
+vmps = np.loadtxt('../data/docking_weights.csv', delimiter=',')
+starts = np.loadtxt('../data/docking_starts.csv', delimiter=',')
+goals = np.loadtxt('../data/docking_goals.csv', delimiter=',')
 
 wtest = np.expand_dims(vmps, axis=1)
 cc, successId = evaluate_docking(wtest, queries, starts,goals)
