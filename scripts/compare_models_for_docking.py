@@ -30,9 +30,6 @@ else:
 
 
 
-
-
-
 parser = OptionParser()
 parser.add_option("-m", "--nmodel", dest="nmodel", type="int", default=3)
 parser.add_option("-n", "--num_exp", dest="expnum", type="int", default=1)
@@ -58,7 +55,7 @@ mdnmp_struct = {'d_feat': 20,
                 'feat_layers': [40], #[60]
                 'mean_layers': [60], #[60]
                 'scale_layers': [60],
-                'mixing_layers': [10]}
+                'mixing_layers': [20]}
 mdnmp = MDNMP(n_comps=options.nmodel, d_input=6, d_output=knum, nn_structure=mdnmp_struct, scaling=1, var_init=VAR_INIT)
 
 # create gmgan
@@ -75,7 +72,7 @@ gmgan = GMGAN(n_comps=options.nmodel, context_dim=6, response_dim=knum, nn_struc
               var_init=VAR_INIT, var_init_dis=VAR_INIT_DIS, batch_size=100)
 
 # start experiment
-num_train_data = np.array([50])
+num_train_data = np.array([50, 100, 150])
 tsize = (np.shape(data)[0] -num_train_data)/np.shape(data)[0]
 print(tsize)
 
@@ -102,17 +99,17 @@ for expId in range(options.expnum):
         mdnmp.lratio['mce'] = 10
         emdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=20000,
-                                                            sample_num=1, learning_rate=0.00003)
+                                                            sample_num=1, learning_rate=0.0001)
 
         print(">>>> train ori MDN")
         mdnmp.lratio['mce'] = 0
         omdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=20000,
-                                                            sample_num=1, learning_rate=0.00003)
+                                                            sample_num=1, learning_rate=0.0001)
 
         print(">>>> train GMGANs")
         egmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, False, max_epochs=20000,
-                                                            sup_max_epoch=20001, sample_num=1, g_lrate=0.00003, d_lrate=0.002)
+                                                            sup_max_epoch=20001, sample_num=1, g_lrate=0.0001, d_lrate=0.002)
 
         print(">>>> train baselines")
         baseline_res[0, i] = train_evaluate_baseline_for_docking('GPR', trqueries, trvmps, tdata, sample_num=1)
