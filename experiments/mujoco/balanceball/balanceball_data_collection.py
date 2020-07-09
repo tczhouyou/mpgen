@@ -51,12 +51,12 @@ for i in progressbar.progressbar(range(EXP_NUM)):
         q0 = start[3:]
         q1 = start[3:]
 
-        ax1 = np.random.uniform(size=3)
+        ax1 = np.random.uniform(low=-1, high=1, size=3)
         ax1 = ax1 / np.linalg.norm(ax1)
         ang1 = np.random.uniform(low=-np.pi/6, high=np.pi/6)
         qrot1 = Quaternion.from_axis_angle(ax1, ang1)
 
-        ax2 = np.random.uniform(size=3)
+        ax2 = np.random.uniform(low=-1, high=1, size=3)
         ax2 = ax2 / np.linalg.norm(ax2)
         ang2 = np.random.uniform(low=-np.pi/12, high=np.pi/12)
         qrot2 = Quaternion.from_axis_angle(ax2, ang2)

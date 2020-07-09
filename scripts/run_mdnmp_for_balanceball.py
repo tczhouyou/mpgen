@@ -129,7 +129,6 @@ def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, model_names=["original_md
             with open(dirname + "/" + model_names[modelId], "a") as f:
                 np.savetxt(f, np.array(res), delimiter=',', fmt='%.3f')
 
-    return allres
 
 if __name__ == '__main__':
 
@@ -144,7 +143,7 @@ if __name__ == '__main__':
     model_names = ["original_mdn", "entropy_mdn"]
 
     MAX_EXPNUM = 100
-    nsamples = [10]
+    nsamples = [10, 30, 50]
 
     result_dir = options.result_dir
     if not os.path.exists(result_dir):
