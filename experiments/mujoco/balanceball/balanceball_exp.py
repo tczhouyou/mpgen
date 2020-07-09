@@ -141,10 +141,12 @@ class Armar6BalanceBallExp:
         return start, ball_pos.copy()
 
 
-def evaluate_balanceball(wout, queries, starts, goals, low_ctrl, high_ctrl, env_path, isdraw=False):
+def evaluate_balanceball(wout, queries, starts, goals, low_ctrl, high_ctrl, env_path, isdraw=False, isRecordSuccess=False):
     # wout: N x S x dim, N: number of experiments, S: number of samples, dim: dimension of MP
     env = Armar6BalanceBallExp(high_ctrl=high_ctrl, low_ctrl=low_ctrl, isdraw=isdraw, env_path=os.environ['MPGEN_DIR']+env_path)
 
+    success_queries = []
+    success_wout = []
     srate = 0.0
     for i in range(np.shape(wout)[0]):
         success_counter = 0
@@ -159,7 +161,12 @@ def evaluate_balanceball(wout, queries, starts, goals, low_ctrl, high_ctrl, env_
 
             if not is_error and np.linalg.norm(queries[i,:] - final_ball_pos[:2]) < 0.03:
                 success_counter = success_counter + 1
-                break
+                if isRecordSuccess:
+                    success_queries.append(queries[i, :])
+                    success_wout.append(wout[i, sampleId, :])
+                    continue
+                else:
+                    break
 
         if success_counter != 0:
             srate = srate + 1
@@ -167,4 +174,10 @@ def evaluate_balanceball(wout, queries, starts, goals, low_ctrl, high_ctrl, env_
         print('testId: %1d,  success_num: %1d, success_rate: %.2f' % (i, srate, srate / (i + 1)), end='\r', flush=True)
 
     print('sample_num: %1d, success_num: %1d, success_rate: %.2f' % (np.shape(wout)[1], srate, srate / (i + 1)), end='\n')
+    if isRecordSuccess:
+        fname = os.environ['MPGEN_DIR'] + "/results/"
+        print('record success data to {}'.format(fname),end='\n')
+        np.savetxt(fname+"balanceball_success_queries", success_queries, delimiter=',')
+        np.savetxt(fname+"balanceball_success_wout", success_wout, delimiter=',')
+
     return srate/np.shape(wout)[0]

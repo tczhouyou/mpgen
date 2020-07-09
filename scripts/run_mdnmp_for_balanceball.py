@@ -62,7 +62,7 @@ def train_evaluate_mdnmp_for_balanceball(mdnmp, trqueries, trvmps, tdata, use_en
 
 
 def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, model_names=["original_mdn", "entropy_mdn"], nsamples=[10, 30, 50],
-                          env_file="balanceball_exp.xml", data_dir="balanceball_mpdata", isdraw=False, dirname='result'):
+                          env_file="balanceball_exp.xml", data_dir="balanceball_mpdata", isdraw=False, isRecordSuccess=False, dirname='result'):
     # prepare data
     data_dir = os.environ['MPGEN_DIR'] + EXP_DIR + data_dir
     queries = np.loadtxt(data_dir + '/balanceball_queries.csv', delimiter=',')
@@ -77,8 +77,8 @@ def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, model_names=["original_md
     # prepare model
     nn_structure = {'d_feat': 20,
                     'feat_layers': [40],
-                    'mean_layers': [120,80],
-                    'scale_layers': [120,80],
+                    'mean_layers': [80],
+                    'scale_layers': [80],
                     'mixing_layers': [20]}
 
     d_input = np.shape(queries)[-1]
@@ -87,10 +87,10 @@ def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, model_names=["original_md
     mp = QVMP(kernel_num=10)
 
     rstates = np.random.randint(0, 100, size=MAX_EXPNUM)
-    n_test = 100
+    n_test = 10
 
     for expId in range(MAX_EXPNUM):
-        trdata, tdata, trvmps, tvmps = train_test_split(inputs, vmps, test_size=0.95, random_state=rstates[expId])
+        trdata, tdata, trvmps, tvmps = train_test_split(inputs, vmps, test_size=0.90, random_state=rstates[expId])
         print("use {} data for training and {} data for testing".format(np.shape(trdata)[0], np.shape(tdata)[0]))
 
 
@@ -122,7 +122,7 @@ def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, model_names=["original_md
                 srate = evaluate_balanceball(wout, tqueries, starts, goals,
                                              low_ctrl=TaskSpaceVelocityController,
                                              high_ctrl=TaskSpacePositionVMPController(qvmp=mp),
-                                             env_path=ENV_DIR + env_file, isdraw=isdraw)
+                                             env_path=ENV_DIR + env_file, isdraw=isdraw, isRecordSuccess=isRecordSuccess)
 
                 res[0, sampleId] = srate
 
@@ -142,8 +142,8 @@ if __name__ == '__main__':
 
     model_names = ["original_mdn", "entropy_mdn"]
 
-    MAX_EXPNUM = 100
-    nsamples = [10, 30, 50]
+    MAX_EXPNUM = 1
+    nsamples = [30]
 
     result_dir = options.result_dir
     if not os.path.exists(result_dir):
@@ -151,7 +151,7 @@ if __name__ == '__main__':
 
     run_mdnmp_for_balanceball(nmodel, MAX_EXPNUM, model_names, nsamples,
                                            env_file=options.env_file,
-                                           data_dir=options.data_dir, isdraw=False, dirname=options.result_dir)
+                                           data_dir=options.data_dir, isRecordSuccess=True, dirname=options.result_dir)
 
 
 
