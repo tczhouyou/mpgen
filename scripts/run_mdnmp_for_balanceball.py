@@ -84,7 +84,7 @@ def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, model_names=["original_md
     d_input = np.shape(queries)[-1]
     d_output = np.shape(vmps)[1]
 
-    mp = QVMP(kernel_num=10)
+    mp = QVMP(kernel_num=10, elementary_type='minjerk')
 
     rstates = np.random.randint(0, 100, size=MAX_EXPNUM)
     n_test = 100
