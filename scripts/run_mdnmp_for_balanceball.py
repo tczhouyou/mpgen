@@ -84,10 +84,10 @@ def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, model_names=["original_md
     d_input = np.shape(queries)[-1]
     d_output = np.shape(vmps)[1]
 
-    mp = QVMP(kernel_num=10)
+    mp = QVMP(kernel_num=10, elementary_type='minjerk')
 
     rstates = np.random.randint(0, 100, size=MAX_EXPNUM)
-    n_test = 10
+    n_test = 100
 
     for expId in range(MAX_EXPNUM):
         trdata, tdata, trvmps, tvmps = train_test_split(inputs, vmps, test_size=0.90, random_state=rstates[expId])
@@ -142,8 +142,8 @@ if __name__ == '__main__':
 
     model_names = ["original_mdn", "entropy_mdn"]
 
-    MAX_EXPNUM = 1
-    nsamples = [30]
+    MAX_EXPNUM = 100
+    nsamples = [10, 30, 50]
 
     result_dir = options.result_dir
     if not os.path.exists(result_dir):
@@ -151,7 +151,7 @@ if __name__ == '__main__':
 
     run_mdnmp_for_balanceball(nmodel, MAX_EXPNUM, model_names, nsamples,
                                            env_file=options.env_file,
-                                           data_dir=options.data_dir, isRecordSuccess=True, dirname=options.result_dir)
+                                           data_dir=options.data_dir, dirname=options.result_dir)
 
 
 
