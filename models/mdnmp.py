@@ -39,8 +39,8 @@ class MDNMP(basicModel):
     def build_mdn(self, learning_rate=0.001, nn_type='v1'):
         self.create_network(nn_type=nn_type)
         var_list = [v for v in tf.compat.v1.trainable_variables()]
-        mean_var_list = [v for v in tf.compat.v1.trainable_variables() if 'scale' not in v.name]
-        scale_var_list = [v for v in tf.compat.v1.trainable_variables() if 'mean' not in v.name]
+        #mean_var_list = [v for v in tf.compat.v1.trainable_variables() if 'scale' not in v.name]
+        #scale_var_list = [v for v in tf.compat.v1.trainable_variables() if 'mean' not in v.name]
 
         reg_loss = [tf.nn.l2_loss(v) for v in tf.compat.v1.trainable_variables()]
         reg_loss = self.lratio['regularization'] * tf.reduce_sum(reg_loss) / len(var_list)
@@ -55,19 +55,38 @@ class MDNMP(basicModel):
 
         cost = self.lratio['likelihood'] * nll + self.lratio['regularization'] * reg_loss
 
-        if self.lratio['mce'] != 0:
-            cost = cost + self.lratio['mce'] * mce_loss
+        g_nll = tf.gradients(cost, var_list)
+        mce_cost = self.lratio['mce'] * mce_loss
+        g_mce = tf.gradients(mce_cost, var_list)
+
+        grads = []
+        for i in range(len(g_nll)):
+            if g_mce[i] is not None and self.lratio['mce'] != 0:
+                shape = g_nll[i].get_shape().as_list()
+                cg_nll = tf.reshape(g_nll[i], [-1])
+                cg_mce = tf.reshape(g_mce[i], [-1])
+                sca = tf.reduce_sum(tf.multiply(cg_nll, cg_mce)) * tf.norm(cg_mce)
+                cgm = cg_mce - sca * cg_nll / (tf.norm(cg_nll) + 1e-10)
+                cgrads = cg_nll + cgm
+                grads.append(tf.reshape(cgrads, shape))
+            else:
+                grads.append(g_nll[i])
+
+        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        self.opt_all = optimizer.apply_gradients(zip(grads, var_list))
+        # if self.lratio['mce'] != 0:
+        #     cost = cost + self.lratio['mce'] * mce_loss
 
         # if self.lratio['eub'] != 0:
         #     eub_loss = gmm_eub_cost(scale, mc, self.is_positive)
         #     cost = cost + self.lratio['eub'] * eub_loss
 
-        if self.lratio['failure'] != 0:
-            cost = cost + self.lratio['failure'] * floss
+        # if self.lratio['failure'] != 0:
+        #     cost = cost + self.lratio['failure'] * floss
 
-        self.opt_all = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=var_list)
-        self.opt_mean = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=mean_var_list)
-        self.opt_scale = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=scale_var_list)
+        # self.opt_all = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=var_list)
+        # self.opt_mean = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=mean_var_list)
+        # self.opt_scale = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=scale_var_list)
         self.saver = tf.compat.v1.train.Saver()
 
         self.loss_dict = {'nll': nll, 'mce': mce_loss, 'floss': floss, 'cost': cost}
