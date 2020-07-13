@@ -18,8 +18,8 @@ parser = OptionParser()
 parser.add_option("-s", "--save", action="store_true", dest="save_image", default=False)
 (options, args) = parser.parse_args(sys.argv)
 
-goals = np.loadtxt('data/modeCollapse_goals.csv', delimiter=',')
-vmps = np.loadtxt('data/modeCollapse_weights.csv', delimiter=',')
+goals = np.loadtxt('../data/modeCollapse_goals.csv', delimiter=',')
+vmps = np.loadtxt('../data/modeCollapse_weights.csv', delimiter=',')
 weights = np.ones(shape=(np.shape(goals)[0], 1))
 
 # generate exp

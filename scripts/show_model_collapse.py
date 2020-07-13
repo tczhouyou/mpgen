@@ -17,8 +17,8 @@ from experiments.obs_avoid_envs import ObsExp
 parser = OptionParser()
 parser.add_option("-s", "--save", action="store_true", dest="save_image", default=False)
 (options, args) = parser.parse_args(sys.argv)
-goals = np.loadtxt('data/modelCollapse_goals.csv', delimiter=',')
-vmps = np.loadtxt('data/modelCollapse_weights.csv', delimiter=',')
+goals = np.loadtxt('../data/modelCollapse_goals.csv', delimiter=',')
+vmps = np.loadtxt('../data/modelCollapse_weights.csv', delimiter=',')
 ispos = np.ones(shape=(np.shape(goals)[0], 1))
 
 obsExp = ObsExp(exp_name='goAroundObs')
