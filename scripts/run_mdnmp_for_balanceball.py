@@ -25,7 +25,7 @@ if tf.__version__ < '2.0.0':
     VAR_INIT = tflearn.initializations.uniform(minval=-.1, maxval=.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    VAR_INIT = initializers.RandomUniform(minval=-0.003, maxval=0.003, seed=42)
+    VAR_INIT = initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=42)
 
 
 ENV_FILE = "balanceball_exp.xml"
@@ -61,7 +61,7 @@ def train_evaluate_mdnmp_for_balanceball(mdnmp, trqueries, trvmps, tdata, use_en
     return srate
 
 
-def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, model_names=["original_mdn", "entropy_mdn"], nsamples=[10, 30, 50],
+def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, mce_vals=[0, 0.5, 1, 5, 10], nsamples=[10, 30, 50],
                           env_file="balanceball_exp.xml", data_dir="balanceball_mpdata", isdraw=False, isRecordSuccess=False, dirname='result'):
     # prepare data
     data_dir = os.environ['MPGEN_DIR'] + EXP_DIR + data_dir
@@ -75,10 +75,10 @@ def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, model_names=["original_md
 
     inputs = np.concatenate([queries, starts, goals], axis=1)
     # prepare model
-    nn_structure = {'d_feat': 20,
-                    'feat_layers': [40],
-                    'mean_layers': [80],
-                    'scale_layers': [80],
+    nn_structure = {'d_feat': 40,
+                    'feat_layers': [20],
+                    'mean_layers': [60],
+                    'scale_layers': [60],
                     'mixing_layers': [20]}
 
     d_input = np.shape(queries)[-1]
@@ -87,30 +87,32 @@ def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, model_names=["original_md
     mp = QVMP(kernel_num=10, elementary_type='minjerk')
 
     rstates = np.random.randint(0, 100, size=MAX_EXPNUM)
-    n_test = 100
+    n_test = 50
 
     for expId in range(MAX_EXPNUM):
-        trdata, tdata, trvmps, tvmps = train_test_split(inputs, vmps, test_size=0.90, random_state=rstates[expId])
+        trdata, tdata, trvmps, tvmps = train_test_split(inputs, vmps, test_size=0.95, random_state=rstates[expId])
         print("use {} data for training and {} data for testing".format(np.shape(trdata)[0], np.shape(tdata)[0]))
 
 
-        for modelId in range(len(model_names)):
-            print("======== Exp: {} with {} ========".format(expId, model_names[modelId]))
+        for modelId in range(len(mce_vals)):
+            print("======== Exp: {} with {} ========".format(expId, mce_vals[modelId]))
 
             mdnmp = MDNMP(n_comps=nmodel, d_input=d_input, d_output=d_output, nn_structure=nn_structure,
                           var_init=VAR_INIT,
                           scaling=1.0)
 
-            if model_names[modelId] == "entropy_mdn":
-                mdnmp.lratio['mce'] = 1
-            else:
-                mdnmp.lratio['mce'] = 0
 
-            mdnmp.build_mdn(learning_rate=0.0001)
+            mdnmp.lratio['mce'] = mce_vals[modelId]
+           # if model_names[modelId] == "entropy_mdn":
+           #     mdnmp.lratio['mce'] = 0.5
+           # else:
+           #     mdnmp.lratio['mce'] = 0
+
+            mdnmp.build_mdn(learning_rate=0.0002)
             mdnmp.init_train()
             is_pos = np.ones(shape=(np.shape(trvmps)[0], 1))
             trqueries = trdata[:,0:d_input]
-            mdnmp.train(trqueries, trvmps, is_pos, max_epochs=10000, is_load=False, is_save=False)
+            mdnmp.train(trqueries, trvmps, is_pos, max_epochs=30000, is_load=False, is_save=False)
 
             tqueries = tdata[:n_test, 0:d_input]
             starts = tdata[:n_test, d_input:d_input+4]
@@ -118,7 +120,7 @@ def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, model_names=["original_md
 
             res = np.zeros(shape=(1, len(nsamples)))
             for sampleId in range(len(nsamples)):
-                wout, _ = mdnmp.predict(tqueries, nsamples[sampleId])
+                wout, outdict = mdnmp.predict(tqueries, nsamples[sampleId])
                 srate = evaluate_balanceball(wout, tqueries, starts, goals,
                                              low_ctrl=TaskSpaceVelocityController,
                                              high_ctrl=TaskSpacePositionVMPController(qvmp=mp),
@@ -126,7 +128,7 @@ def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, model_names=["original_md
 
                 res[0, sampleId] = srate
 
-            with open(dirname + "/" + model_names[modelId], "a") as f:
+            with open(dirname + "/" + "mdn_" + str(mce_vals[modelId]), "a") as f:
                 np.savetxt(f, np.array(res), delimiter=',', fmt='%.3f')
 
 
@@ -137,19 +139,30 @@ if __name__ == '__main__':
     parser.add_option("--env_file", dest="env_file", type="string", default="balanceball_exp.xml")
     parser.add_option("--data_dir", dest="data_dir", type="string", default="balanceball_mpdata")
     parser.add_option("--result_dir", dest="result_dir", type="string", default="res_mdnmp_balanceball")
+
+    parser.add_option("--inc",action="store_true", dest="is_inc", default="False")
     (options, args) = parser.parse_args(sys.argv)
+
     nmodel = options.nmodel
 
-    model_names = ["original_mdn", "entropy_mdn"]
+    #model_names = ["original_mdn", "entropy_mdn"]
 
-    MAX_EXPNUM = 100
-    nsamples = [10, 30, 50]
+    #model_names = [ "entropy_mdn","original_mdn"]
+
+    MAX_EXPNUM = 50
+    nsamples = [10, 30]#[10]
 
     result_dir = options.result_dir
     if not os.path.exists(result_dir):
         os.makedirs(result_dir)
 
-    run_mdnmp_for_balanceball(nmodel, MAX_EXPNUM, model_names, nsamples,
+   # mce_vals = [1, 0.1,  0]
+
+    mce_vals = [0, 0.5,  1]
+    #mce_vals=[10, 5, 1, 0.5, 0]
+
+
+    run_mdnmp_for_balanceball(nmodel, MAX_EXPNUM, mce_vals, nsamples,
                                            env_file=options.env_file,
                                            data_dir=options.data_dir, dirname=options.result_dir)
 
