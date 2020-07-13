@@ -27,6 +27,7 @@ class MDNMP(basicModel):
         self.scaling = scaling
         self.use_new_cost = False
         self.var_init = var_init
+        self.is_orthogonal_cost = False
 
     def create_network(self, scope='mdnmp', nn_type='v1'):
         tf.compat.v1.reset_default_graph()
@@ -65,7 +66,11 @@ class MDNMP(basicModel):
                 shape = g_nll[i].get_shape().as_list()
                 cg_nll = tf.reshape(g_nll[i], [-1])
                 cg_mce = tf.reshape(g_mce[i], [-1])
-                sca = tf.reduce_sum(tf.multiply(cg_nll, cg_mce)) * tf.norm(cg_mce)
+                if self.is_orthogonal_cost:
+                    sca = tf.reduce_sum(tf.multiply(cg_nll, cg_mce)) * tf.norm(cg_mce)
+                else:
+                    sca = 0
+
                 cgm = cg_mce - sca * cg_nll / (tf.norm(cg_nll) + 1e-10)
                 cgrads = cg_nll + cgm
                 grads.append(tf.reshape(cgrads, shape))
