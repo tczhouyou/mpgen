@@ -25,7 +25,7 @@ if tf.__version__ < '2.0.0':
     VAR_INIT_DIS = tflearn.initializations.normal(stddev=0.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    VAR_INIT = initializers.RandomUniform(minval=-0.003, maxval=0.003, seed=42)
+    VAR_INIT = initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=42)
     VAR_INIT_DIS = initializers.RandomNormal(stddev=0.02, seed=42)
 
 
@@ -97,24 +97,24 @@ for expId in range(options.expnum):
         trqueries = trdata[:, 0:6]
 
         print(">>>> train mce MDN")
-        mdnmp.lratio['mce'] = 10
+        mdnmp.lratio['mce'] = 2
         mdnmp.is_orthogonal_cost=False
         eomdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=20000,
-                                                            sample_num=1, learning_rate=0.0001)
+                                                            sample_num=1, learning_rate=0.00003)
 
         print(">>>> train mce orthogonal MDN")
-        mdnmp.lratio['mce'] = 10
+        mdnmp.lratio['mce'] = 2
         mdnmp.is_orthogonal_cost=True
         emdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=20000,
-                                                            sample_num=1, learning_rate=0.0001)
+                                                            sample_num=1, learning_rate=0.00003)
 
         print(">>>> train ori MDN")
         mdnmp.lratio['mce'] = 0
         omdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=20000,
-                                                            sample_num=1, learning_rate=0.0001)
+                                                            sample_num=1, learning_rate=0.00003)
 
        # print(">>>> train GMGANs")
        # egmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, False, max_epochs=20000,

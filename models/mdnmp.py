@@ -68,7 +68,7 @@ class MDNMP(basicModel):
                 cg_nll = tf.reshape(g_nll[i], [-1])
                 cg_mce = tf.reshape(g_mce[i], [-1])
                 if self.is_orthogonal_cost:
-                    sca = tf.reduce_sum(tf.multiply(cg_nll, cg_mce)) * tf.norm(cg_mce)
+                    sca = tf.reduce_sum(tf.multiply(cg_nll, cg_mce)) / (tf.norm(cg_nll) + 1e-10)
                 else:
                     sca = 0
 
