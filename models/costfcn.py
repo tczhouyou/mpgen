@@ -16,16 +16,25 @@ def gmm_nll_cost(samples, vec_mus, vec_scales, mixing_coeffs, sample_valid):
     return loss
 
 
-def gmm_quatnll_cost(samples, vec_mus, vec_scales, mixing_coeffs, sample_valid):
-    n_comp = mixing_coeffs.get_shape().as_list()[1]
-    mus = tf.split(vec_mus, num_or_size_splits=n_comp, axis=1)
-    scales = tf.split(vec_scales, num_or_size_splits=n_comp, axis=1)
-    gmm_comps = [tfd.MultivariateNormalDiag(loc=mu, scale_diag=scale) for mu, scale in zip(mus, scales)]
-    gmm = tfd.Mixture(cat=tfd.Categorical(probs=mixing_coeffs), components=gmm_comps)
+def gmm_entlb_cost(vec_mus, vec_scales, mixing_coeffs, sample_valid, eps=1e-20):
+    n_comps = mixing_coeffs.get_shape().as_list()[1]
+    ratio = 1.0 / np.float(n_comps)
+    max_entropy = - np.log(ratio)
+    mus = tf.split(vec_mus, num_or_size_splits=n_comps, axis=1)
+    scales = tf.split(vec_scales, num_or_size_splits=n_comps, axis=1)
 
+    entlb = 0
+    for i in range(n_comps):
+        elk = 0
+        for j in range(n_comps):
+            p_j = tfd.MultivariateNormalDiag(loc=mus[j], scale_diag=scales[j]+scales[i])
+            elk = elk + tf.multiply(mixing_coeffs[:,j], p_j.prob(mus[i]))
 
+        entlb = entlb + tf.multiply(mixing_coeffs[:,i], tf.math.log(elk+eps))
 
-
+    entlb = tf.reduce_mean(entlb)
+    entlb = max_entropy - entlb
+    return entlb
 
 def gmm_mce_cost(mixing_coeffs, sample_valid, eps=1e-20):
     n_comps = mixing_coeffs.get_shape().as_list()[1]

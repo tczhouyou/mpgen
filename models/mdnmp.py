@@ -9,7 +9,7 @@ import numpy as np
 import basic_nn
 from util import sample_gmm
 from basic_model import basicModel
-from costfcn import gmm_nll_cost, gmm_mce_cost, failure_cost, gmm_eub_cost
+from costfcn import gmm_nll_cost, gmm_mce_cost, failure_cost, gmm_eub_cost, gmm_entlb_cost
 
 tf.compat.v1.disable_eager_execution()
 
@@ -51,7 +51,8 @@ class MDNMP(basicModel):
         mc = self.outputs['mc']
 
         nll = gmm_nll_cost(self.target, mean, scale, mc, self.is_positive)
-        mce_loss = gmm_mce_cost(mc, self.is_positive, eps=1e-20)
+        #mce_loss = gmm_mce_cost(mc, self.is_positive, eps=1e-20)
+        mce_loss = gmm_entlb_cost(mean, scale, mc, self.is_positive)
         floss = failure_cost(self.target, mean, mc, 1-self.is_positive, neg_scale=0.1)
 
         cost = self.lratio['likelihood'] * nll + self.lratio['regularization'] * reg_loss
