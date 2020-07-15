@@ -158,7 +158,7 @@ if __name__ == '__main__':
 
    # mce_vals = [1, 0.1,  0]
 
-    mce_vals = [0, 0.5,  1]
+    mce_vals = [0, 2]
     #mce_vals=[10, 5, 1, 0.5, 0]
 
 
