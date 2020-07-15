@@ -28,6 +28,7 @@ class MDNMP(basicModel):
         self.use_new_cost = False
         self.var_init = var_init
         self.is_orthogonal_cost = False
+        self.is_mce_only = True
 
     def create_network(self, scope='mdnmp', nn_type='v1'):
         tf.compat.v1.reset_default_graph()
@@ -51,15 +52,19 @@ class MDNMP(basicModel):
         mc = self.outputs['mc']
 
         nll = gmm_nll_cost(self.target, mean, scale, mc, self.is_positive)
-        #mce_loss = gmm_mce_cost(mc, self.is_positive, eps=1e-20)
-        mce_loss = gmm_entlb_cost(mean, scale, mc, self.is_positive)
+
+        if self.is_mce_only:
+            ent_loss = gmm_mce_cost(mc, self.is_positive, eps=1e-20)
+        else:
+            ent_loss = gmm_entlb_cost(mean, scale, mc, self.is_positive)
+
         floss = failure_cost(self.target, mean, mc, 1-self.is_positive, neg_scale=0.1)
 
         cost = self.lratio['likelihood'] * nll + self.lratio['regularization'] * reg_loss
 
         g_nll = tf.gradients(cost, var_list)
-        mce_cost = self.lratio['mce'] * mce_loss
-        g_mce = tf.gradients(mce_cost, var_list)
+        ent_cost = self.lratio['mce'] * ent_loss
+        g_mce = tf.gradients(ent_cost, var_list)
 
         grads = []
         for i in range(len(g_nll)):

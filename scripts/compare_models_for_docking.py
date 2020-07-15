@@ -96,16 +96,18 @@ for expId in range(options.expnum):
 
         trqueries = trdata[:, 0:6]
 
-        print(">>>> train mce MDN")
-        mdnmp.lratio['mce'] = 2
-        mdnmp.is_orthogonal_cost=False
+        print(">>>> train elk MDN")
+        mdnmp.lratio['mce'] = 1
+        mdnmp.is_orthogonal_cost=True
+        mdnmp.is_mce_only=False
         eomdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=20000,
                                                             sample_num=1, learning_rate=0.00003)
 
-        print(">>>> train mce orthogonal MDN")
-        mdnmp.lratio['mce'] = 2
+        print(">>>> train mce MDN")
+        mdnmp.lratio['mce'] = 1
         mdnmp.is_orthogonal_cost=True
+        mdnmp.is_mce_only=True
         emdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=20000,
                                                             sample_num=1, learning_rate=0.00003)
