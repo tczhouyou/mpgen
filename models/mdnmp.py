@@ -100,7 +100,7 @@ class MDNMP(basicModel):
         # self.opt_scale = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=scale_var_list)
         self.saver = tf.compat.v1.train.Saver()
 
-        self.loss_dict = {'nll': nll, 'mce': mce_loss, 'floss': floss, 'cost': cost}
+        self.loss_dict = {'nll': nll, 'mce': ent_loss, 'floss': floss, 'cost': cost}
 
 
     def init_train(self, logfile='mdnmp_log'):
