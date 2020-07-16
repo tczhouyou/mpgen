@@ -28,14 +28,15 @@ def gmm_entlb_cost(vec_mus, vec_scales, mixing_coeffs, sample_valid, eps=1e-20):
         elk = 0
         for j in range(n_comps):
             p_j = tfd.MultivariateNormalDiag(loc=mus[j], scale_diag=scales[j]+scales[i])
-            prob = tf.clip_by_value(p_j.prob(mus[i]), 0, 1)
+            prob = p_j.prob(mus[i])
+            # prob = tf.clip_by_value(p_j.prob(mus[i]), 0, 1)
             elk = elk + tf.multiply(mixing_coeffs[:,j], prob)
 
         entlb = entlb + tf.multiply(mixing_coeffs[:,i], tf.math.log(elk+eps))
 
     loss = tf.negative(tf.reduce_mean(entlb))
     loss = max_entropy - loss
-    return loss
+    return loss, elk
 
 def gmm_mce_cost(mixing_coeffs, sample_valid, eps=1e-20):
     n_comps = mixing_coeffs.get_shape().as_list()[1]

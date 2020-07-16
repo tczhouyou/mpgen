@@ -55,8 +55,9 @@ class MDNMP(basicModel):
 
         if self.is_mce_only:
             ent_loss = gmm_mce_cost(mc, self.is_positive, eps=1e-20)
+            entlb = 0
         else:
-            ent_loss = gmm_entlb_cost(mean, scale, mc, self.is_positive)
+            ent_loss, entlb = gmm_entlb_cost(mean, scale, mc, self.is_positive)
 
         floss = failure_cost(self.target, mean, mc, 1-self.is_positive, neg_scale=0.1)
 
@@ -67,6 +68,9 @@ class MDNMP(basicModel):
         g_mce = tf.gradients(ent_cost, var_list)
 
         grads = []
+        grad_diff = 0
+        grad_norm_nll = 0
+        grad_norm_mce = 0
         for i in range(len(g_nll)):
             if g_mce[i] is not None and self.lratio['mce'] != 0:
                 shape = g_nll[i].get_shape().as_list()
@@ -77,12 +81,17 @@ class MDNMP(basicModel):
                 else:
                     sca = 0
 
+                grad_diff = grad_diff + tf.reduce_sum(tf.multiply(cg_nll, cg_mce))
+                grad_norm_nll = grad_norm_nll + tf.reduce_sum(tf.math.square(cg_nll))
+                grad_norm_mce = grad_norm_mce + tf.reduce_sum(tf.math.square(cg_mce))
+
                 cgm = cg_mce - sca * cg_nll / (tf.norm(cg_nll) + 1e-10)
                 cgrads = cg_nll + cgm
                 grads.append(tf.reshape(cgrads, shape))
             else:
                 grads.append(g_nll[i])
 
+        grad_diff = tf.divide(grad_diff, tf.multiply(tf.math.sqrt(grad_norm_nll), tf.math.sqrt(grad_norm_mce)))
         optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
         self.opt_all = optimizer.apply_gradients(zip(grads, var_list))
         # if self.lratio['mce'] != 0:
@@ -100,7 +109,7 @@ class MDNMP(basicModel):
         # self.opt_scale = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=scale_var_list)
         self.saver = tf.compat.v1.train.Saver()
 
-        self.loss_dict = {'nll': nll, 'mce': ent_loss, 'floss': floss, 'cost': cost}
+        self.loss_dict = {'nll': nll, 'mce': ent_loss, 'floss': floss, 'cost': cost, 'entlb': entlb, 'dgrad': grad_diff}
 
 
     def init_train(self, logfile='mdnmp_log'):
@@ -137,6 +146,8 @@ class MDNMP(basicModel):
                                                         self.loss_dict['cost'], self.loss_dict['floss']],
                                                         feed_dict=feed_dict)
 
+            dgrad = self.sess.run(self.loss_dict['dgrad'], feed_dict=feed_dict)
+
             if np.isnan(cost) or np.isinf(cost):
                 print('\n failed trained')
                 isSuccess = False
@@ -146,7 +157,7 @@ class MDNMP(basicModel):
                 self.save(self.sess, self.saver, checkpoint_dir, model_dir, model_name)
                 self.global_step = self.global_step + 1
 
-            print("epoch: %1d, cost: %.3f, nll: %.3f, mce: %.3f" % (i, cost, nll, mce), end='\r', flush=True)
+            print("epoch: %1d, cost: %.3f, nll: %.3f, mce: %.3f, dgrad: %.3f" % (i, cost, nll, mce, dgrad), end='\r', flush=True)
 
         print("Training Result: %1d, cost: %.3f, nll: %.3f, mce: %.3f" % (i, cost, nll, mce), end='\n')
         return isSuccess

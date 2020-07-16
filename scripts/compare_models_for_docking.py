@@ -25,7 +25,7 @@ if tf.__version__ < '2.0.0':
     VAR_INIT_DIS = tflearn.initializations.normal(stddev=0.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    VAR_INIT = initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=42)
+    VAR_INIT = initializers.RandomUniform(minval=-0.003, maxval=0.003, seed=42)
     VAR_INIT_DIS = initializers.RandomNormal(stddev=0.02, seed=42)
 
 
@@ -97,7 +97,7 @@ for expId in range(options.expnum):
         trqueries = trdata[:, 0:6]
 
         print(">>>> train elk MDN")
-        mdnmp.lratio['mce'] = 1
+        mdnmp.lratio['mce'] = 0.01
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=False
         eomdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
