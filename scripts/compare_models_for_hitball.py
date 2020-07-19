@@ -26,7 +26,7 @@ if tf.__version__ < '2.0.0':
     VAR_INIT_DIS = tflearn.initializations.normal(stddev=0.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    VAR_INIT = initializers.RandomUniform(minval=-0.003, maxval=0.003, seed=42)
+    VAR_INIT = initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=42)
     VAR_INIT_DIS = initializers.RandomNormal(stddev=0.002, seed=42)
 
 parser = OptionParser()
@@ -52,7 +52,7 @@ mdnmp_struct = {'d_feat': 20,
                 'feat_layers': [40],
                 'mean_layers': [60],
                 'scale_layers': [60],
-                'mixing_layers': [10]}
+                'mixing_layers': [20]}
 mdnmp = MDNMP(n_comps=options.nmodel, d_input=d_input, d_output=d_output, nn_structure=mdnmp_struct, scaling=1.0,
               var_init=VAR_INIT)
 
@@ -78,10 +78,11 @@ if not os.path.exists(result_dir):
     os.makedirs(result_dir)
 
 for expId in range(options.expnum):
-    baseline_res = np.zeros(shape=(1,len(tsize)))
-    omdnmp_res = np.zeros(shape=(1, len(tsize)))
-    emdnmp_res = np.zeros(shape=(1, len(tsize)))
-    egmgan_res = np.zeros(shape=(1, len(tsize)))
+    baseline = np.zeros(shape=(1,len(tsize)))
+    omdn = np.zeros(shape=(1, len(tsize)))
+    mce = np.zeros(shape=(1, len(tsize)))
+    omce = np.zeros(shape=(1, len(tsize)))
+    oelk = np.zeros(shape=(1, len(tsize)))
 
     for i in range(len(tsize)):
         tratio = tsize[i]
@@ -89,42 +90,62 @@ for expId in range(options.expnum):
         print("======== exp: %1d for training dataset: %1d =======" % (expId, np.shape(trdata)[0]))
         trqueries = trdata[:, 0:2]
 
-        print(">>>> train baselines")
-        baseline_res[0, i] = train_evaluate_baseline_for_hitball("GPR", trqueries, trvmps, tdata,
-                                                                 sample_num=10, isvel=True,
-                                                                 env_file="hitball_exp_v1.xml",
-                                                                 isdraw=options.isdraw, num_test=options.ntest)
 
-        print(">>>> train GMGANs")
-        egmgan_res[0, i] = train_evaluate_gmgan_for_hitball(gmgan, trqueries, trvmps, tdata, False, max_epochs=10000,
-                                                           sup_max_epoch=20001,
-                                                           sample_num=10, isvel=True, env_file="hitball_exp_v1.xml",
-                                                           isdraw=options.isdraw, num_test=options.ntest,
-                                                           g_lrate=0.0001, d_lrate=0.002)
+      #  print(">>>> train GMGANs")
+      #  egmgan_res[0, i] = train_evaluate_gmgan_for_hitball(gmgan, trqueries, trvmps, tdata, False, max_epochs=10000,
+      #                                                     sup_max_epoch=20001,
+      #                                                     sample_num=10, isvel=True, env_file="hitball_exp_v1.xml",
+      #                                                     isdraw=options.isdraw, num_test=options.ntest,
+       #                                                    g_lrate=0.0001, d_lrate=0.002)
 
-        print(">>>> train entropy MDN")
-        mdnmp.lratio['mce'] = 10
-        emdnmp_res[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=10000,
-                                                            sample_num=10, isvel=True, env_file="hitball_exp_v1.xml",
+        print(">>>> train elk")
+        mdnmp.lratio['entropy'] = 2
+        mdnmp.is_orthogonal_cost=True
+        mdnmp.is_mce_only=False
+        oelk[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=10000,
+                                                            sample_num=10, isvel=True, env_file="hitball_exp_v2.xml",
+                                                            isdraw=options.isdraw, num_test=options.ntest,
+                                                            learning_rate=0.0001, EXP=Armar6HitBallExpV1)
+
+        print(">>>> train orthogonal mce")
+        mdnmp.lratio['entropy'] = 2
+        mdnmp.is_orthogonal_cost=True
+        mdnmp.is_mce_only=True
+        omce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=10000,
+                                                            sample_num=10, isvel=True, env_file="hitball_exp_v2.xml",
+                                                            isdraw=options.isdraw, num_test=options.ntest,
+                                                            learning_rate=0.0001, EXP=Armar6HitBallExpV1)
+
+        print(">>>> train  mce")
+        mdnmp.lratio['entropy'] = 2
+        mdnmp.is_orthogonal_cost=False
+        mdnmp.is_mce_only=True
+        mce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=10000,
+                                                            sample_num=10, isvel=True, env_file="hitball_exp_v2.xml",
                                                             isdraw=options.isdraw, num_test=options.ntest,
                                                             learning_rate=0.0001, EXP=Armar6HitBallExpV1)
 
         print(">>>> train original MDN")
-        mdnmp.lratio['mce'] = 0
-        omdnmp_res[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, max_epochs=10000,
-                                                            sample_num=10, isvel=True, env_file="hitball_exp_v1.xml",
+        mdnmp.lratio['entropy'] = 0
+        omdn[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, max_epochs=10000,
+                                                            sample_num=10, isvel=True, env_file="hitball_exp_v2.xml",
                                                             isdraw=options.isdraw, num_test=options.ntest, learning_rate=0.0001,
                                                             EXP=Armar6HitBallExpV1)
 
+        print(">>>> train baselines")
+        baseline[0, i] = train_evaluate_baseline_for_hitball("GPR", trqueries, trvmps, tdata,  sample_num = 10,
+                                                                 isvel = True, env_file = "hitball_exp_v2.xml",
+                                                                 isdraw = options.isdraw, num_test = options.ntest)
 
 
-    with open(result_dir + "/baselines", "a") as f:
-        np.savetxt(f, np.array(baseline_res), delimiter=',', fmt='%.3f')
-    with open(result_dir + "/entropy_mdn", "a") as f:
-        np.savetxt(f, np.array(emdnmp_res), delimiter=',', fmt='%.3f')
-    with open(result_dir + "/entropy_gmgan", "a") as f:
-        np.savetxt(f, np.array(egmgan_res), delimiter=',', fmt='%.3f')
-    with open(result_dir + "/original_mdn", "a") as f:
-        np.savetxt(f, np.array(omdnmp_res), delimiter=',', fmt='%.3f')
 
-
+    with open(result_dir + "/baseline", "a") as f:
+        np.savetxt(f, np.array(baseline), delimiter=',', fmt='%.3f')
+    with open(result_dir + "/omdn", "a") as f:
+        np.savetxt(f, np.array(omdn), delimiter=',', fmt='%.3f')
+    with open(result_dir + "/omce", "a") as f:
+        np.savetxt(f, np.array(omce), delimiter=',', fmt='%.3f')
+    with open(result_dir + "/oelk", "a") as f:
+        np.savetxt(f, np.array(oelk), delimiter=',', fmt='%.3f')
+    with open(result_dir + "/mce", "a") as f:
+        np.savetxt(f, np.array(mce), delimiter=',', fmt='%.3f')
