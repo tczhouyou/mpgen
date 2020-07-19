@@ -95,9 +95,9 @@ def run_mdnmp_for_hitball(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True
     allres = np.zeros(shape=(len(model_names), MAX_EXPNUM, len(nsamples)))
     for modelId in range(len(model_names)):
         if use_entropy_cost[modelId]:
-            mdnmp.lratio['mce'] = 20
+            mdnmp.lratio['entropy'] = 20
         else:
-            mdnmp.lratio['mce'] = 0
+            mdnmp.lratio['entropy'] = 0
 
         csrates = np.zeros(shape=(MAX_EXPNUM,len(nsamples)))
         for expId in range(MAX_EXPNUM):

@@ -9,7 +9,7 @@ import numpy as np
 import basic_nn
 from util import sample_gmm
 from basic_model import basicModel
-from costfcn import gmm_nll_cost, gmm_mce_cost, failure_cost, gmm_eub_cost, gmm_entlb_cost
+from costfcn import gmm_nll_cost, gmm_mce_cost, failure_cost,  gmm_elk_cost
 
 tf.compat.v1.disable_eager_execution()
 
@@ -23,7 +23,7 @@ class MDNMP(basicModel):
         self.d_output = d_output
 
         self.nn_structure = nn_structure
-        self.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0.00001, 'failure': 0, 'eub':0}
+        self.lratio = {'likelihood': 1, 'entropy': 0, 'regularization': 0.00001, 'failure': 0}
         self.scaling = scaling
         self.use_new_cost = False
         self.var_init = var_init
@@ -52,19 +52,18 @@ class MDNMP(basicModel):
         mc = self.outputs['mc']
 
         nll = gmm_nll_cost(self.target, mean, scale, mc, self.is_positive)
-
-        if self.is_mce_only:
-            ent_loss = gmm_mce_cost(mc, self.is_positive, eps=1e-20)
-            entlb = 0
-        else:
-            ent_loss, entlb = gmm_entlb_cost(mean, scale, mc, self.is_positive)
-
+        mce = gmm_mce_cost(mc, self.is_positive)
+        elk = gmm_elk_cost(mean, scale, mc, self.is_positive)
         floss = failure_cost(self.target, mean, mc, 1-self.is_positive, neg_scale=0.1)
 
-        cost = self.lratio['likelihood'] * nll + self.lratio['regularization'] * reg_loss
+        if self.is_mce_only:
+            ent_loss = mce
+        else:
+            ent_loss = elk
 
-        g_nll = tf.gradients(cost, var_list)
-        ent_cost = self.lratio['mce'] * ent_loss
+        nll_cost = self.lratio['likelihood'] * nll + self.lratio['regularization'] * reg_loss
+        ent_cost = self.lratio['entropy'] * ent_loss
+        g_nll = tf.gradients(nll_cost, var_list)
         g_mce = tf.gradients(ent_cost, var_list)
 
         grads = []
@@ -72,7 +71,7 @@ class MDNMP(basicModel):
         grad_norm_nll = 0
         grad_norm_mce = 0
         for i in range(len(g_nll)):
-            if g_mce[i] is not None and self.lratio['mce'] != 0:
+            if g_mce[i] is not None and self.lratio['entropy'] != 0:
                 shape = g_nll[i].get_shape().as_list()
                 cg_nll = tf.reshape(g_nll[i], [-1])
                 cg_mce = tf.reshape(g_mce[i], [-1])
@@ -81,36 +80,29 @@ class MDNMP(basicModel):
                 else:
                     sca = 0
 
-                grad_diff = grad_diff + tf.reduce_sum(tf.multiply(cg_nll, cg_mce))
-                grad_norm_nll = grad_norm_nll + tf.reduce_sum(tf.math.square(cg_nll))
-                grad_norm_mce = grad_norm_mce + tf.reduce_sum(tf.math.square(cg_mce))
-
                 cgm = cg_mce - sca * cg_nll / (tf.norm(cg_nll) + 1e-10)
                 cgrads = cg_nll + cgm
-                grads.append(tf.reshape(cgrads, shape))
+
+                grad_diff = grad_diff + tf.reduce_sum(tf.multiply(cg_nll, cgrads))
+                grad_norm_nll = grad_norm_nll + tf.reduce_sum(tf.math.square(cg_nll))
+                grad_norm_mce = grad_norm_mce + tf.reduce_sum(tf.math.square(cgrads))
+
+                grad = tf.reshape(cgrads, shape)
+                grads.append(grad)
             else:
                 grads.append(g_nll[i])
 
-        grad_diff = tf.divide(grad_diff, tf.multiply(tf.math.sqrt(grad_norm_nll), tf.math.sqrt(grad_norm_mce)))
+        if grad_norm_mce != 0:
+            grad_diff = tf.divide(grad_diff, tf.multiply(tf.math.sqrt(grad_norm_nll), tf.math.sqrt(grad_norm_mce)))
+        else:
+            grad_diff = 0
+
         optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
         self.opt_all = optimizer.apply_gradients(zip(grads, var_list))
-        # if self.lratio['mce'] != 0:
-        #     cost = cost + self.lratio['mce'] * mce_loss
-
-        # if self.lratio['eub'] != 0:
-        #     eub_loss = gmm_eub_cost(scale, mc, self.is_positive)
-        #     cost = cost + self.lratio['eub'] * eub_loss
-
-        # if self.lratio['failure'] != 0:
-        #     cost = cost + self.lratio['failure'] * floss
-
-        # self.opt_all = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=var_list)
-        # self.opt_mean = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=mean_var_list)
-        # self.opt_scale = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost, var_list=scale_var_list)
         self.saver = tf.compat.v1.train.Saver()
 
-        self.loss_dict = {'nll': nll, 'mce': ent_loss, 'floss': floss, 'cost': cost, 'entlb': entlb, 'dgrad': grad_diff}
-
+        self.loss_dict = {'nll': nll, 'mce': mce, 'elk': elk, 'floss': floss, 'dgrad': grad_diff}
+        self.grads = grads
 
     def init_train(self, logfile='mdnmp_log'):
         tf.compat.v1.random.set_random_seed(self.seed)
@@ -142,24 +134,28 @@ class MDNMP(basicModel):
                 batch_ispos = is_positive
 
             feed_dict = {self.input: batch_input, self.target: batch_target, self.is_positive: batch_ispos}
-            _, nll, mce, cost, floss = self.sess.run([self.opt_all, self.loss_dict['nll'], self.loss_dict['mce'],
-                                                        self.loss_dict['cost'], self.loss_dict['floss']],
+            nll, mce, elk, floss = self.sess.run([self.loss_dict['nll'], self.loss_dict['mce'], self.loss_dict['elk'], self.loss_dict['floss']],
                                                         feed_dict=feed_dict)
 
-            dgrad = self.sess.run(self.loss_dict['dgrad'], feed_dict=feed_dict)
+            if self.lratio['entropy'] != 0:
+                dgrad = self.sess.run(self.loss_dict['dgrad'], feed_dict=feed_dict)
+            else:
+                dgrad = 0
 
-            if np.isnan(cost) or np.isinf(cost):
+            mean, scale, mc = self.sess.run([self.outputs['mean'], self.outputs['scale'], self.outputs['mc']], feed_dict=feed_dict)
+            if np.isnan(nll) or np.isinf(nll):
                 print('\n failed trained')
                 isSuccess = False
                 break
 
+            self.sess.run(self.opt_all, feed_dict=feed_dict)
             if i != 0 and i % 1000 == 0 and is_save:
                 self.save(self.sess, self.saver, checkpoint_dir, model_dir, model_name)
                 self.global_step = self.global_step + 1
 
-            print("epoch: %1d, cost: %.3f, nll: %.3f, mce: %.3f, dgrad: %.3f" % (i, cost, nll, mce, dgrad), end='\r', flush=True)
+            print("epoch: %1d, nll: %.3f, mce: %.3f, elk: %.3f, dgrad: %.3f" % (i, nll, mce, elk,  dgrad), end='\r', flush=True)
 
-        print("Training Result: %1d, cost: %.3f, nll: %.3f, mce: %.3f" % (i, cost, nll, mce), end='\n')
+        print("Training Result: %1d, nll: %.3f, mce: %.3f, elk: %.3f" % (i, nll, mce, elk), end='\n')
         return isSuccess
 
     def predict(self, cinput, n_samples=1):

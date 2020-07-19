@@ -33,9 +33,9 @@ ENV_FILE = "balanceball_exp.xml"
 def train_evaluate_mdnmp_for_balanceball(mdnmp, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000, sample_num=1,
                                          isdraw=False, num_test=100, learning_rate=0.002, env_file="balanceball_exp.xml", EXP=Armar6BalanceBallExp):
     if use_entropy:
-        mdnmp.lratio['mce'] = 10
+        mdnmp.lratio['entropy'] = 10
     else:
-        mdnmp.lratio['mce'] = 0
+        mdnmp.lratio['entropy'] = 0
 
     weights = np.ones(shape=(np.shape(trvmps)[0], 1))
     train_weights = np.copy(weights)
@@ -102,7 +102,7 @@ def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, mce_vals=[0, 0.5, 1, 5, 1
                           scaling=1.0)
 
 
-            mdnmp.lratio['mce'] = mce_vals[modelId]
+            mdnmp.lratio['entropy'] = mce_vals[modelId]
            # if model_names[modelId] == "entropy_mdn":
            #     mdnmp.lratio['mce'] = 0.5
            # else:

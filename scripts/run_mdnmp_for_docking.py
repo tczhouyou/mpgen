@@ -59,9 +59,9 @@ def run_mdnmp_for_docking(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True
         mdnmp = MDNMP(n_comps=nmodel, d_input=6, d_output=knum, nn_structure=nn_structure, scaling=1)
 
         if use_entropy_cost[k]:
-            mdnmp.lratio['mce'] = 200
+            mdnmp.lratio['entropy'] = 1
         else:
-            mdnmp.lratio['mce'] = 0
+            mdnmp.lratio['entropy'] = 0
 
         csrates = np.zeros(shape=(MAX_EXPNUM,len(nsamples)))
 

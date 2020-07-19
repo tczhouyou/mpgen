@@ -25,7 +25,7 @@ if tf.__version__ < '2.0.0':
     VAR_INIT_DIS = tflearn.initializations.normal(stddev=0.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    VAR_INIT = initializers.RandomUniform(minval=-0.003, maxval=0.003, seed=42)
+    VAR_INIT = initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=42)
     VAR_INIT_DIS = initializers.RandomNormal(stddev=0.02, seed=42)
 
 
@@ -40,6 +40,7 @@ queries = np.loadtxt('../data/docking_queries.csv', delimiter=',')
 vmps = np.loadtxt('../data/docking_weights.csv', delimiter=',')
 starts = np.loadtxt('../data/docking_starts.csv', delimiter=',')
 goals = np.loadtxt('../data/docking_goals.csv', delimiter=',')
+
 
 wtest = np.expand_dims(vmps, axis=1)
 cc, successId = evaluate_docking(wtest, queries, starts,goals)
@@ -82,12 +83,11 @@ if not os.path.exists(result_dir):
 mdnmp.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0.00001, 'failure': 0, 'eub': 0}
 
 for expId in range(options.expnum):
-    baseline_res = np.zeros(shape=(1,len(tsize)))
-    #egmgan_res = np.zeros(shape=(1, len(tsize)))
-
-    omdnmp_res = np.zeros(shape=(1, len(tsize)))
-    emdnmp_res = np.zeros(shape=(1, len(tsize)))
-    eomdnmp_res = np.zeros(shape=(1, len(tsize)))
+    baseline = np.zeros(shape=(1,len(tsize)))
+    omdn = np.zeros(shape=(1, len(tsize)))
+    mce = np.zeros(shape=(1, len(tsize)))
+    omce = np.zeros(shape=(1, len(tsize)))
+    oelk = np.zeros(shape=(1, len(tsize)))
 
     for i in range(len(tsize)):
         tratio = tsize[i]
@@ -96,43 +96,50 @@ for expId in range(options.expnum):
 
         trqueries = trdata[:, 0:6]
 
+
         print(">>>> train elk MDN")
-        mdnmp.lratio['mce'] = 0.01
+        mdnmp.lratio['entropy'] = 0.1
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=False
-        eomdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
+        oelk[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=20000,
                                                             sample_num=1, learning_rate=0.00003)
 
-        print(">>>> train mce MDN")
-        mdnmp.lratio['mce'] = 1
+        print(">>>> train orthognal mce MDN")
+        mdnmp.lratio['entropy'] = 2
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=True
-        emdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
+        omce[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
+                                                            max_epochs=20000,
+                                                            sample_num=1, learning_rate=0.00003)
+        print(">>>> train mce MDN")
+        mdnmp.lratio['entropy'] = 2
+        mdnmp.is_orthogonal_cost=False
+        mdnmp.is_mce_only=True
+        mce[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=20000,
                                                             sample_num=1, learning_rate=0.00003)
 
         print(">>>> train ori MDN")
-        mdnmp.lratio['mce'] = 0
-        omdnmp_res[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
+        mdnmp.lratio['entropy'] = 0
+        omdn[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=20000,
                                                             sample_num=1, learning_rate=0.00003)
 
-       # print(">>>> train GMGANs")
-       # egmgan_res[0, i] = train_evaluate_gmgan_for_docking(gmgan, trqueries, trvmps, tdata, False, max_epochs=20000,
-       #                                                     sup_max_epoch=20001, sample_num=1, g_lrate=0.0001, d_lrate=0.002)
 
         print(">>>> train baselines")
-        baseline_res[0, i] = train_evaluate_baseline_for_docking('GPR', trqueries, trvmps, tdata, sample_num=1)
+        baseline[0, i] = train_evaluate_baseline_for_docking('GPR', trqueries, trvmps, tdata, sample_num=1)
 
 
-    with open(result_dir + "/baselines", "a") as f:
-        np.savetxt(f, np.array(baseline_res), delimiter=',', fmt='%.3f')
+    with open(result_dir + "/baseline", "a") as f:
+        np.savetxt(f, np.array(baseline), delimiter=',', fmt='%.3f')
    # with open(result_dir + "/entropy_gmgan", "a") as f:
     #    np.savetxt(f, np.array(egmgan_res), delimiter=',', fmt='%.3f')
-    with open(result_dir + "/original_mdn", "a") as f:
-        np.savetxt(f, np.array(omdnmp_res), delimiter=',', fmt='%.3f')
-    with open(result_dir + "/entropy_mdn", "a") as f:
-        np.savetxt(f, np.array(emdnmp_res), delimiter=',', fmt='%.3f')
-    with open(result_dir + "/entropy_ortho_mdn", "a") as f:
-        np.savetxt(f, np.array(eomdnmp_res), delimiter=',', fmt='%.3f')
+    with open(result_dir + "/omdn", "a") as f:
+        np.savetxt(f, np.array(omdn), delimiter=',', fmt='%.3f')
+    with open(result_dir + "/mce", "a") as f:
+        np.savetxt(f, np.array(mce), delimiter=',', fmt='%.3f')
+    with open(result_dir + "/omce", "a") as f:
+        np.savetxt(f, np.array(omce), delimiter=',', fmt='%.3f')
+    with open(result_dir + "/oelk", "a") as f:
+        np.savetxt(f, np.array(oelk), delimiter=',', fmt='%.3f')
