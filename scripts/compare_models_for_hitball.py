@@ -77,6 +77,7 @@ result_dir = options.result_dir
 if not os.path.exists(result_dir):
     os.makedirs(result_dir)
 
+mdnmp.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0.00001, 'failure': 0, 'eub': 0}
 for expId in range(options.expnum):
     baseline = np.zeros(shape=(1,len(tsize)))
     omdn = np.zeros(shape=(1, len(tsize)))
@@ -90,50 +91,44 @@ for expId in range(options.expnum):
         print("======== exp: %1d for training dataset: %1d =======" % (expId, np.shape(trdata)[0]))
         trqueries = trdata[:, 0:2]
 
+        print(">>>> train  mce")
+        mdnmp.lratio['entropy'] = 10
+        mdnmp.is_orthogonal_cost=False
+        mdnmp.is_mce_only=True
+        mce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=10000,
+                                                            sample_num=10, isvel=True, env_file="hitball_exp_v2.xml",
+                                                            isdraw=options.isdraw, num_test=options.ntest,
+                                                            learning_rate=0.0001, EXP=Armar6HitBallExpV1)
 
-      #  print(">>>> train GMGANs")
-      #  egmgan_res[0, i] = train_evaluate_gmgan_for_hitball(gmgan, trqueries, trvmps, tdata, False, max_epochs=10000,
-      #                                                     sup_max_epoch=20001,
-      #                                                     sample_num=10, isvel=True, env_file="hitball_exp_v1.xml",
-      #                                                     isdraw=options.isdraw, num_test=options.ntest,
-       #                                                    g_lrate=0.0001, d_lrate=0.002)
+
 
         print(">>>> train elk")
-        mdnmp.lratio['entropy'] = 1
+        mdnmp.lratio['entropy'] = 10
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=False
         oelk[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=10000,
                                                             sample_num=10, isvel=True, env_file="hitball_exp_v2.xml",
                                                             isdraw=options.isdraw, num_test=options.ntest,
-                                                            learning_rate=0.00003, EXP=Armar6HitBallExpV1)
+                                                            learning_rate=0.0001, EXP=Armar6HitBallExpV1)
 
 
         print(">>>> train original MDN")
         mdnmp.lratio['entropy'] = 0
         omdn[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, max_epochs=10000,
                                                             sample_num=10, isvel=True, env_file="hitball_exp_v2.xml",
-                                                            isdraw=options.isdraw, num_test=options.ntest, learning_rate=0.00003,
+                                                            isdraw=options.isdraw, num_test=options.ntest, learning_rate=0.0001,
                                                             EXP=Armar6HitBallExpV1)
 
 
-        print(">>>> train  mce")
-        mdnmp.lratio['entropy'] =3
-        mdnmp.is_orthogonal_cost=False
-        mdnmp.is_mce_only=True
-        mce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=10000,
-                                                            sample_num=10, isvel=True, env_file="hitball_exp_v2.xml",
-                                                            isdraw=options.isdraw, num_test=options.ntest,
-                                                            learning_rate=0.00003, EXP=Armar6HitBallExpV1)
-
 
         print(">>>> train orthogonal mce")
-        mdnmp.lratio['entropy'] =3
+        mdnmp.lratio['entropy'] =  10
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=True
         omce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=10000,
                                                             sample_num=10, isvel=True, env_file="hitball_exp_v2.xml",
                                                             isdraw=options.isdraw, num_test=options.ntest,
-                                                            learning_rate=0.00003, EXP=Armar6HitBallExpV1)
+                                                            learning_rate=0.0001, EXP=Armar6HitBallExpV1)
 
 
         print(">>>> train baselines")
