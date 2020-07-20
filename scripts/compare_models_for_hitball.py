@@ -26,7 +26,7 @@ if tf.__version__ < '2.0.0':
     VAR_INIT_DIS = tflearn.initializations.normal(stddev=0.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    VAR_INIT = initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=42)
+    VAR_INIT = initializers.RandomUniform(minval=-0.003, maxval=0.003, seed=42)
     VAR_INIT_DIS = initializers.RandomNormal(stddev=0.002, seed=42)
 
 parser = OptionParser()
@@ -97,40 +97,44 @@ for expId in range(options.expnum):
       #                                                     sample_num=10, isvel=True, env_file="hitball_exp_v1.xml",
       #                                                     isdraw=options.isdraw, num_test=options.ntest,
        #                                                    g_lrate=0.0001, d_lrate=0.002)
-        print(">>>> train orthogonal mce")
-        mdnmp.lratio['entropy'] = 2
-        mdnmp.is_orthogonal_cost=True
-        mdnmp.is_mce_only=True
-        omce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=20000,
-                                                            sample_num=10, isvel=True, env_file="hitball_exp_v2.xml",
-                                                            isdraw=options.isdraw, num_test=options.ntest,
-                                                            learning_rate=0.00003, EXP=Armar6HitBallExpV1)
-
 
         print(">>>> train elk")
-        mdnmp.lratio['entropy'] = 0.1
+        mdnmp.lratio['entropy'] = 1
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=False
-        oelk[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=20000,
+        oelk[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=10000,
                                                             sample_num=10, isvel=True, env_file="hitball_exp_v2.xml",
                                                             isdraw=options.isdraw, num_test=options.ntest,
                                                             learning_rate=0.00003, EXP=Armar6HitBallExpV1)
 
-        print(">>>> train  mce")
-        mdnmp.lratio['entropy'] = 2
-        mdnmp.is_orthogonal_cost=False
-        mdnmp.is_mce_only=True
-        mce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=20000,
-                                                            sample_num=10, isvel=True, env_file="hitball_exp_v2.xml",
-                                                            isdraw=options.isdraw, num_test=options.ntest,
-                                                            learning_rate=0.00003, EXP=Armar6HitBallExpV1)
 
         print(">>>> train original MDN")
         mdnmp.lratio['entropy'] = 0
-        omdn[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, max_epochs=20000,
+        omdn[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, max_epochs=10000,
                                                             sample_num=10, isvel=True, env_file="hitball_exp_v2.xml",
                                                             isdraw=options.isdraw, num_test=options.ntest, learning_rate=0.00003,
                                                             EXP=Armar6HitBallExpV1)
+
+
+        print(">>>> train  mce")
+        mdnmp.lratio['entropy'] =3
+        mdnmp.is_orthogonal_cost=False
+        mdnmp.is_mce_only=True
+        mce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=10000,
+                                                            sample_num=10, isvel=True, env_file="hitball_exp_v2.xml",
+                                                            isdraw=options.isdraw, num_test=options.ntest,
+                                                            learning_rate=0.00003, EXP=Armar6HitBallExpV1)
+
+
+        print(">>>> train orthogonal mce")
+        mdnmp.lratio['entropy'] =3
+        mdnmp.is_orthogonal_cost=True
+        mdnmp.is_mce_only=True
+        omce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=10000,
+                                                            sample_num=10, isvel=True, env_file="hitball_exp_v2.xml",
+                                                            isdraw=options.isdraw, num_test=options.ntest,
+                                                            learning_rate=0.00003, EXP=Armar6HitBallExpV1)
+
 
         print(">>>> train baselines")
         baseline[0, i] = train_evaluate_baseline_for_hitball("GPR", trqueries, trvmps, tdata,  sample_num = 10,

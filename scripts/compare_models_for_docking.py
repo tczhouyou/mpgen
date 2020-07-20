@@ -72,7 +72,7 @@ gmgan = GMGAN(n_comps=options.nmodel, context_dim=6, response_dim=knum, nn_struc
               var_init=VAR_INIT, var_init_dis=VAR_INIT_DIS, batch_size=100)
 
 # start experiment
-num_train_data = np.array([50, 100, 150])
+num_train_data = np.array([100])
 tsize = (np.shape(data)[0] -num_train_data)/np.shape(data)[0]
 print(tsize)
 
@@ -95,40 +95,40 @@ for expId in range(options.expnum):
         print("======== exp: %1d for training dataset: %1d =======" % (expId, np.shape(trdata)[0]))
 
         trqueries = trdata[:, 0:6]
-
-
         print(">>>> train elk MDN")
-        mdnmp.lratio['entropy'] = 0.1
+        mdnmp.lratio['entropy'] = 1
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=False
         oelk[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=20000,
-                                                            sample_num=1, learning_rate=0.00003)
+                                                            sample_num=10, learning_rate=0.00003)
 
-        print(">>>> train orthognal mce MDN")
-        mdnmp.lratio['entropy'] = 2
-        mdnmp.is_orthogonal_cost=True
-        mdnmp.is_mce_only=True
-        omce[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
-                                                            max_epochs=20000,
-                                                            sample_num=1, learning_rate=0.00003)
-        print(">>>> train mce MDN")
-        mdnmp.lratio['entropy'] = 2
-        mdnmp.is_orthogonal_cost=False
-        mdnmp.is_mce_only=True
-        mce[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
-                                                            max_epochs=20000,
-                                                            sample_num=1, learning_rate=0.00003)
 
         print(">>>> train ori MDN")
         mdnmp.lratio['entropy'] = 0
         omdn[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=20000,
-                                                            sample_num=1, learning_rate=0.00003)
+                                                            sample_num=10, learning_rate=0.00003)
+
+
+        print(">>>> train orthognal mce MDN")
+        mdnmp.lratio['entropy'] = 3
+        mdnmp.is_orthogonal_cost=True
+        mdnmp.is_mce_only=True
+        omce[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
+                                                            max_epochs=20000,
+                                                            sample_num=10, learning_rate=0.00003)
+        print(">>>> train mce MDN")
+        mdnmp.lratio['entropy'] = 3
+        mdnmp.is_orthogonal_cost=False
+        mdnmp.is_mce_only=True
+        mce[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
+                                                            max_epochs=20000,
+                                                            sample_num=10, learning_rate=0.00003)
 
 
         print(">>>> train baselines")
-        baseline[0, i] = train_evaluate_baseline_for_docking('GPR', trqueries, trvmps, tdata, sample_num=1)
+        baseline[0, i] = train_evaluate_baseline_for_docking('GPR', trqueries, trvmps, tdata, sample_num=10)
 
 
     with open(result_dir + "/baseline", "a") as f:

@@ -94,8 +94,9 @@ def mdn_nn_v1(inputs, d_outputs, n_comps, nn_structure, using_batch_norm=False, 
 
         scale = fully_connected_nn(feats, scale_layers, d_outputs, scope=scope + '_scale',
                                    latent_activation=leaky_relu_act, out_activation=leaky_relu_act, w_init=var_init)
+
+        scale = tf.clip_by_value(scale, -100, 100)
         scale = tf.exp(scale)
-        scale = tf.clip_by_value(scale, 0, 10000)
 
         mc = fully_connected_nn(feats, mixing_layers, n_comps, scope=scope + '_mixing',
                                 latent_activation=leaky_relu_act, out_activation=None, w_init=var_init)

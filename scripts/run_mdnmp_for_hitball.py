@@ -34,24 +34,26 @@ def train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,  max_epoch
     train_weights = np.copy(weights)
     mdnmp.build_mdn(learning_rate=learning_rate)
     mdnmp.init_train()
-    mdnmp.train(trqueries, trvmps, train_weights, max_epochs=max_epochs, is_load=False, is_save=False)
+    isSuccess = mdnmp.train(trqueries, trvmps, train_weights, max_epochs=max_epochs, is_load=False, is_save=False)
     mp = VMP(dim=2, kernel_num=10)
 
     if num_test > np.shape(tdata)[0]:
         num_test = np.shape(tdata)[0]-1
 
-    tqueries = tdata[:num_test, 0:2]
-    starts = tdata[:num_test, 2:4]
-    goals = tdata[:num_test, 4:6]
-    wout, _ = mdnmp.predict(tqueries, sample_num)
+    srate = 0
+    if isSuccess:
+        tqueries = tdata[:num_test, 0:2]
+        starts = tdata[:num_test, 2:4]
+        goals = tdata[:num_test, 4:6]
+        wout, _ = mdnmp.predict(tqueries, sample_num)
 
-    if isvel:
-        srate = evaluate_hitball(wout, tqueries, starts, goals,
+        if isvel:
+            srate = evaluate_hitball(wout, tqueries, starts, goals,
                                  low_ctrl=TaskSpaceVelocityController,
                                  high_ctrl=TaskSpacePositionVMPController(mp),
                                  env_path=ENV_DIR+env_file, isdraw=isdraw, EXP=EXP)
-    else:
-        srate = evaluate_hitball(wout, tqueries, starts, goals,
+        else:
+            srate = evaluate_hitball(wout, tqueries, starts, goals,
                                  low_ctrl=TaskSpaceImpedanceController,
                                  high_ctrl=TaskSpacePositionVMPController(mp),
                                  env_path=ENV_DIR+env_file, isdraw=isdraw, EXP=EXP)

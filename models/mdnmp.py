@@ -71,8 +71,8 @@ class MDNMP(basicModel):
         grad_norm_nll = 0
         grad_norm_mce = 0
         for i in range(len(g_nll)):
+            shape = g_nll[i].get_shape().as_list()
             if g_mce[i] is not None and self.lratio['entropy'] != 0:
-                shape = g_nll[i].get_shape().as_list()
                 cg_nll = tf.reshape(g_nll[i], [-1])
                 cg_mce = tf.reshape(g_mce[i], [-1])
                 if self.is_orthogonal_cost:
@@ -82,6 +82,7 @@ class MDNMP(basicModel):
 
                 cgm = cg_mce - sca * cg_nll / (tf.norm(cg_nll) + 1e-10)
                 cgrads = cg_nll + cgm
+                #cgrads = cgrads / (tf.norm(cgrads) + 1e-10)
 
                 grad_diff = grad_diff + tf.reduce_sum(tf.multiply(cg_nll, cgrads))
                 grad_norm_nll = grad_norm_nll + tf.reduce_sum(tf.math.square(cg_nll))
@@ -90,7 +91,11 @@ class MDNMP(basicModel):
                 grad = tf.reshape(cgrads, shape)
                 grads.append(grad)
             else:
+               # cg_nll = tf.reshape(g_nll[i], [-1])
+               # cg_nll = cg_nll / (tf.norm(cg_nll) + 1e-10)
+               # gnll = tf.reshape(cg_nll, shape)
                 grads.append(g_nll[i])
+
 
         if grad_norm_mce != 0:
             grad_diff = tf.divide(grad_diff, tf.multiply(tf.math.sqrt(grad_norm_nll), tf.math.sqrt(grad_norm_mce)))
@@ -142,7 +147,7 @@ class MDNMP(basicModel):
             else:
                 dgrad = 0
 
-            mean, scale, mc = self.sess.run([self.outputs['mean'], self.outputs['scale'], self.outputs['mc']], feed_dict=feed_dict)
+            #mean, scale, mc = self.sess.run([self.outputs['mean'], self.outputs['scale'], self.outputs['mc']], feed_dict=feed_dict)
             if np.isnan(nll) or np.isinf(nll):
                 print('\n failed trained')
                 isSuccess = False
