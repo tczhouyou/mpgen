@@ -35,6 +35,10 @@ elif options.exp_version == "v0":
     env_path = env_dir + "hitball_exp_v0.xml"
     env = Armar6HitBallExpV0(low_ctrl=TaskSpaceImpedanceController, high_ctrl=TaskSpacePositionVMPController(vmp),
                              env_path=env_path, isdraw=options.is_draw)
+elif options.exp_version == "v2":
+    env_path = env_dir + "hitball_exp_v2.xml"
+    env = Armar6HitBallExpV1(low_ctrl=TaskSpaceVelocityController, high_ctrl=TaskSpacePositionVMPController(vmp),
+                             env_path=env_path, isdraw=options.is_draw)
 else:
     raise Exception("Unknown Experiment Version")
 
@@ -61,15 +65,22 @@ for i in progressbar.progressbar(range(EXP_NUM)):
         goal = start.copy()
         goal[:2] = INIT_BALL_POS.copy()[:2]
 
-        dgx = np.random.uniform(low=-1.5, high=1.5)
-        dgy = np.random.uniform(low=-2.3, high=-.9)
+        dgx = 1.0
+        dgy = -1.8
+        if np.random.uniform(low=0, high=1) < 0.5:
+            dgx = np.random.uniform(low=-1.0, high=-0.5)
+        else:
+            dgx = np.random.uniform(low=0.5, high=1.0)
+        #
+        dgy = np.random.uniform(low=-1.8, high=-1.0)
         env.high_ctrl.vmp.set_start_goal(start[:2], goal[:2], dg=[dgx, dgy])
         env.high_ctrl.target_quat = start[3:]
         env.high_ctrl.target_posi = start[:3]
         env.high_ctrl.desired_joints = np.array([0, -0.2, 0, 0, 1.8, 3.14, 0, 0])
 
         final_ball_pos, ts_traj, js_traj, is_error = env.run()
-        if is_error or final_ball_pos[1] < 1.2:
+
+        if is_error or final_ball_pos[1] < 2.2:
             continue
 
         filename = options.raw_dir + '/hitball_' + str(i + 1) + '.csv'

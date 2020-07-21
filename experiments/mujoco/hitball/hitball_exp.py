@@ -9,6 +9,7 @@ import mujoco_py
 import numpy as np
 from armar6_controllers.armar6_high_controller import TaskSpaceVMPController, TaskSpacePositionVMPController
 from armar6_controllers.armar6_low_controller import RIGHT_HAND_JOINT_CONFIG, RIGHT_HAND_JOINT, get_actuator_data, JointController
+import progressbar
 
 ENV_DIR = '/experiments/mujoco/robot-models/armar6-mujoco/environment/'
 EXP_DIR = '/experiments/mujoco/hitball/'
@@ -221,7 +222,7 @@ class Armar6HitBallExpV1:
             addr = self.sim.model.get_joint_qpos_addr(joint)
             states.qpos[addr] = self.init_joints[joint_id]
 
-        height = 0.98
+        height = 0.95
         if target_pos is not None:
             addr = self.sim.model.get_joint_qpos_addr("ref_box_x")
             states.qpos[addr] = target_pos[0]
@@ -260,7 +261,9 @@ class Armar6HitBallExpV1:
             states.qvel[addr] = 0
 
         self.sim.set_state(states)
-        self.sim.forward()
+        self.sim.step()
+
+
         if self.isdraw:
             self.viewer.render()
 
@@ -273,42 +276,43 @@ class Armar6HitBallExpV1:
         return start, ball_pos.copy()
 
 
-# def run_env(data, q):
-#     final_ball_pos, _, _, is_error = data['env'].run()
-#
-#     if not is_error and np.linalg.norm(data['query']- final_ball_pos[:2]) < 0.18:
-#         q.put(1)
-#     else:
-#         q.put(0)
-#
-# def evaluate_hitball_multiprocess(wout, queries, starts, goals, low_ctrl, high_ctrl, env_path, EXP=Armar6HitBallExpV1):
-#     import multiprocessing
-#     processes = []
-#     q = multiprocessing.Queue()
-#     for i in range(np.shape(wout)[0]):
-#         for sampleId in range(np.shape(wout)[1]):
-#             env = EXP(high_ctrl=high_ctrl, low_ctrl=low_ctrl, isdraw=False, env_path=os.environ['MPGEN_DIR'] + env_path)
-#             st, _ = env.reset(init_ball_pos=goals[i, :], target_pos=queries[i, :])
-#             env.high_ctrl.target_quat = st[3:]
-#             env.high_ctrl.target_posi = st[:3]
-#             env.high_ctrl.desired_joints = np.array([0, -0.2, 0, 0, 1.8, 3.14, 0, 0])
-#             env.high_ctrl.vmp.set_weights(wout[i, sampleId, :])
-#             env.high_ctrl.vmp.set_start_goal(starts[i, :], goals[i, :])
-#             data = {'env': env, 'query': queries[i,:]}
-#             p = multiprocessing.Process(target=run_env, args=(data,q,))
-#             processes.append(p)
-#             p.start()
-#
-#     for process in processes:
-#         process.join()
-#
-#     srate = 0.0
-#     for i in range(np.shape(wout)[0]):
-#         for sampleId in range(np.shape(wout)[1]):
-#             srate = srate + q.get()
-#
-#     print('srate: {}'.format(srate/np.shape(wout)[0]))
-#     return srate/np.shape(wout)[0]
+def run_env(data, q):
+    env = data['env']
+    st, _ = env.reset(init_ball_pos=data['goal'], target_pos=data['query'])
+    env.high_ctrl.target_quat = st[3:]
+    env.high_ctrl.target_posi = st[:3]
+    env.high_ctrl.desired_joints = np.array([0, -0.2, 0, 0, 1.8, 3.14, 0, 0])
+    env.high_ctrl.vmp.set_weights(data['weight'])
+    env.high_ctrl.vmp.set_start_goal(data['start'], data['goal'])
+    final_ball_pos, _, _, is_error = data['env'].run()
+    if not is_error and np.linalg.norm(data['query']- final_ball_pos[:2]) < 0.18:
+        q.put(1)
+    else:
+        q.put(0)
+
+def evaluate_hitball_multiprocess(wout, queries, starts, goals, low_ctrl, high_ctrl, env_path, EXP=Armar6HitBallExpV1):
+    import multiprocessing
+    processes = []
+    q = multiprocessing.Queue()
+    for i in progressbar.progressbar(range(np.shape(wout)[0])):
+        for sampleId in range(np.shape(wout)[1]):
+            env = EXP(high_ctrl=high_ctrl, low_ctrl=low_ctrl, isdraw=False, env_path=os.environ['MPGEN_DIR'] + env_path)
+            data = {'env': env, 'query': queries[i,:], 'goal':goals[i,:], 'weight': wout[i,sampleId,:], 'start':starts[i,:]}
+            p = multiprocessing.Process(target=run_env, args=(data,q,))
+            processes.append(p)
+            p.start()
+
+    for process in processes:
+        process.join()
+
+    print('finished')
+    srate = 0.0
+    for i in range(np.shape(wout)[0]):
+        for sampleId in range(np.shape(wout)[1]):
+            srate = srate + q.get()
+
+    print('srate: {}'.format(srate/np.shape(wout)[0]))
+    return srate/np.shape(wout)[0]
 
 
 def evaluate_hitball(wout, queries, starts, goals, low_ctrl, high_ctrl, env_path, EXP=Armar6HitBallExpV1, isdraw=False):

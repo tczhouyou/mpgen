@@ -19,7 +19,7 @@
 
 
     <include file="../../world.xml"/>
-    <include file="../robot/Armar6-BalanceBall-Velocity.xml"/>
+    <include file="../robot/Armar6-BalanceBallV2.xml"/>
     <size njmax="8000" nconmax="4000"/>
 
     <worldbody>

@@ -17,10 +17,11 @@ env_dir = os.environ['MPGEN_DIR'] + ENV_DIR
 parser = OptionParser()
 parser.add_option("-d", "--mp_dir", dest="mp_dir", type="string", default="balanceball_mpdata")
 parser.add_option("-p", "--draw", action="store_true", dest="is_draw", default=False)
+parser.add_option("-e", "--env", dest="env_file", type="string", default="balanceball_exp_v1.xml")
 
 (options, args) = parser.parse_args(sys.argv)
 
-env_path = env_dir + "balanceball_exp.xml"
+env_path = env_dir + options.env_file
 mp_dir = options.mp_dir
 
 qvmp = QVMP(kernel_num=10, elementary_type='minjerk')

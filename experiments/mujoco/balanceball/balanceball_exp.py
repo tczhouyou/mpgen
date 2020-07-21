@@ -12,7 +12,7 @@ from armar6_controllers.armar6_low_controller import RIGHT_HAND_JOINT_CONFIG, RI
 
 ENV_DIR = '/experiments/mujoco/robot-models/armar6-mujoco/environment/'
 EXP_DIR = '/experiments/mujoco/balanceball/'
-INIT_BALL_POS = np.array([0.38, 0.75, 0.9])
+INIT_BALL_POS = np.array([0.38, 0.55, 0.9])
 INIT_JOINT_POS = np.array([0, -0.42, 0, -0.1, 2.0, 3.14, 0, 0])
 
 class Armar6BalanceBallExp:
@@ -48,14 +48,14 @@ class Armar6BalanceBallExp:
             ball_pos = self.sim.data.get_body_xpos("Ball")
             ball_vel = self.sim.data.get_body_xvelp("Ball")
 
-            if has_moved and np.linalg.norm(ball_vel[:2]) < 0.001:
+            if has_moved and np.linalg.norm(ball_vel[:2]) < 0.005:
                 final_ball_pos = ball_pos
                 done = True
 
             if np.linalg.norm(ball_vel[:2]) > 0.05:
                 has_moved = True
 
-            if ball_pos[2] < 0.5 or (sim_duration > 3 and not has_moved):
+            if ball_pos[1] < 0.45 or ball_pos[2] < 0.5 or (sim_duration > 3 and not has_moved):
                 is_error = True
                 break
 

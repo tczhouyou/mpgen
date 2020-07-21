@@ -216,13 +216,12 @@
                                                                     <site name="Hand R TCP" pos="0.08 0 0" quat="0.5 0.5 0.5 0.5"/>
                                                                     <body name="Hand R Palm" pos="0 0 0" quat="1 0 0 0">
                                                                         <geom type="cylinder" pos="0 0 0" quat="0.7071 0 0.7071 0" size="0.01 0.1" mass="0.00001"/>
-                                                                        <geom margin="0.0025" type="box" pos="0.35 0.005 0" size="0.3 0.01 0.3" friction="0.05 0.05" solref="0.02 1" rgba="1 1 1 1"  mass="2"/>
-<!--                                                                        <geom margin="0.0025" type="box" pos="0.35 0.07 0" size="0.3 0.01 0.3" friction="0.05 0.05" solref="-0.0 -100.0" rgba="1 1 1 0.2" mass="2"/>-->
-                                                                        <geom margin="0.004" type="box" pos="0.64 0.02 0" size="0.01 0.05 0.3" solref="-100000 -20" rgba="1 1 1 1" mass="2"/>
-                                                                        <geom margin="0.004" type="box" pos="0.35 0.02 -0.29" size="0.3 0.05 0.01"  solref="-100000 -20" rgba="1 1 1 1" mass="2"/>
-                                                                        <geom margin="0.004" type="box" pos="0.35 0.02 0.29" size="0.3 0.05 0.01"  solref="-100000 -20" rgba="1 1 1 1" mass="2"/>
+                                                                        <geom margin="0.0025" type="box" pos="0.55 0.005 0" size="0.5 0.01 0.3" friction="0.05 0.05" solref="0.02 1" rgba="1 1 1 1"  mass="2"/>
+                                                                        <geom margin="0.004" type="box" pos="1.05 0.02 0" size="0.01 0.05 0.3" solref="-100000 -20" rgba="1 1 1 1" mass="2"/>
+                                                                        <geom type="box" pos="0.40 0.08 0" size="0.002 0.002 0.3" contype="0" rgba="1 0 0 0.2" mass="0.01"/>
+                                                                        <geom margin="0.004" type="box" pos="0.55 0.02 -0.29" size="0.5 0.05 0.01"  solref="-100000 -20" rgba="1 1 1 1" mass="2"/>
+                                                                        <geom margin="0.004" type="box" pos="0.55 0.02 0.29" size="0.5 0.05 0.01"  solref="-100000 -20" rgba="1 1 1 1" mass="2"/>
                                                                         <geom margin="0.004" type="box" pos="0.05 0.02 0" size="0.01 0.05 0.3"  solref="-100000 -20" rgba="1 1 1 1" mass="2"/>
-
                                                                     </body>
                                                                     <!--<inertial pos="0 0 0" mass="9.99999975e-05" diaginertia="1 1 1"/>-->
                                                                 </body>

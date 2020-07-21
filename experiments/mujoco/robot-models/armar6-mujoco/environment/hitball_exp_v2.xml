@@ -10,7 +10,7 @@
 <!--    <option solver="CG" tolerance="1e-6"/>-->
 
     <statistic extent="2" meansize=".05"/>
-    <option timestep="0.1" solver="Newton" iterations="10" tolerance="1e-5" jacobian="sparse" cone="pyramidal"/>
+    <option timestep="0.0001" solver="PGS" iterations="1000" tolerance="1e-10" jacobian="sparse" cone="elliptic"/>
 
 
     <visual>
@@ -51,17 +51,10 @@
 <!--                <geom type="sphere" pos="0 0 0.08" size="0.08" condim="1" solref="0.01 1" rgba="1 0 0 1"/>-->
 <!--            </body>-->
 
-            <geom type="cylinder" pos="0 0 0" size="0.08 0.05" condim="1" solref="0.01 1" friction="0 0 0"/>
+            <geom type="cylinder" pos="0 0 0" size="0.08 0.05" condim="3" solref="0.01 1" friction="0 0 0" mass="1"/>
             <joint name="box_x" type="slide" axis="1 0 0" />
             <joint name="box_y" type="slide" axis="0 1 0" />
             <joint name="box_z" type="slide" axis="0 0 1" />
-
-        </body>
-
-        <body name="obstacle" pos="0 0 0">
-            <geom type="box" pos="0.4 2.2 0.95" size="0.4 0.2 0.1" condim="1" mass="1000" solref="0.01 0.01" rgba="1 1 1 1"/>
-<!--            <joint name="obs_x" type="slide" axis="1 0 0" />-->
-<!--            <joint name="obs_y" type="slide" axis="0 1 0" />-->
         </body>
 
         <body name="reference" pos="0 0 0">
@@ -72,7 +65,7 @@
             <site type="box" pos="0 0 1" size="0.1 0.1 0.1" rgba=".5 .5 .5 0.2"/>
         </body>
 
-        <body name="line_limit" pos="0.4 2.2 1.02">
+        <body name="line_limit" pos="0.4 2.2 1.05">
             <site type="box" pos="0 0 0" size="1 0.01 0.01" rgba="1 0 0 0.3"/>
         </body>
 

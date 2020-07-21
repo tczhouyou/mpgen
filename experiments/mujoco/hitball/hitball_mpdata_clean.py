@@ -21,8 +21,6 @@ parser.add_option("-p", "--draw", action="store_true", dest="is_draw", default=F
 parser.add_option("-v", "--version", dest="exp_version", type="string", default="v1")
 
 (options, args) = parser.parse_args(sys.argv)
-
-env_path = env_dir + options.env_path
 mp_dir = options.mp_dir
 
 vmp = VMP(dim=2, kernel_num=10, use_outrange_kernel=False)
@@ -35,9 +33,14 @@ oweights = np.loadtxt(mp_dir + '/hitball_weights.csv', delimiter=',')
 if options.exp_version == "v1":
     env_path = env_dir + "hitball_exp_v1.xml"
     env = Armar6HitBallExpV1(low_ctrl=TaskSpaceVelocityController, high_ctrl=TaskSpacePositionVMPController(vmp), env_path=env_path, isdraw=options.is_draw)
-else:
+elif options.exp_version == "v0":
     env_path = env_dir + "hitball_exp_v0.xml"
     env = Armar6HitBallExpV0(low_ctrl=TaskSpaceImpedanceController, high_ctrl=TaskSpacePositionVMPController(vmp), env_path=env_path, isdraw=options.is_draw)
+elif options.exp_version == "v2":
+    env_path = env_dir + "hitball_exp_v2.xml"
+    env = Armar6HitBallExpV1(low_ctrl=TaskSpaceVelocityController, high_ctrl=TaskSpacePositionVMPController(vmp), env_path=env_path, isdraw=options.is_draw)
+
+
 
 success_rate = 0
 num_exp = np.shape(oqueries)[0]
@@ -67,7 +70,7 @@ for i in range(num_exp):
         print('final_ball_pos: {}'.format(final_ball_pos[1]))
         is_error = True
 
-    if not is_error and np.linalg.norm(query - final_ball_pos[:2]) < 0.05:
+    if not is_error and np.linalg.norm(query - final_ball_pos[:2]) < 0.08:
         success_rate = success_rate + 1
 
     if not is_error:

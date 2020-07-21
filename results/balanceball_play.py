@@ -18,7 +18,7 @@ parser.add_option("-w", "--weights_file", dest="weights_file",type="string",  de
 
 (options, args) = parser.parse_args(sys.argv)
 
-env_path = env_dir + "balanceball_exp.xml"
+env_path = env_dir + "balanceball_exp_v1.xml"
 qvmp = QVMP(kernel_num=10, elementary_type='minjerk')
 oqueries = np.loadtxt(options.query_file, delimiter=',')
 oweights = np.loadtxt(options.weights_file, delimiter=',')
