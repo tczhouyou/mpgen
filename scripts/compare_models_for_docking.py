@@ -86,6 +86,7 @@ mdnmp.is_normalized_grad = False
 max_epochs = 20000
 lrate = 0.00003
 sample_num = 10
+mdnmp.is_normalized_grad = False
 for expId in range(options.expnum):
     baseline = np.zeros(shape=(1,len(tsize)))
     omdn = np.zeros(shape=(1, len(tsize)))
@@ -103,7 +104,6 @@ for expId in range(options.expnum):
         mdnmp.lratio['entropy'] = 3
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=False
-        mdnmp.is_normalized_grad = True
         oelk[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=max_epochs,
                                                             sample_num=sample_num, learning_rate=lrate)
@@ -120,7 +120,6 @@ for expId in range(options.expnum):
         mdnmp.lratio['entropy'] = 3
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=True
-        mdnmp.is_normalized_grad=False
         omce[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=max_epochs,
                                                             sample_num=sample_num, learning_rate=lrate)
@@ -128,7 +127,6 @@ for expId in range(options.expnum):
         mdnmp.lratio['entropy'] = 3
         mdnmp.is_orthogonal_cost=False
         mdnmp.is_mce_only=True
-        mdnmp.is_normalized_grad=False
         mce[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=max_epochs,
                                                             sample_num=sample_num, learning_rate=lrate)

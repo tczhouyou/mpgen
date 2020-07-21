@@ -17,7 +17,7 @@ from mp.vmp import VMP
 from experiments.mujoco.armar6_controllers.armar6_low_controller import TaskSpaceVelocityController, TaskSpaceImpedanceController
 from experiments.mujoco.armar6_controllers.armar6_high_controller import TaskSpacePositionVMPController
 from optparse import OptionParser
-from experiments.mujoco.hitball.hitball_exp import evaluate_hitball, ENV_DIR, EXP_DIR, Armar6HitBallExpV0, Armar6HitBallExpV1
+from experiments.mujoco.hitball.hitball_exp import evaluate_hitball, ENV_DIR, EXP_DIR, Armar6HitBallExpV0, Armar6HitBallExpV1, evaluate_hitball_multiprocess
 
 _svr = SVR(gamma='scale', C=1.0, epsilon=0.1)
 svr = MultiDimSkRegressor(_svr)
@@ -49,6 +49,7 @@ def train_evaluate_baseline_for_hitball(model_name, trqueries, trvmps, tdata, sa
         wouts = np.random.uniform(low=trvmps.min(), high=trvmps.max(),
                                   size=(100, sample_num, np.shape(trvmps)[1]))
 
+    wouts = wouts/100
     if isvel:
         srate = evaluate_hitball(wouts, tqueries, tstarts, tgoals,
                                  low_ctrl=TaskSpaceVelocityController,

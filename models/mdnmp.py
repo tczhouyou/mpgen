@@ -60,12 +60,12 @@ class MDNMP(basicModel):
         if self.is_mce_only:
             ent_loss = mce
         else:
-            ent_loss = elk + mce
+            ent_loss = elk
 
         nll_cost = self.lratio['likelihood'] * nll + self.lratio['regularization'] * reg_loss
         ent_cost = self.lratio['entropy'] * ent_loss
         g_nll = tf.gradients(nll_cost, var_list)
-        g_mce = tf.gradients(ent_cost, var_list)
+        g_ent = tf.gradients(ent_cost, var_list)
 
         grads = []
         grad_diff = 0
@@ -73,16 +73,16 @@ class MDNMP(basicModel):
         grad_norm_mce = 0
         for i in range(len(g_nll)):
             shape = g_nll[i].get_shape().as_list()
-            if g_mce[i] is not None and self.lratio['entropy'] != 0:
+            if g_ent[i] is not None and self.lratio['entropy'] != 0:
                 cg_nll = tf.reshape(g_nll[i], [-1])
-                cg_mce = tf.reshape(g_mce[i], [-1])
+                cg_ent = tf.reshape(g_ent[i], [-1])
                 if self.is_orthogonal_cost:
-                    sca = tf.reduce_sum(tf.multiply(cg_nll, cg_mce)) / (tf.norm(cg_nll) + 1e-20)
+                    sca = tf.reduce_sum(tf.multiply(cg_nll, cg_ent)) / (tf.norm(cg_nll) + 1e-20)
                 else:
                     sca = 0
 
-                cgm = cg_mce - sca * cg_nll / (tf.norm(cg_nll) + 1e-20)
-                cgrads = cg_nll + cgm
+                cgm = cg_ent - sca * cg_nll / (tf.norm(cg_nll) + 1e-20)
+                cgrads = cg_nll + 100 * cgm
 
                 if self.is_normalized_grad:
                     cgrads = cgrads / (tf.norm(cgrads) + 1e-20)
@@ -173,6 +173,7 @@ class MDNMP(basicModel):
     def predict(self, cinput, n_samples=1):
         mean, scale, mc = self.sess.run([self.outputs['mean'], self.outputs['scale'], self.outputs['mc']],
                                         feed_dict={self.input: cinput})
+
 
         n_data = np.shape(cinput)[0]
 

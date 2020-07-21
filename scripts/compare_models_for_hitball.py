@@ -26,7 +26,7 @@ if tf.__version__ < '2.0.0':
     VAR_INIT_DIS = tflearn.initializations.normal(stddev=0.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    VAR_INIT = initializers.RandomUniform(minval=-0.0003, maxval=0.0003, seed=42)
+    VAR_INIT = initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=42)
     VAR_INIT_DIS = initializers.RandomNormal(stddev=0.002, seed=42)
 
 parser = OptionParser()
@@ -53,16 +53,16 @@ starts = np.loadtxt(data_dir + '/hitball_starts.csv', delimiter=',')
 goals = np.loadtxt(data_dir + '/hitball_goals.csv', delimiter=',')
 data = np.concatenate([queries, starts, goals], axis=1)
 
-vmps = vmps * 10
+
 rstates = np.random.randint(0, 100, size=options.expnum)
 d_input = np.shape(queries)[-1]
 d_output = np.shape(vmps)[1]
 
 mdnmp_struct = {'d_feat': 20,
                 'feat_layers': [40],
-                'mean_layers': [60],
-                'scale_layers': [60],
-                'mixing_layers': [20]}
+                'mean_layers': [80],
+                'scale_layers': [80],
+                'mixing_layers': [40]}
 mdnmp = MDNMP(n_comps=options.nmodel, d_input=d_input, d_output=d_output, nn_structure=mdnmp_struct, scaling=1.0,
               var_init=VAR_INIT)
 
@@ -87,10 +87,12 @@ result_dir = options.result_dir
 if not os.path.exists(result_dir):
     os.makedirs(result_dir)
 
+
+vmps = vmps * 100
 mdnmp.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0.00001, 'failure': 0, 'eub': 0}
-max_epochs = 30000
+max_epochs = 20000
 sample_num = 10
-lrate = 0.00001
+lrate = 0.00003
 mdnmp.is_normalized_grad = False
 for expId in range(options.expnum):
     baseline = np.zeros(shape=(1,len(tsize)))
@@ -106,25 +108,22 @@ for expId in range(options.expnum):
         trqueries = trdata[:, 0:2]
 
         print(">>>> train elk")
-        mdnmp.lratio['entropy'] = 10
+        mdnmp.lratio['entropy'] = 3
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=False
-        mdnmp.is_normalized_grad = True
         oelk[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
                                                             sample_num=sample_num, isvel=True, env_file=env_file,
                                                             isdraw=options.isdraw, num_test=options.ntest,
                                                             learning_rate=lrate, EXP=Armar6HitBallExpV1)
 
         print(">>>> train orthogonal mce")
-        mdnmp.lratio['entropy'] =  10
+        mdnmp.lratio['entropy'] =3
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=True
-        mdnmp.is_normalized_grad=True
         omce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
                                                             sample_num=sample_num, isvel=True, env_file=env_file,
                                                             isdraw=options.isdraw, num_test=options.ntest,
                                                             learning_rate=lrate, EXP=Armar6HitBallExpV1)
-
 
 
         print(">>>> train original MDN")
@@ -136,7 +135,7 @@ for expId in range(options.expnum):
 
 
         print(">>>> train  mce")
-        mdnmp.lratio['entropy'] = 10
+        mdnmp.lratio['entropy'] = 3
         mdnmp.is_orthogonal_cost=False
         mdnmp.is_mce_only=True
         mdnmp.is_normalized_grad=False
