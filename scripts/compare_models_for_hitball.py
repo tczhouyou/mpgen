@@ -26,7 +26,7 @@ if tf.__version__ < '2.0.0':
     VAR_INIT_DIS = tflearn.initializations.normal(stddev=0.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    VAR_INIT = initializers.RandomUniform(minval=-0.00003, maxval=0.00003, seed=42)
+    VAR_INIT = initializers.RandomUniform(minval=-0.0003, maxval=0.0003, seed=42)
     VAR_INIT_DIS = initializers.RandomNormal(stddev=0.002, seed=42)
 
 parser = OptionParser()
@@ -35,15 +35,25 @@ parser.add_option("-n", "--num_exp", dest="expnum", type="int", default=1)
 parser.add_option("--num_test", dest="ntest", type="int", default=100)
 parser.add_option("-d", "--result_dir", dest="result_dir", type="string", default="results_compare_hitball")
 parser.add_option("--draw", dest="isdraw", action="store_true", default=False)
+parser.add_option("-v", dest="version", type="string", default="v2")
 (options, args) = parser.parse_args(sys.argv)
 
-data_dir = '../experiments/mujoco/hitball/hitball_mpdata_v2'
+
+
+if options.version == "v2":
+    data_dir = '../experiments/mujoco/hitball/hitball_mpdata_v2'
+    env_file = 'hitball_exp_v2.xml'
+elif options.version == "v1":
+    data_dir = '../experiments/mujoco/hitball/hitball_mpdata_v1'
+    env_file = 'hitball_exp_v1.xml'
+
 queries = np.loadtxt(data_dir + '/hitball_queries.csv', delimiter=',')
 vmps = np.loadtxt(data_dir + '/hitball_weights.csv', delimiter=',')
 starts = np.loadtxt(data_dir + '/hitball_starts.csv', delimiter=',')
 goals = np.loadtxt(data_dir + '/hitball_goals.csv', delimiter=',')
 data = np.concatenate([queries, starts, goals], axis=1)
 
+vmps = vmps * 10
 rstates = np.random.randint(0, 100, size=options.expnum)
 d_input = np.shape(queries)[-1]
 d_output = np.shape(vmps)[1]
@@ -78,9 +88,9 @@ if not os.path.exists(result_dir):
     os.makedirs(result_dir)
 
 mdnmp.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0.00001, 'failure': 0, 'eub': 0}
-max_epochs = 10000
+max_epochs = 30000
 sample_num = 10
-lrate = 0.0001
+lrate = 0.00001
 mdnmp.is_normalized_grad = False
 for expId in range(options.expnum):
     baseline = np.zeros(shape=(1,len(tsize)))
@@ -99,8 +109,9 @@ for expId in range(options.expnum):
         mdnmp.lratio['entropy'] = 10
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=False
+        mdnmp.is_normalized_grad = True
         oelk[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
-                                                            sample_num=sample_num, isvel=True, env_file="hitball_exp_v2.xml",
+                                                            sample_num=sample_num, isvel=True, env_file=env_file,
                                                             isdraw=options.isdraw, num_test=options.ntest,
                                                             learning_rate=lrate, EXP=Armar6HitBallExpV1)
 
@@ -108,8 +119,9 @@ for expId in range(options.expnum):
         mdnmp.lratio['entropy'] =  10
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=True
+        mdnmp.is_normalized_grad=True
         omce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
-                                                            sample_num=sample_num, isvel=True, env_file="hitball_exp_v2.xml",
+                                                            sample_num=sample_num, isvel=True, env_file=env_file,
                                                             isdraw=options.isdraw, num_test=options.ntest,
                                                             learning_rate=lrate, EXP=Armar6HitBallExpV1)
 
@@ -118,7 +130,7 @@ for expId in range(options.expnum):
         print(">>>> train original MDN")
         mdnmp.lratio['entropy'] = 0
         omdn[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, max_epochs=max_epochs,
-                                                            sample_num=sample_num, isvel=True, env_file="hitball_exp_v2.xml",
+                                                            sample_num=sample_num, isvel=True, env_file=env_file,
                                                             isdraw=options.isdraw, num_test=options.ntest, learning_rate=lrate,
                                                             EXP=Armar6HitBallExpV1)
 
@@ -129,13 +141,13 @@ for expId in range(options.expnum):
         mdnmp.is_mce_only=True
         mdnmp.is_normalized_grad=False
         mce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
-                                                            sample_num=sample_num, isvel=True, env_file="hitball_exp_v2.xml",
+                                                            sample_num=sample_num, isvel=True, env_file=env_file,
                                                             isdraw=options.isdraw, num_test=options.ntest,
                                                             learning_rate=lrate, EXP=Armar6HitBallExpV1)
 
         print(">>>> train baselines")
         baseline[0, i] = train_evaluate_baseline_for_hitball("GPR", trqueries, trvmps, tdata,  sample_num=sample_num,
-                                                                 isvel = True, env_file = "hitball_exp_v2.xml",
+                                                                 isvel = True, env_file = env_file,
                                                                  isdraw = options.isdraw, num_test = options.ntest)
 
 

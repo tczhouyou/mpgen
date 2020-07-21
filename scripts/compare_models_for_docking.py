@@ -84,7 +84,7 @@ if not os.path.exists(result_dir):
 mdnmp.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0.00001, 'failure': 0, 'eub': 0}
 mdnmp.is_normalized_grad = False
 max_epochs = 20000
-lrate = 0.0001
+lrate = 0.00003
 sample_num = 10
 for expId in range(options.expnum):
     baseline = np.zeros(shape=(1,len(tsize)))

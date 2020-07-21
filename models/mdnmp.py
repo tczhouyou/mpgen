@@ -60,7 +60,7 @@ class MDNMP(basicModel):
         if self.is_mce_only:
             ent_loss = mce
         else:
-            ent_loss = elk
+            ent_loss = elk + mce
 
         nll_cost = self.lratio['likelihood'] * nll + self.lratio['regularization'] * reg_loss
         ent_cost = self.lratio['entropy'] * ent_loss
