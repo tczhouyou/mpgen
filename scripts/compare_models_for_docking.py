@@ -82,7 +82,10 @@ if not os.path.exists(result_dir):
     os.makedirs(result_dir)
 
 mdnmp.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0.00001, 'failure': 0, 'eub': 0}
-
+mdnmp.is_normalized_grad = False
+max_epochs = 20000
+lrate = 0.0001
+sample_num = 10
 for expId in range(options.expnum):
     baseline = np.zeros(shape=(1,len(tsize)))
     omdn = np.zeros(shape=(1, len(tsize)))
@@ -97,35 +100,38 @@ for expId in range(options.expnum):
 
         trqueries = trdata[:, 0:6]
         print(">>>> train elk MDN")
-        mdnmp.lratio['entropy'] = 1
+        mdnmp.lratio['entropy'] = 3
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=False
+        mdnmp.is_normalized_grad = True
         oelk[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
-                                                            max_epochs=30000,
-                                                            sample_num=10, learning_rate=0.00003)
+                                                            max_epochs=max_epochs,
+                                                            sample_num=sample_num, learning_rate=lrate)
 
 
         print(">>>> train ori MDN")
         mdnmp.lratio['entropy'] = 0
         omdn[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
-                                                            max_epochs=30000,
-                                                            sample_num=10, learning_rate=0.00003)
+                                                            max_epochs=max_epochs,
+                                                            sample_num=sample_num, learning_rate=lrate)
 
 
         print(">>>> train orthognal mce MDN")
         mdnmp.lratio['entropy'] = 3
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=True
+        mdnmp.is_normalized_grad=False
         omce[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
-                                                            max_epochs=30000,
-                                                            sample_num=10, learning_rate=0.00003)
+                                                            max_epochs=max_epochs,
+                                                            sample_num=sample_num, learning_rate=lrate)
         print(">>>> train mce MDN")
         mdnmp.lratio['entropy'] = 3
         mdnmp.is_orthogonal_cost=False
         mdnmp.is_mce_only=True
+        mdnmp.is_normalized_grad=False
         mce[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
-                                                            max_epochs=30000,
-                                                            sample_num=10, learning_rate=0.00003)
+                                                            max_epochs=max_epochs,
+                                                            sample_num=sample_num, learning_rate=lrate)
 
 
         print(">>>> train baselines")

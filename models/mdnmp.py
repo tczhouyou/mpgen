@@ -29,6 +29,7 @@ class MDNMP(basicModel):
         self.var_init = var_init
         self.is_orthogonal_cost = False
         self.is_mce_only = True
+        self.is_normalized_grad = False
 
     def create_network(self, scope='mdnmp', nn_type='v1'):
         tf.compat.v1.reset_default_graph()
@@ -76,13 +77,15 @@ class MDNMP(basicModel):
                 cg_nll = tf.reshape(g_nll[i], [-1])
                 cg_mce = tf.reshape(g_mce[i], [-1])
                 if self.is_orthogonal_cost:
-                    sca = tf.reduce_sum(tf.multiply(cg_nll, cg_mce)) / (tf.norm(cg_nll) + 1e-10)
+                    sca = tf.reduce_sum(tf.multiply(cg_nll, cg_mce)) / (tf.norm(cg_nll) + 1e-20)
                 else:
                     sca = 0
 
-                cgm = cg_mce - sca * cg_nll / (tf.norm(cg_nll) + 1e-10)
+                cgm = cg_mce - sca * cg_nll / (tf.norm(cg_nll) + 1e-20)
                 cgrads = cg_nll + cgm
-                #cgrads = cgrads / (tf.norm(cgrads) + 1e-10)
+
+                if self.is_normalized_grad:
+                    cgrads = cgrads / (tf.norm(cgrads) + 1e-20)
 
                 grad_diff = grad_diff + tf.reduce_sum(tf.multiply(cg_nll, cgrads))
                 grad_norm_nll = grad_norm_nll + tf.reduce_sum(tf.math.square(cg_nll))
@@ -91,10 +94,13 @@ class MDNMP(basicModel):
                 grad = tf.reshape(cgrads, shape)
                 grads.append(grad)
             else:
-               # cg_nll = tf.reshape(g_nll[i], [-1])
-               # cg_nll = cg_nll / (tf.norm(cg_nll) + 1e-10)
-               # gnll = tf.reshape(cg_nll, shape)
-                grads.append(g_nll[i])
+                if self.is_normalized_grad:
+                    cg_nll = tf.reshape(g_nll[i], [-1])
+                    cg_nll = cg_nll / (tf.norm(cg_nll) + 1e-20)
+                    gnll = tf.reshape(cg_nll, shape)
+                    grads.append(gnll)
+                else:
+                    grads.append(g_nll[i])
 
 
         if grad_norm_mce != 0:
@@ -102,7 +108,7 @@ class MDNMP(basicModel):
         else:
             grad_diff = 0
 
-        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=0.9)
         self.opt_all = optimizer.apply_gradients(zip(grads, var_list))
         self.saver = tf.compat.v1.train.Saver()
 
@@ -148,6 +154,7 @@ class MDNMP(basicModel):
                 dgrad = 0
 
             #mean, scale, mc = self.sess.run([self.outputs['mean'], self.outputs['scale'], self.outputs['mc']], feed_dict=feed_dict)
+            #print(scale)
             if np.isnan(nll) or np.isinf(nll):
                 print('\n failed trained')
                 isSuccess = False
