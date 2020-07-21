@@ -82,7 +82,8 @@ class MDNMP(basicModel):
                     sca = 0
 
                 cgm = cg_ent - sca * cg_nll / (tf.norm(cg_nll) + 1e-20)
-                cgrads = cg_nll + 100 * cgm
+
+                cgrads = cg_nll + 10 * cgm #tf.math.minimum(tf.math.maximum((100-nll), 1), 100) * cgm
 
                 if self.is_normalized_grad:
                     cgrads = cgrads / (tf.norm(cgrads) + 1e-20)

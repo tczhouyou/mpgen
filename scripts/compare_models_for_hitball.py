@@ -26,7 +26,7 @@ if tf.__version__ < '2.0.0':
     VAR_INIT_DIS = tflearn.initializations.normal(stddev=0.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    VAR_INIT = initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=42)
+    VAR_INIT = initializers.RandomUniform(minval=-0.003, maxval=0.003, seed=42)
     VAR_INIT_DIS = initializers.RandomNormal(stddev=0.002, seed=42)
 
 parser = OptionParser()
@@ -88,7 +88,6 @@ if not os.path.exists(result_dir):
     os.makedirs(result_dir)
 
 
-vmps = vmps * 100
 mdnmp.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0.00001, 'failure': 0, 'eub': 0}
 max_epochs = 20000
 sample_num = 10
@@ -108,7 +107,7 @@ for expId in range(options.expnum):
         trqueries = trdata[:, 0:2]
 
         print(">>>> train elk")
-        mdnmp.lratio['entropy'] = 3
+        mdnmp.lratio['entropy'] = 10
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=False
         oelk[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
@@ -117,7 +116,7 @@ for expId in range(options.expnum):
                                                             learning_rate=lrate, EXP=Armar6HitBallExpV1)
 
         print(">>>> train orthogonal mce")
-        mdnmp.lratio['entropy'] =3
+        mdnmp.lratio['entropy'] = 10
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=True
         omce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
@@ -135,7 +134,7 @@ for expId in range(options.expnum):
 
 
         print(">>>> train  mce")
-        mdnmp.lratio['entropy'] = 3
+        mdnmp.lratio['entropy'] = 10
         mdnmp.is_orthogonal_cost=False
         mdnmp.is_mce_only=True
         mdnmp.is_normalized_grad=False
