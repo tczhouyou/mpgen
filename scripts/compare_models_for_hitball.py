@@ -17,7 +17,7 @@ from run_gmgan_for_hitball import train_evaluate_gmgan_for_hitball
 from run_baselines_for_hitball import train_evaluate_baseline_for_hitball
 import tensorflow as tf
 from experiments.mujoco.hitball.hitball_exp import Armar6HitBallExpV1
-
+from experiments.exp_tools import get_training_data_from_2d_grid
 
 
 if tf.__version__ < '2.0.0':
@@ -36,6 +36,9 @@ parser.add_option("--num_test", dest="ntest", type="int", default=100)
 parser.add_option("-d", "--result_dir", dest="result_dir", type="string", default="results_compare_hitball")
 parser.add_option("--draw", dest="isdraw", action="store_true", default=False)
 parser.add_option("-v", dest="version", type="string", default="v2")
+parser.add_option("--grid_samples", dest="is_grid_samples", action="store_true", default=False)
+parser.add_option("--num_train", dest="ntrain", type="int", default=10)
+
 (options, args) = parser.parse_args(sys.argv)
 
 
@@ -53,6 +56,11 @@ starts = np.loadtxt(data_dir + '/hitball_starts.csv', delimiter=',')
 goals = np.loadtxt(data_dir + '/hitball_goals.csv', delimiter=',')
 data = np.concatenate([queries, starts, goals], axis=1)
 
+
+if options.is_grid_samples:
+    _, ids = get_training_data_from_2d_grid(options.ntrain, queries=queries)
+    trdata = data[ids,:]
+    trvmps = vmps[ids,:]
 
 rstates = np.random.randint(0, 100, size=options.expnum)
 d_input = np.shape(queries)[-1]
@@ -101,10 +109,15 @@ for expId in range(options.expnum):
 
     for i in range(len(tsize)):
         tratio = tsize[i]
-        trdata, tdata, trvmps, tvmps = train_test_split(data, vmps, test_size=tratio, random_state=rstates[expId])
-        print("======== exp: %1d for training dataset: %1d =======" % (expId, np.shape(trdata)[0]))
-        trqueries = trdata[:, 0:2]
 
+        if options.is_grid_samples:
+            _, tdata, _, tvmps = train_test_split(data, vmps, test_size=tratio, random_state=rstates[expId])
+            print("======== exp: %1d with grided training data =======" % (expId))
+        else:
+            trdata, tdata, trvmps, tvmps = train_test_split(data, vmps, test_size=tratio, random_state=rstates[expId])
+            print("======== exp: %1d for training dataset: %1d =======" % (expId, np.shape(trdata)[0]))
+
+        trqueries = trdata[:, 0:2]
         print(">>>> train  mce")
         mdnmp.lratio['entropy'] = 10
         mdnmp.is_orthogonal_cost=False
