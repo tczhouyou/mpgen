@@ -83,7 +83,7 @@ class MDNMP(basicModel):
 
                 cgm = cg_ent - sca * cg_nll / (tf.norm(cg_nll) + 1e-20)
 
-                cgrads = cg_nll + 10 * cgm #tf.math.minimum(tf.math.maximum((100-nll), 1), 100) * cgm
+                cgrads = cg_nll + cgm #tf.math.minimum(tf.math.maximum((100-nll), 1), 100) * cgm
 
                 if self.is_normalized_grad:
                     cgrads = cgrads / (tf.norm(cgrads) + 1e-20)
@@ -109,7 +109,7 @@ class MDNMP(basicModel):
         else:
             grad_diff = 0
 
-        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=0.9)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=0.5)
         self.opt_all = optimizer.apply_gradients(zip(grads, var_list))
         self.saver = tf.compat.v1.train.Saver()
 

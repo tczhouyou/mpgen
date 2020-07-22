@@ -47,16 +47,18 @@ def train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,  max_epoch
         goals = tdata[:num_test, 4:6]
         wout, _  = mdnmp.predict(tqueries, sample_num)
 
+        #wout = wout / 100
+
         if isvel:
             srate = evaluate_hitball(wout, tqueries, starts, goals,
                                  low_ctrl=TaskSpaceVelocityController,
                                  high_ctrl=TaskSpacePositionVMPController(mp),
-                                 env_path=ENV_DIR+env_file,  EXP=EXP)
+                                 env_path=ENV_DIR+env_file,  EXP=EXP, isdraw=isdraw)
         else:
             srate = evaluate_hitball(wout, tqueries, starts, goals,
                                  low_ctrl=TaskSpaceImpedanceController,
                                  high_ctrl=TaskSpacePositionVMPController(mp),
-                                 env_path=ENV_DIR+env_file, EXP=EXP)
+                                 env_path=ENV_DIR+env_file, EXP=EXP, isdraw=isdraw)
 
     return srate
 
