@@ -60,8 +60,8 @@ d_output = np.shape(vmps)[1]
 
 mdnmp_struct = {'d_feat': 20,
                 'feat_layers': [40],
-                'mean_layers': [80],
-                'scale_layers': [80],
+                'mean_layers': [60,60,60],
+                'scale_layers': [60,60,60],
                 'mixing_layers': [20]}
 mdnmp = MDNMP(n_comps=options.nmodel, d_input=d_input, d_output=d_output, nn_structure=mdnmp_struct, scaling=1.0,
               var_init=VAR_INIT)
@@ -87,10 +87,12 @@ result_dir = options.result_dir
 if not os.path.exists(result_dir):
     os.makedirs(result_dir)
 
-mdnmp.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0.00001, 'failure': 0, 'eub': 0}
-max_epochs = 10000
+
+vmps = vmps * 100
+mdnmp.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0, 'failure': 0, 'eub': 0}
+max_epochs = 30000
 sample_num = 10
-lrate = 0.00003
+lrate = 0.00001
 mdnmp.is_normalized_grad = False
 for expId in range(options.expnum):
     baseline = np.zeros(shape=(1,len(tsize)))
@@ -105,30 +107,23 @@ for expId in range(options.expnum):
         print("======== exp: %1d for training dataset: %1d =======" % (expId, np.shape(trdata)[0]))
         trqueries = trdata[:, 0:2]
 
-        print(">>>> train  mce")
-        mdnmp.lratio['entropy'] = 10
-        mdnmp.is_orthogonal_cost=False
-        mdnmp.is_mce_only=True
-        mdnmp.is_normalized_grad=True
-        mce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
-                                                            sample_num=sample_num, isvel=True, env_file=env_file,
-                                                            isdraw=options.isdraw, num_test=options.ntest,
-                                                            learning_rate=lrate, EXP=Armar6HitBallExpV1)
 
         print(">>>> train elk")
         mdnmp.lratio['entropy'] = 10
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=False
+        mdnmp.is_normalized_grad=True
         oelk[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
                                                             sample_num=sample_num, isvel=True, env_file=env_file,
                                                             isdraw=options.isdraw, num_test=options.ntest,
                                                             learning_rate=lrate, EXP=Armar6HitBallExpV1)
 
-        print(">>>> train orthogonal mce")
+        print(">>>> train  mce")
         mdnmp.lratio['entropy'] = 10
-        mdnmp.is_orthogonal_cost=True
+        mdnmp.is_orthogonal_cost=False
         mdnmp.is_mce_only=True
-        omce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
+        mdnmp.is_normalized_grad=False
+        mce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
                                                             sample_num=sample_num, isvel=True, env_file=env_file,
                                                             isdraw=options.isdraw, num_test=options.ntest,
                                                             learning_rate=lrate, EXP=Armar6HitBallExpV1)
@@ -141,11 +136,22 @@ for expId in range(options.expnum):
                                                             isdraw=options.isdraw, num_test=options.ntest, learning_rate=lrate,
                                                             EXP=Armar6HitBallExpV1)
 
+        print(">>>> train orthogonal mce")
+        mdnmp.lratio['entropy'] = 10
+        mdnmp.is_orthogonal_cost=True
+        mdnmp.is_mce_only=True
+        mdnmp.is_normalized_grad=True
+        omce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
+                                                            sample_num=sample_num, isvel=True, env_file=env_file,
+                                                            isdraw=options.isdraw, num_test=options.ntest,
+                                                            learning_rate=lrate, EXP=Armar6HitBallExpV1)
 
         print(">>>> train baselines")
         baseline[0, i] = train_evaluate_baseline_for_hitball("GPR", trqueries, trvmps, tdata,  sample_num=sample_num,
                                                                  isvel = True, env_file = env_file,
                                                                  isdraw = options.isdraw, num_test = options.ntest)
+
+
 
 
 
