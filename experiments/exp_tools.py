@@ -30,10 +30,12 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     queries = np.loadtxt('mujoco/hitball/hitball_mpdata_v2/hitball_queries.csv', delimiter=',')
     weights = np.loadtxt('mujoco/hitball/hitball_mpdata_v2/hitball_weights.csv', delimiter=',')
-    trqueries, ids = get_training_data_from_2d_grid(7, queries)
+    _, ids = get_training_data_from_2d_grid(7, queries)
+    trqueries = queries[ids,:]
+    trweights = weights[ids,:]
     plt.plot(queries[:,0], queries[:,1], 'ro')
     for i in range(np.shape(trqueries)[0]):
-        if np.min(weights[i,0]) < 0:
+        if np.min(trweights[i,0]) < 0:
             plt.plot(trqueries[i,0], trqueries[i,1], 'bo')
         else:
             plt.plot(trqueries[i,0], trqueries[i,1], 'go')
