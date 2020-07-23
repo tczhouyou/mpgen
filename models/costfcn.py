@@ -25,7 +25,7 @@ def gmm_elk_cost(vec_mus, vec_scales, mixing_coeffs, sample_valid, eps=1e-30):
     for i in range(n_comps):
         elk = 0
         for j in range(n_comps):
-            p_j = tfd.MultivariateNormalDiag(loc=mus[j], scale_diag= scales[i] + scales[j]) # 0 * scales[i] + 1.0) #scales[j]+scales[i])
+            p_j = tfd.MultivariateNormalDiag(loc=mus[j], scale_diag=0 * scales[i] + 0.1) #scales[i] + scales[j] + 1e-5) # 0 * scales[i] + 1.0) #scales[j]+scales[i])
             prob = p_j.prob(mus[i])
             prob = tf.clip_by_value(prob, 0, 10)
             elk = elk + tf.multiply(mixing_coeffs[:,j], prob)
