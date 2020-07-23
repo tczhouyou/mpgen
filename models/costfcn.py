@@ -16,6 +16,23 @@ def gmm_nll_cost(samples, vec_mus, vec_scales, mixing_coeffs, sample_valid):
     return loss
 
 
+def gmm_mean_cost(vec_mus, vec_scales, mixing_coeffs, sample_valid, eps=1e-30):
+    n_comps = mixing_coeffs.get_shape().as_list()[1]
+    mus = tf.split(vec_mus, num_or_size_splits=n_comps, axis=1)
+    scales = tf.split(vec_scales, num_or_size_splits=n_comps, axis=1)
+
+    tdist = 0
+    for i in range(n_comps):
+        dist = 0
+        for j in range(n_comps):
+            dist = dist + tf.math.square(mus[i]-mus[j])
+
+        tdist = tdist + tf.reduce_sum(dist, axis=1)
+
+    loss = tf.negative(tf.reduce_mean(tdist))
+    return loss
+
+
 def gmm_elk_cost(vec_mus, vec_scales, mixing_coeffs, sample_valid, eps=1e-30):
     n_comps = mixing_coeffs.get_shape().as_list()[1]
     mus = tf.split(vec_mus, num_or_size_splits=n_comps, axis=1)

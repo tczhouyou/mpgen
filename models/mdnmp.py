@@ -30,6 +30,9 @@ class MDNMP(basicModel):
         self.is_orthogonal_cost = False
         self.is_mce_only = True
         self.is_normalized_grad = False
+        self.nll_lrate = 1e-3
+        self.ent_lrate = 1e-3
+        self.cross_train = False
 
     def create_network(self, scope='mdnmp', nn_type='v1'):
         tf.compat.v1.reset_default_graph()
@@ -56,7 +59,6 @@ class MDNMP(basicModel):
         mce = gmm_mce_cost(mc, self.is_positive)
         elk = gmm_elk_cost(mean, scale, mc, self.is_positive)
         floss = failure_cost(self.target, mean, mc, 1-self.is_positive, neg_scale=0.1)
-
         if self.is_mce_only:
             ent_loss = mce
         else:
@@ -68,12 +70,16 @@ class MDNMP(basicModel):
         g_ent = tf.gradients(ent_cost, var_list)
 
         grads = []
+        grads_ent = []
+        grads_nll = []
         grad_diff = 0
         grad_norm_nll = 0
         grad_norm_mce = 0
+        ent_var_list = []
         for i in range(len(g_nll)):
             shape = g_nll[i].get_shape().as_list()
             if g_ent[i] is not None and self.lratio['entropy'] != 0:
+                ent_var_list.append(var_list[i])
                 cg_nll = tf.reshape(g_nll[i], [-1])
                 cg_ent = tf.reshape(g_ent[i], [-1])
                 if self.is_orthogonal_cost:
@@ -81,12 +87,14 @@ class MDNMP(basicModel):
                 else:
                     sca = 0
 
-                cgm = cg_ent - sca * cg_nll / (tf.norm(cg_nll) + 1e-20)
+                grad_ent_orth = cg_ent - sca * cg_nll / (tf.norm(cg_nll) + 1e-20)
+                grad_nll_orth = cg_nll
 
-                cgrads = cg_nll + cgm #tf.math.minimum(tf.math.maximum((100-nll), 1), 100) * cgm
-
+                cgrads = cg_nll + grad_ent_orth
                 if self.is_normalized_grad:
                     cgrads = cgrads / (tf.norm(cgrads) + 1e-20)
+                    grad_ent_orth = grad_ent_orth / (tf.norm(grad_ent_orth) + 1e-20)
+                    grad_nll_orth = grad_nll_orth / (tf.norm(grad_nll_orth) + 1e-20)
 
                 grad_diff = grad_diff + tf.reduce_sum(tf.multiply(cg_nll, cgrads))
                 grad_norm_nll = grad_norm_nll + tf.reduce_sum(tf.math.square(cg_nll))
@@ -94,15 +102,20 @@ class MDNMP(basicModel):
 
                 grad = tf.reshape(cgrads, shape)
                 grads.append(grad)
+
+                grads_ent.append(tf.reshape(grad_ent_orth,shape))
+                grads_nll.append(tf.reshape(grad_nll_orth,shape))
+
             else:
                 if self.is_normalized_grad:
                     cg_nll = tf.reshape(g_nll[i], [-1])
                     cg_nll = cg_nll / (tf.norm(cg_nll) + 1e-20)
                     gnll = tf.reshape(cg_nll, shape)
-                    grads.append(gnll)
                 else:
-                    grads.append(g_nll[i])
+                    gnll = g_nll[i]
 
+                grads.append(gnll)
+                grads_nll.append(gnll)
 
         if grad_norm_mce != 0:
             grad_diff = tf.divide(grad_diff, tf.multiply(tf.math.sqrt(grad_norm_nll), tf.math.sqrt(grad_norm_mce)))
@@ -110,7 +123,13 @@ class MDNMP(basicModel):
             grad_diff = 0
 
         optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=0.9)
+
+        nll_optimizer = tf.keras.optimizers.Adam(learning_rate=self.nll_lrate)
+        ent_optimizer = tf.keras.optimizers.Adam(learning_rate=self.ent_lrate)
+
         self.opt_all = optimizer.apply_gradients(zip(grads, var_list))
+        self.opt_nll = nll_optimizer.apply_gradients(zip(grads_nll, var_list))
+        self.opt_ent = ent_optimizer.apply_gradients(zip(grads_ent, ent_var_list))
         self.saver = tf.compat.v1.train.Saver()
 
         self.loss_dict = {'nll': nll, 'mce': mce, 'elk': elk, 'floss': floss, 'dgrad': grad_diff}
@@ -161,14 +180,19 @@ class MDNMP(basicModel):
                 isSuccess = False
                 break
 
-            self.sess.run(self.opt_all, feed_dict=feed_dict)
+            if self.cross_train and self.lratio['entropy'] != 0:
+                self.sess.run(self.opt_nll, feed_dict=feed_dict)
+                self.sess.run(self.opt_ent, feed_dict=feed_dict)
+            else:
+                self.sess.run(self.opt_all, feed_dict=feed_dict)
+
             if i != 0 and i % 1000 == 0 and is_save:
                 self.save(self.sess, self.saver, checkpoint_dir, model_dir, model_name)
                 self.global_step = self.global_step + 1
 
             print("epoch: %1d, nll: %.3f, mce: %.3f, elk: %.3f, dgrad: %.3f" % (i, nll, mce, elk,  dgrad), end='\r', flush=True)
 
-        print("Training Result: %1d, nll: %.3f, mce: %.3f, elk: %.3f" % (i, nll, mce, elk), end='\n')
+        print("Training Result: %1d, nll: %.3f, mce: %.3f, elk: %.3f, dgrad: %.3f" % (i, nll, mce, elk,  dgrad), end='\n')
         return isSuccess
 
     def predict(self, cinput, n_samples=1):
