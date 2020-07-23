@@ -30,8 +30,8 @@ class MDNMP(basicModel):
         self.is_orthogonal_cost = False
         self.is_mce_only = True
         self.is_normalized_grad = False
-        self.nll_lrate = 1e-3
-        self.ent_lrate = 1e-3
+        self.nll_lrate = 1e-4
+        self.ent_lrate = 1e-4
         self.cross_train = False
 
     def create_network(self, scope='mdnmp', nn_type='v1'):
@@ -122,12 +122,14 @@ class MDNMP(basicModel):
         else:
             grad_diff = 0
 
-        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=0.9)
 
+        self.cent_lrate = tf.keras.optimizers.schedules.ExponentialDecay(self.ent_lrate, 1000, 0.8, staircase=True)
+
+        all_optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=0.9)
         nll_optimizer = tf.keras.optimizers.Adam(learning_rate=self.nll_lrate)
-        ent_optimizer = tf.keras.optimizers.Adam(learning_rate=self.ent_lrate)
+        ent_optimizer = tf.keras.optimizers.Adam(learning_rate=self.cent_lrate)
 
-        self.opt_all = optimizer.apply_gradients(zip(grads, var_list))
+        self.opt_all = all_optimizer.apply_gradients(zip(grads, var_list))
         self.opt_nll = nll_optimizer.apply_gradients(zip(grads_nll, var_list))
         self.opt_ent = ent_optimizer.apply_gradients(zip(grads_ent, ent_var_list))
         self.saver = tf.compat.v1.train.Saver()
@@ -186,13 +188,14 @@ class MDNMP(basicModel):
             else:
                 self.sess.run(self.opt_all, feed_dict=feed_dict)
 
+
             if i != 0 and i % 1000 == 0 and is_save:
                 self.save(self.sess, self.saver, checkpoint_dir, model_dir, model_name)
                 self.global_step = self.global_step + 1
 
             print("epoch: %1d, nll: %.3f, mce: %.3f, elk: %.3f, dgrad: %.3f" % (i, nll, mce, elk,  dgrad), end='\r', flush=True)
 
-        print("Training Result: %1d, nll: %.3f, mce: %.3f, elk: %.3f, dgrad: %.3f" % (i, nll, mce, elk,  dgrad), end='\n')
+        print("epoch: %1d, nll: %.3f, mce: %.3f, elk: %.3f, dgrad: %.3f" % (i, nll, mce, elk,  dgrad), end='\n')
         return isSuccess
 
     def predict(self, cinput, n_samples=1):

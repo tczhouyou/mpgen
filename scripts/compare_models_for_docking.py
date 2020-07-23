@@ -25,8 +25,7 @@ if tf.__version__ < '2.0.0':
     VAR_INIT_DIS = tflearn.initializations.normal(stddev=0.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    VAR_INIT = initializers.RandomUniform(minval=-0.003, maxval=0.003, seed=42)
-    #VAR_INIT = initializers.he_normal(seed=42)
+    VAR_INIT = initializers.RandomUniform(minval=-0.0003, maxval=0.0003, seed=42)
     VAR_INIT_DIS = initializers.RandomNormal(stddev=0.02, seed=42)
 
 
@@ -82,8 +81,7 @@ if not os.path.exists(result_dir):
     os.makedirs(result_dir)
 
 mdnmp.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0.00001, 'failure': 0, 'eub': 0}
-mdnmp.is_normalized_grad = False
-max_epochs = 20000
+max_epochs = 30000
 lrate = 0.00003
 sample_num = 10
 mdnmp.is_normalized_grad = False
@@ -100,18 +98,21 @@ for expId in range(options.expnum):
         print("======== exp: %1d for training dataset: %1d =======" % (expId, np.shape(trdata)[0]))
 
         trqueries = trdata[:, 0:6]
-        print(">>>> train elk MDN")
-        mdnmp.lratio['entropy'] = 3
-        mdnmp.is_orthogonal_cost=True
-        mdnmp.is_mce_only=False
-        oelk[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
+        print(">>>> train ori MDN")
+        mdnmp.lratio['entropy'] = 0
+        omdn[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=max_epochs,
                                                             sample_num=sample_num, learning_rate=lrate)
 
 
-        print(">>>> train ori MDN")
-        mdnmp.lratio['entropy'] = 0
-        omdn[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
+        print(">>>> train elk MDN")
+        mdnmp.lratio['entropy'] = 3
+        mdnmp.is_orthogonal_cost=True
+        mdnmp.is_mce_only=False
+        mdnmp.cross_train=True
+        mdnmp.nll_lrate = lrate
+        mdnmp.ent_lrate = 10 * lrate
+        oelk[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=max_epochs,
                                                             sample_num=sample_num, learning_rate=lrate)
 
@@ -120,6 +121,9 @@ for expId in range(options.expnum):
         mdnmp.lratio['entropy'] = 3
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=True
+        mdnmp.cross_train=True
+        mdnmp.nll_lrate = lrate
+        mdnmp.ent_lrate = 10 * lrate
         omce[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=max_epochs,
                                                             sample_num=sample_num, learning_rate=lrate)
@@ -127,6 +131,7 @@ for expId in range(options.expnum):
         mdnmp.lratio['entropy'] = 3
         mdnmp.is_orthogonal_cost=False
         mdnmp.is_mce_only=True
+        mdnmp.is_normalized_grad=False
         mce[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=max_epochs,
                                                             sample_num=sample_num, learning_rate=lrate)

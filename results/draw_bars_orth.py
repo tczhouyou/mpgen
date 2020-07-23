@@ -23,8 +23,14 @@ dirname = options.dirname + '/'
 
 tnames = ['50']
 #tnames = ['50', '100', '150']
-#fnames =['baseline', 'omdn', 'mce', 'omce', 'oelk']
-fnames = ['omdn', 'mce', 'omce']
+fnames =['baseline', 'omdn', 'mce', 'omce', 'oelk']
+colors =['C0', 'C1', 'C2', 'C3', 'C4', 'C5']
+#fnames = ['omdn', 'mce', 'omce']
+#colors = ['C1', 'C2', 'C3']
+
+#fnames =['omdn', 'mce', 'omce', 'oelk']
+#colors =['C1', 'C2', 'C3', 'C4', 'C5']
+
 
 fig, ax = plt.subplots()
 width = 0.35
@@ -45,7 +51,7 @@ for i in range(len(fnames)):
     std = np.std(data, axis=0)
     x = np.linspace(i*width, npos+i*width, len(tnames))
     for j in range(len(tnames)):
-        rect = ax.bar(x[j], mean[j], width, yerr=std[j], label=fnames[i])
+        rect = ax.bar(x[j], mean[j], width, yerr=std[j], label=fnames[i], color=colors[i])
         autolabel(rect)
 
 x = np.linspace(0, npos, len(tnames))

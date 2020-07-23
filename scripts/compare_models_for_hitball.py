@@ -68,8 +68,8 @@ d_output = np.shape(vmps)[1]
 
 mdnmp_struct = {'d_feat': 20,
                 'feat_layers': [40],
-                'mean_layers': [40],
-                'scale_layers': [40],
+                'mean_layers': [60],
+                'scale_layers': [60],
                 'mixing_layers': [20]}
 mdnmp = MDNMP(n_comps=options.nmodel, d_input=d_input, d_output=d_output, nn_structure=mdnmp_struct, scaling=1.0,
               var_init=VAR_INIT)
@@ -99,7 +99,7 @@ if not os.path.exists(result_dir):
 mdnmp.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0, 'failure': 0, 'eub': 0}
 max_epochs = 30000
 sample_num = 10
-lrate = 0.0001
+lrate = 0.00003
 mdnmp.is_normalized_grad = False
 for expId in range(options.expnum):
     baseline = np.zeros(shape=(1,len(tsize)))
@@ -120,23 +120,35 @@ for expId in range(options.expnum):
 
         trqueries = trdata[:, 0:2]
 
-        print(">>>> train orthogonal mce")
-        mdnmp.lratio['entropy'] = 10
-        mdnmp.is_orthogonal_cost=True
-        mdnmp.is_mce_only=True
-        mdnmp.is_normalized_grad=False
-        omce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
-                                                            sample_num=sample_num, isvel=True, env_file=env_file,
-                                                            isdraw=options.isdraw, num_test=options.ntest,
-                                                            learning_rate=lrate, EXP=Armar6HitBallExpV1)
-
-
         print(">>>> train original MDN")
         mdnmp.lratio['entropy'] = 0
         omdn[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, max_epochs=max_epochs,
                                                             sample_num=sample_num, isvel=True, env_file=env_file,
                                                             isdraw=options.isdraw, num_test=options.ntest, learning_rate=lrate,
                                                             EXP=Armar6HitBallExpV1)
+        print(">>>> train mce")
+        mdnmp.lratio['entropy'] = 10
+        mdnmp.is_orthogonal_cost=False
+        mdnmp.is_mce_only=True
+        mdnmp.is_normalized_grad=False
+        mce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
+                                                            sample_num=sample_num, isvel=True, env_file=env_file,
+                                                            isdraw=options.isdraw, num_test=options.ntest,
+                                                            learning_rate=lrate, EXP=Armar6HitBallExpV1)
+
+
+        print(">>>> train orthogonal mce")
+        mdnmp.lratio['entropy'] = 10
+        mdnmp.is_orthogonal_cost=True
+        mdnmp.is_mce_only=True
+        mdnmp.is_normalized_grad=False
+        mdnmp.cross_train=True
+        mdnmp.nll_lrate=lrate
+        mdnmp.ent_lrate=lrate
+        omce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
+                                                            sample_num=sample_num, isvel=True, env_file=env_file,
+                                                            isdraw=options.isdraw, num_test=options.ntest,
+                                                            learning_rate=lrate, EXP=Armar6HitBallExpV1)
 
 
 
@@ -145,17 +157,10 @@ for expId in range(options.expnum):
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=False
         mdnmp.is_normalized_grad=False
+        mdnmp.cross_train=True
+        mdnmp.nll_lrate=lrate
+        mdnmp.ent_lrate=lrate
         oelk[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
-                                                            sample_num=sample_num, isvel=True, env_file=env_file,
-                                                            isdraw=options.isdraw, num_test=options.ntest,
-                                                            learning_rate=lrate, EXP=Armar6HitBallExpV1)
-
-        print(">>>> train  mce")
-        mdnmp.lratio['entropy'] = 10
-        mdnmp.is_orthogonal_cost=False
-        mdnmp.is_mce_only=True
-        mdnmp.is_normalized_grad=False
-        mce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
                                                             sample_num=sample_num, isvel=True, env_file=env_file,
                                                             isdraw=options.isdraw, num_test=options.ntest,
                                                             learning_rate=lrate, EXP=Armar6HitBallExpV1)
