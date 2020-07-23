@@ -180,7 +180,7 @@ class MDNMP(basicModel):
                 isSuccess = False
                 break
 
-            if self.cross_train and self.lratio['entropy'] != 0:
+            if self.cross_train and self.lratio['entropy'] != 0 and self.is_orthogonal_cost:
                 self.sess.run(self.opt_nll, feed_dict=feed_dict)
                 self.sess.run(self.opt_ent, feed_dict=feed_dict)
             else:
