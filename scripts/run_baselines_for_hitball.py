@@ -49,7 +49,7 @@ def train_evaluate_baseline_for_hitball(model_name, trqueries, trvmps, tdata, sa
         wouts = np.random.uniform(low=trvmps.min(), high=trvmps.max(),
                                   size=(100, sample_num, np.shape(trvmps)[1]))
 
-    #wouts = wouts / 100
+    wouts = wouts/100
     if isvel:
         srate = evaluate_hitball(wouts, tqueries, tstarts, tgoals,
                                  low_ctrl=TaskSpaceVelocityController,

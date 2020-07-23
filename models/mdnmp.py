@@ -109,7 +109,7 @@ class MDNMP(basicModel):
         else:
             grad_diff = 0
 
-        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=0.5)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=0.9)
         self.opt_all = optimizer.apply_gradients(zip(grads, var_list))
         self.saver = tf.compat.v1.train.Saver()
 
