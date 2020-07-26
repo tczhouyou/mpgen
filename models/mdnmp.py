@@ -177,7 +177,7 @@ class MDNMP(basicModel):
 
             #mean, scale, mc = self.sess.run([self.outputs['mean'], self.outputs['scale'], self.outputs['mc']], feed_dict=feed_dict)
             #print(scale)
-            if np.isnan(nll) or np.isinf(nll):
+            if np.isnan(nll) or np.isinf(nll) or np.isnan(elk) or np.isinf(elk) or np.isnan(mce) or np.isinf(mce):
                 print('\n failed trained')
                 isSuccess = False
                 break
