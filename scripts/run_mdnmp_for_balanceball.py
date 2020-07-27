@@ -27,15 +27,9 @@ else:
     from tensorflow.keras import initializers
     VAR_INIT = initializers.RandomUniform(minval=-0.1, maxval=0.1, seed=42)
 
-
-ENV_FILE = "balanceball_exp.xml"
-
-def train_evaluate_mdnmp_for_balanceball(mdnmp, trqueries, trvmps, tdata, use_entropy=False, max_epochs=20000, sample_num=1,
-                                         isdraw=False, num_test=100, learning_rate=0.002, env_file="balanceball_exp.xml", EXP=Armar6BalanceBallExp):
-    if use_entropy:
-        mdnmp.lratio['entropy'] = 10
-    else:
-        mdnmp.lratio['entropy'] = 0
+ENV_FILE = "balanceball_exp_v1.xml"
+def train_evaluate_mdnmp_for_balanceball(mdnmp, trqueries, trvmps, tdata, max_epochs=20000, sample_num=1,
+                                         isdraw=False, num_test=100, learning_rate=0.002, env_file="balanceball_exp_v1.xml"):
 
     weights = np.ones(shape=(np.shape(trvmps)[0], 1))
     train_weights = np.copy(weights)
@@ -57,12 +51,11 @@ def train_evaluate_mdnmp_for_balanceball(mdnmp, trqueries, trvmps, tdata, use_en
                              high_ctrl=TaskSpacePositionVMPController(qvmp=mp),
                              env_path=ENV_DIR+env_file, isdraw=isdraw)
 
-
     return srate
 
 
 def run_mdnmp_for_balanceball(nmodel=3, MAX_EXPNUM=20, mce_vals=[0, 0.5, 1, 5, 10], nsamples=[10, 30, 50],
-                          env_file="balanceball_exp.xml", data_dir="balanceball_mpdata", isdraw=False, isRecordSuccess=False, dirname='result'):
+                          env_file="balanceball_exp_v1.xml", data_dir="balanceball_mpdata", isdraw=False, isRecordSuccess=False, dirname='result'):
     # prepare data
     data_dir = os.environ['MPGEN_DIR'] + EXP_DIR + data_dir
     queries = np.loadtxt(data_dir + '/balanceball_queries.csv', delimiter=',')
@@ -136,7 +129,7 @@ if __name__ == '__main__':
 
     parser = OptionParser()
     parser.add_option("-m", "--nmodel", dest="nmodel", type="int", default=3)
-    parser.add_option("--env_file", dest="env_file", type="string", default="balanceball_exp.xml")
+    parser.add_option("--env_file", dest="env_file", type="string", default="balanceball_exp_v1.xml")
     parser.add_option("--data_dir", dest="data_dir", type="string", default="balanceball_mpdata")
     parser.add_option("--result_dir", dest="result_dir", type="string", default="res_mdnmp_balanceball")
 
