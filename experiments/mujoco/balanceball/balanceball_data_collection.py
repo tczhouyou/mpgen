@@ -46,6 +46,7 @@ if not os.path.exists(options.mp_dir):
         raise
 
 queries = []
+env.is_data_collection = True
 for i in progressbar.progressbar(range(EXP_NUM)):
     is_failed = True
     while is_failed:
@@ -55,7 +56,7 @@ for i in progressbar.progressbar(range(EXP_NUM)):
 
         ax1 = np.array([0,1,0])
         if np.random.uniform(0, 1) < 0.5:
-            ang1 = np.random.uniform(low=-30 * np.pi/180, high=-20 * np.pi/180)
+            ang1 = np.random.uniform(low=-40 * np.pi/180, high=-30 * np.pi/180)
         else:
             ang1 = np.random.uniform(low=20 * np.pi/180, high=30 * np.pi/180)
 
@@ -71,7 +72,6 @@ for i in progressbar.progressbar(range(EXP_NUM)):
         else:
             ang3 = np.random.uniform(low=20 * np.pi / 180, high=30 * np.pi / 180)
 
-        ax3[2] = 0
         ax3 = ax3 / np.linalg.norm(ax3)
         qrot3 = Quaternion.from_axis_angle(ax3, ang3)
 
@@ -87,10 +87,7 @@ for i in progressbar.progressbar(range(EXP_NUM)):
         env.high_ctrl.target_posi = start[:3]
         env.high_ctrl.desired_joints = INIT_JOINT_POS
 
-        final_ball_pos, qtraj, jtraj, is_error = env.run()
-
-        if is_error:
-            continue
+        final_ball_pos, qtraj, jtraj, _ = env.run()
 
         filename = options.raw_dir + '/balanceball_' + str(i + 1) + '.csv'
         np.savetxt(filename, qtraj, delimiter=',')
