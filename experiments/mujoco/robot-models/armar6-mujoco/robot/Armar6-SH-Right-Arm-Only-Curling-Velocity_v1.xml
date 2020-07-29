@@ -215,7 +215,7 @@
                                                                     <site name="Hand R GCP" pos="0.135 -0.055 -0.0250001" quat="0.653281 0.653283 0.270599 0.270598"/>
                                                                     <body name="Hand R Palm" pos="0 0 0" quat="1 0 0 0">
                                                                         <geom type="cylinder" pos="0 0 0" quat="0.7071 0 0.7071 0" size="0.015 0.1"/>
-                                                                        <geom type="sphere" pos="0.1 0 0" size="0.05"/>
+                                                                        <geom type="sphere" pos="0.1 0 0" size="0.06" solref="0.01 1"/>
                                                                     </body>
                                                                     <site name="Hand R TCP" pos="0.08 0 0" quat="0.5 0.5 0.5 0.5"/>
                                                                     <!--<inertial pos="0 0 0" mass="9.99999975e-05" diaginertia="1 1 1"/>-->
