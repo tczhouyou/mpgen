@@ -98,7 +98,7 @@ if not os.path.exists(result_dir):
 
 mdnmp.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0, 'failure': 0, 'eub': 0}
 max_epochs = 30000
-sample_num = 10
+sample_num = 30
 lrate = 0.00003
 mdnmp.is_normalized_grad = False
 for expId in range(options.expnum):
@@ -122,30 +122,30 @@ for expId in range(options.expnum):
 
         print(">>>> train original MDN")
         mdnmp.lratio['entropy'] = 0
-        omdn[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, max_epochs=max_epochs,
+        omdn[0, i], omdn_nlls, omdn_ents = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata, max_epochs=max_epochs,
                                                             sample_num=sample_num, isvel=True, env_file=env_file,
                                                             isdraw=options.isdraw, num_test=options.ntest, learning_rate=lrate,
                                                             EXP=Armar6HitBallExpV1)
         print(">>>> train mce")
-        mdnmp.lratio['entropy'] = 10
+        mdnmp.lratio['entropy'] = 3
         mdnmp.is_orthogonal_cost=False
         mdnmp.is_mce_only=True
         mdnmp.is_normalized_grad=False
-        mce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
+        mce[0, i], mce_nlls, mce_ents = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
                                                             sample_num=sample_num, isvel=True, env_file=env_file,
                                                             isdraw=options.isdraw, num_test=options.ntest,
                                                             learning_rate=lrate, EXP=Armar6HitBallExpV1)
 
 
         print(">>>> train orthogonal mce")
-        mdnmp.lratio['entropy'] = 10
+        mdnmp.lratio['entropy'] = 3
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=True
         mdnmp.is_normalized_grad=False
         mdnmp.cross_train=True
         mdnmp.nll_lrate=lrate
         mdnmp.ent_lrate=lrate
-        omce[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
+        omce[0, i], omce_nlls, omce_ents = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
                                                             sample_num=sample_num, isvel=True, env_file=env_file,
                                                             isdraw=options.isdraw, num_test=options.ntest,
                                                             learning_rate=lrate, EXP=Armar6HitBallExpV1)
@@ -153,14 +153,14 @@ for expId in range(options.expnum):
 
 
         print(">>>> train elk")
-        mdnmp.lratio['entropy'] = 10
+        mdnmp.lratio['entropy'] = 3
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=False
         mdnmp.is_normalized_grad=False
         mdnmp.cross_train=True
         mdnmp.nll_lrate=lrate
         mdnmp.ent_lrate=lrate
-        oelk[0, i] = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
+        oelk[0, i], oelk_nlls, oelk_ents = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
                                                             sample_num=sample_num, isvel=True, env_file=env_file,
                                                             isdraw=options.isdraw, num_test=options.ntest,
                                                             learning_rate=lrate, EXP=Armar6HitBallExpV1)
@@ -185,3 +185,22 @@ for expId in range(options.expnum):
         np.savetxt(f, np.array(oelk), delimiter=',', fmt='%.3f')
     with open(result_dir + "/mce", "a") as f:
         np.savetxt(f, np.array(mce), delimiter=',', fmt='%.3f')
+
+    with open(result_dir + "/omdn_nll", "a") as f:
+        np.savetxt(f, omdn_nlls, delimiter=',', fmt='%.3f')
+    with open(result_dir + "/mce_nll", "a") as f:
+        np.savetxt(f, mce_nlls, delimiter=',', fmt='%.3f')
+    with open(result_dir + "/omce_nll", "a") as f:
+        np.savetxt(f, omce_nlls, delimiter=',', fmt='%.3f')
+    with open(result_dir + "/oelk_nll", "a") as f:
+        np.savetxt(f, oelk_nlls, delimiter=',', fmt='%.3f')
+
+    with open(result_dir + "/omdn_ent", "a") as f:
+        np.savetxt(f, omdn_ents, delimiter=',', fmt='%.3f')
+    with open(result_dir + "/mce_ent", "a") as f:
+        np.savetxt(f, mce_ents, delimiter=',', fmt='%.3f')
+    with open(result_dir + "/omce_ent", "a") as f:
+        np.savetxt(f, omce_ents, delimiter=',', fmt='%.3f')
+    with open(result_dir + "/oelk_ent", "a") as f:
+        np.savetxt(f, oelk_ents, delimiter=',', fmt='%.3f')
+

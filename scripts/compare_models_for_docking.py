@@ -100,7 +100,7 @@ for expId in range(options.expnum):
         trqueries = trdata[:, 0:6]
         print(">>>> train ori MDN")
         mdnmp.lratio['entropy'] = 0
-        omdn[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
+        omdn[0, i], omdn_nlls, omdn_ents = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=max_epochs,
                                                             sample_num=sample_num, learning_rate=lrate)
 
@@ -112,7 +112,7 @@ for expId in range(options.expnum):
         mdnmp.cross_train=True
         mdnmp.nll_lrate = lrate
         mdnmp.ent_lrate = 10 * lrate
-        oelk[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
+        oelk[0, i], oelk_nlls, oelk_ents = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=max_epochs,
                                                             sample_num=sample_num, learning_rate=lrate)
 
@@ -124,7 +124,7 @@ for expId in range(options.expnum):
         mdnmp.cross_train=True
         mdnmp.nll_lrate = lrate
         mdnmp.ent_lrate = 10 * lrate
-        omce[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
+        omce[0, i], omce_nlls, omce_ents = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=max_epochs,
                                                             sample_num=sample_num, learning_rate=lrate)
         print(">>>> train mce MDN")
@@ -132,7 +132,7 @@ for expId in range(options.expnum):
         mdnmp.is_orthogonal_cost=False
         mdnmp.is_mce_only=True
         mdnmp.is_normalized_grad=False
-        mce[0, i] = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
+        mce[0, i], mce_nlls, mce_ents = train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata,
                                                             max_epochs=max_epochs,
                                                             sample_num=sample_num, learning_rate=lrate)
 
@@ -153,3 +153,23 @@ for expId in range(options.expnum):
         np.savetxt(f, np.array(omce), delimiter=',', fmt='%.3f')
     with open(result_dir + "/oelk", "a") as f:
         np.savetxt(f, np.array(oelk), delimiter=',', fmt='%.3f')
+
+
+    with open(result_dir + "/omdn_nll", "a") as f:
+        np.savetxt(f, omdn_nlls, delimiter=',', fmt='%.3f')
+    with open(result_dir + "/mce_nll", "a") as f:
+        np.savetxt(f, mce_nlls, delimiter=',', fmt='%.3f')
+    with open(result_dir + "/omce_nll", "a") as f:
+        np.savetxt(f, omce_nlls, delimiter=',', fmt='%.3f')
+    with open(result_dir + "/oelk_nll", "a") as f:
+        np.savetxt(f, oelk_nlls, delimiter=',', fmt='%.3f')
+
+    with open(result_dir + "/omdn_ent", "a") as f:
+        np.savetxt(f, omdn_ents, delimiter=',', fmt='%.3f')
+    with open(result_dir + "/mce_ent", "a") as f:
+        np.savetxt(f, mce_ents, delimiter=',', fmt='%.3f')
+    with open(result_dir + "/omce_ent", "a") as f:
+        np.savetxt(f, omce_ents, delimiter=',', fmt='%.3f')
+    with open(result_dir + "/oelk_ent", "a") as f:
+        np.savetxt(f, oelk_ents, delimiter=',', fmt='%.3f')
+

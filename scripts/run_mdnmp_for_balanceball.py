@@ -42,8 +42,8 @@ def train_evaluate_mdnmp_for_balanceball(mdnmp, trqueries, trvmps, tdata, max_ep
         num_test = np.shape(tdata)[0]-1
 
     tqueries = tdata[:num_test, 0:2]
-    starts = tdata[:num_test, 2:4]
-    goals = tdata[:num_test, 4:6]
+    starts = tdata[:num_test, 2:6]
+    goals = tdata[:num_test, 6:10]
     wout, _ = mdnmp.predict(tqueries, sample_num)
 
     srate = evaluate_balanceball(wout, tqueries, starts, goals,

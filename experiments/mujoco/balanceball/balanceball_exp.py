@@ -163,7 +163,7 @@ def evaluate_balanceball(wout, queries, starts, goals, low_ctrl, high_ctrl, env_
             env.high_ctrl.qvmp.set_start_goal(starts[i,:], goals[i,:])
             final_ball_pos, traj, _, is_error = env.run()
 
-            if not is_error and np.linalg.norm(queries[i,:] - final_ball_pos[:2]) < 0.03:
+            if not is_error and np.linalg.norm(queries[i,:] - final_ball_pos[:2]) < 0.05:
                 success_counter = success_counter + 1
                 if isRecordSuccess:
                     success_queries.append(queries[i, :])

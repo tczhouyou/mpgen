@@ -34,7 +34,7 @@ def train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,  max_epoch
     train_weights = np.copy(weights)
     mdnmp.build_mdn(learning_rate=learning_rate)
     mdnmp.init_train()
-    isSuccess = mdnmp.train(trqueries, trvmps, train_weights, max_epochs=max_epochs, is_load=False, is_save=False)
+    isSuccess, nlls, ents = mdnmp.train(trqueries, trvmps, train_weights, max_epochs=max_epochs, is_load=False, is_save=False)
     mp = VMP(dim=2, kernel_num=10)
 
     if num_test > np.shape(tdata)[0]:
@@ -59,7 +59,7 @@ def train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,  max_epoch
                                  high_ctrl=TaskSpacePositionVMPController(mp),
                                  env_path=ENV_DIR+env_file, EXP=EXP, isdraw=isdraw)
 
-    return srate
+    return srate, nlls, ents
 
 
 def run_mdnmp_for_hitball(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True],

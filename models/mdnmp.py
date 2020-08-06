@@ -155,6 +155,9 @@ class MDNMP(basicModel):
                 print(" [!] Load failed...")
 
         isSuccess = True
+        nlls = np.zeros(shape=(1, int(np.ceil(max_epochs/100))))
+        ents = np.zeros(shape=(1, int(np.ceil(max_epochs/100))))
+        kind = 0
         for i in range(max_epochs):
             if self.batch_size is not None:
                 idx = self.next_batch(np.shape(input)[0])
@@ -193,10 +196,19 @@ class MDNMP(basicModel):
                 self.save(self.sess, self.saver, checkpoint_dir, model_dir, model_name)
                 self.global_step = self.global_step + 1
 
+            if i % 1000 == 0:
+                nlls[0, kind] = nll
+                if self.is_mce_only:
+                    ents[0,kind] = mce
+                else:
+                    ents[0, kind] = elk
+
+                kind=kind+1
+
             print("epoch: %1d, nll: %.3f, mce: %.3f, elk: %.3f, dgrad: %.3f" % (i, nll, mce, elk,  dgrad), end='\r', flush=True)
 
         print("epoch: %1d, nll: %.3f, mce: %.3f, elk: %.3f, dgrad: %.3f" % (i, nll, mce, elk,  dgrad), end='\n')
-        return isSuccess
+        return isSuccess, nlls, ents
 
     def predict(self, cinput, n_samples=1):
         mean, scale, mc = self.sess.run([self.outputs['mean'], self.outputs['scale'], self.outputs['mc']],

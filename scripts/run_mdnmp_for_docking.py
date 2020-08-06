@@ -20,7 +20,7 @@ def train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, max_epochs
     train_weights = np.copy(weights)
     mdnmp.build_mdn(learning_rate=learning_rate)
     mdnmp.init_train()
-    isSuccess = mdnmp.train(trqueries, trvmps, train_weights, max_epochs=max_epochs, is_load=False, is_save=False)
+    isSuccess, nlls, ents = mdnmp.train(trqueries, trvmps, train_weights, max_epochs=max_epochs, is_load=False, is_save=False)
 
     srate = 0
     if isSuccess:
@@ -30,7 +30,7 @@ def train_evaluate_mdnmp_for_docking(mdnmp, trqueries, trvmps, tdata, max_epochs
         goals = tdata[:, 8:10]
         srate, _ = evaluate_docking(wout, tqueries, starts, goals)
 
-    return srate
+    return srate, nlls, ents
 
 def run_mdnmp_for_docking(nmodel=3, MAX_EXPNUM=20, use_entropy_cost=[False, True], model_names=["Original MDN", "Entropy MDN"], nsamples=[1, 10, 30, 50, 70]):
     queries = np.loadtxt('data/docking_queries.csv', delimiter=',')

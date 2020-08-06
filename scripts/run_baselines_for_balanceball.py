@@ -36,8 +36,8 @@ def train_evaluate_baseline_for_balanceball(model_name, trqueries, trvmps, tdata
         num_test = np.shape(tdata)[0]-1
 
     tqueries = tdata[:num_test, 0:2]
-    tstarts = tdata[:num_test, 2:4]
-    tgoals = tdata[:num_test, 4:6]
+    tstarts = tdata[:num_test, 2:6]
+    tgoals = tdata[:num_test, 6:10]
     wmeans = model.predict(tqueries)
 
     if model is not None:

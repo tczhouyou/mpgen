@@ -41,7 +41,6 @@ parser.add_option("--num_train", dest="ntrain", type="int", default=10)
 (options, args) = parser.parse_args(sys.argv)
 
 
-
 if options.version == "v2":
     data_dir = '../experiments/mujoco/balanceball/balanceballv2_mpdata'
     env_file = 'balanceball_exp_v2.xml'
@@ -67,8 +66,8 @@ d_output = np.shape(vmps)[1]
 
 mdnmp_struct = {'d_feat': 20,
                 'feat_layers': [40],
-                'mean_layers': [60],
-                'scale_layers': [60],
+                'mean_layers': [80],
+                'scale_layers': [80],
                 'mixing_layers': [20]}
 mdnmp = MDNMP(n_comps=options.nmodel, d_input=d_input, d_output=d_output, nn_structure=mdnmp_struct, scaling=1.0,
               var_init=VAR_INIT)
@@ -85,7 +84,7 @@ if not os.path.exists(result_dir):
 mdnmp.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0, 'failure': 0, 'eub': 0}
 max_epochs = 30000
 sample_num = 10
-lrate = 0.00003
+lrate = 0.001
 mdnmp.is_normalized_grad = False
 for expId in range(options.expnum):
     baseline = np.zeros(shape=(1,len(tsize)))
