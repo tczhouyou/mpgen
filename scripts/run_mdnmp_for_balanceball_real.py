@@ -33,11 +33,16 @@ parser.add_option("--grid_samples", dest="is_grid_samples", action="store_true",
 parser.add_option("--num_train", dest="ntrain", type="int", default=10)
 parser.add_option("--sample_num", dest="nsamples", type="int", default=10)
 parser.add_option("--model_name", dest="model_name", type="string", default="mce")
+parser.add_option("--max_epochs", dest="max_epochs", type="int", default=10000)
 (options, args) = parser.parse_args(sys.argv)
 
 
 queries = np.loadtxt(options.qfile, delimiter=',')
 vmps = np.loadtxt(options.wfile, delimiter=',')
+
+queries[:,0] = queries[:,0]/20
+queries[:,1] = queries[:,1]/30
+
 
 # prepare model
 nn_structure = {'d_feat': 40,
@@ -94,7 +99,7 @@ else:
 mdnmp.build_mdn(learning_rate=lrate)
 mdnmp.init_train()
 is_pos = np.ones(shape=(np.shape(trvmps)[0], 1))
-mdnmp.train(trqueries, trvmps, is_pos, max_epochs=10000, is_load=False, is_save=False)
+mdnmp.train(trqueries, trvmps, is_pos, max_epochs=options.max_epochs, is_load=False, is_save=False)
 
 result_dir = options.rdir
 if not os.path.exists(result_dir):
@@ -102,8 +107,8 @@ if not os.path.exists(result_dir):
 
 wout, _ = mdnmp.predict(tqueries, options.nsamples)
 
-wfname = result_dir + '/' + 'testing_weights.csv'
-qfname = result_dir + '/' + 'testing_queries.csv'
+wfname = result_dir + '/' + options.model_name + '_balanceball_testing_weights.csv'
+qfname = result_dir + '/' + options.model_name + '_balanceball_testing_queries.csv'
 wfile = open(wfname, 'w+')
 qfile = open(qfname, 'w+')
 for i in range(np.shape(wout)[0]):
@@ -111,6 +116,8 @@ for i in range(np.shape(wout)[0]):
     np.savetxt(wfile, weights, delimiter=',')
     cquery = np.expand_dims(tqueries[i,:], axis=0)
     cqueries = np.tile(cquery, (np.shape(weights)[0], 1))
+    cqueries[:,0] = cqueries[:,0] * 20
+    cqueries[:,1] = cqueries[:,1] * 30
     np.savetxt(qfile, cqueries, delimiter=',')
 
 

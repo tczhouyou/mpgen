@@ -99,7 +99,7 @@ if not os.path.exists(result_dir):
 mdnmp.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0, 'failure': 0, 'eub': 0}
 max_epochs = 30000
 sample_num = 30
-lrate = 0.00003
+lrate = 0.0001
 mdnmp.is_normalized_grad = False
 for expId in range(options.expnum):
     baseline = np.zeros(shape=(1,len(tsize)))
@@ -144,7 +144,7 @@ for expId in range(options.expnum):
         mdnmp.is_normalized_grad=False
         mdnmp.cross_train=True
         mdnmp.nll_lrate=lrate
-        mdnmp.ent_lrate=lrate
+        mdnmp.ent_lrate=10 * lrate
         omce[0, i], omce_nlls, omce_ents = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
                                                             sample_num=sample_num, isvel=True, env_file=env_file,
                                                             isdraw=options.isdraw, num_test=options.ntest,
@@ -159,7 +159,7 @@ for expId in range(options.expnum):
         mdnmp.is_normalized_grad=False
         mdnmp.cross_train=True
         mdnmp.nll_lrate=lrate
-        mdnmp.ent_lrate=lrate
+        mdnmp.ent_lrate=10 * lrate
         oelk[0, i], oelk_nlls, oelk_ents = train_evaluate_mdnmp_for_hitball(mdnmp, trqueries, trvmps, tdata,max_epochs=max_epochs,
                                                             sample_num=sample_num, isvel=True, env_file=env_file,
                                                             isdraw=options.isdraw, num_test=options.ntest,
