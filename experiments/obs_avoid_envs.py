@@ -46,16 +46,24 @@ class Polygon2D:
         return p.within(self.polygon)
 
     def plot(self, ax):
-        for i in range(len(self.coords) - 1):
-            p0 = self.coords[i]
-            p1 = self.coords[i+1]
-            ax.plot([p0[0], p1[0]], [p0[1], p1[1]], 'r-')
+        # for i in range(len(self.coords) - 1):
+        #     p0 = self.coords[i]
+        #     p1 = self.coords[i+1]
+        #     ax.plot([p0[0], p1[0]], [p0[1], p1[1]],style)
+
+        polygon = matplotlib.patches.Polygon(np.array(self.coords))
+        polygon.set_color(get_colors()['dark gray'])
+        polygon.set_edgecolor(get_colors()['black'])
+        polygon.set_hatch('////')
+        ax.add_patch(polygon)
+
 
 
 class ObsSet2D:
     def __init__(self):
         self.circle2d = []
         self.polygon2d = []
+        self.poses = []
 
     def add_circle_obs(self, origin, radius):
         c = Circle2D(origin, radius)
@@ -83,13 +91,18 @@ class ObsSet2D:
         p7 = (p6[0] + 4 * lx/5, p6[1] + 4 * ly/5)
         p8 = (p7[0] + wx/5, p7[1] + wy/5)
 
+        self.poses.append(pos)
         self.add_polygon_obs([p1,p2,p3,p4,p5,p6,p7,p8, p1])
 
     def plot(self, ax):
+        styles = ['ro', 'bo']
         for i in range(len(self.circle2d)):
             self.circle2d[i].plot(ax)
 
         for i in range(len(self.polygon2d)):
+            if i <= len(self.poses) and i <= len(styles):
+                ax.plot(self.poses[i][0], self.poses[i][1], styles[i])
+
             self.polygon2d[i].plot(ax)
 
     def isCollision(self, point2d):

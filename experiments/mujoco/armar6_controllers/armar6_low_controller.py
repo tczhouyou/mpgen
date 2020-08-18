@@ -13,7 +13,7 @@ from random import random
 from math_tools.MathTools import *
 from config.controller_configurations import *
 import platform
-import pandas as pd
+#import pandas as pd
 
 # if platform.system() is not 'Darwin':
 #     import matplotlib.pyplot as plt
@@ -919,35 +919,35 @@ class TaskSpaceExplicitForceImpedanceController:
         self.record_data.append(self.data_current_step.copy())
 
         return torque_cmd
-
-    def save_recorded_data(self):
-        record_index = ['time',
-                        'current_pose_x', 'current_pose_y', 'current_pose_z', 'current_pose_qw', 'current_pose_qx',
-                        'current_pose_qy', 'current_pose_qz',
-                        'target_pose_x', 'target_pose_y', 'target_pose_z', 'target_pose_qw', 'target_pose_qx',
-                        'target_pose_qy', 'target_pose_qz',
-                        'current_vel_x', 'current_vel_y', 'current_vel_z', 'current_vel_row', 'current_vel_pitch',
-                        'current_vel_yaw',
-                        'target_vel_x', 'target_vel_y', 'target_vel_z', 'target_vel_row', 'target_vel_pitch',
-                        'target_vel_yaw',
-                        'ft_sensor_x', 'ft_sensor_y', 'ft_sensor_z', 'ft_sensor_row', 'ft_sensor_pitch',
-                        'ft_sensor_yaw']
-        df = pd.DataFrame(data=np.array(self.record_data), columns=record_index)
-        df_vel = df[['time', 'current_vel_x', 'current_vel_y', 'current_vel_z', 'current_vel_row', 'current_vel_pitch',
-                     'current_vel_yaw']]
-        df_ft = df[['time', 'ft_sensor_x', 'ft_sensor_y', 'ft_sensor_z', 'ft_sensor_row', 'ft_sensor_pitch', 'ft_sensor_yaw']]
-        df.set_index('time')
-        # print(dataFrame)
-        csv_target_file = '/home/jianfeng/robot_projects/learning-control/robolab/data/armar6-motion/recorded_wiping_data_from_mujoco_'
-        csv_target_file = csv_target_file + datetime.datetime.now().strftime('%Y%m%d_%H-%M-%S')
-        # Don't forget to add '.csv' at the end of the path
-        if self.enable_write_csv:
-            df.to_csv(csv_target_file + '_full.csv', index='time', header=True)
-            df_vel.to_csv(csv_target_file + '_velocity.csv', index='time', header=True)
-            df_ft.to_csv(csv_target_file + '_ft.csv', index='time', header=True)
-            print("save data to ", csv_target_file)
-        print("Something is wrong or terminated by user ...")
-
+#
+#    def save_recorded_data(self):
+#        record_index = ['time',
+#                        'current_pose_x', 'current_pose_y', 'current_pose_z', 'current_pose_qw', 'current_pose_qx',
+#                        'current_pose_qy', 'current_pose_qz',
+#                        'target_pose_x', 'target_pose_y', 'target_pose_z', 'target_pose_qw', 'target_pose_qx',
+#                        'target_pose_qy', 'target_pose_qz',
+#                        'current_vel_x', 'current_vel_y', 'current_vel_z', 'current_vel_row', 'current_vel_pitch',
+#                        'current_vel_yaw',
+#                        'target_vel_x', 'target_vel_y', 'target_vel_z', 'target_vel_row', 'target_vel_pitch',
+#                        'target_vel_yaw',
+#                        'ft_sensor_x', 'ft_sensor_y', 'ft_sensor_z', 'ft_sensor_row', 'ft_sensor_pitch',
+#                        'ft_sensor_yaw']
+#        df = pd.DataFrame(data=np.array(self.record_data), columns=record_index)
+#        df_vel = df[['time', 'current_vel_x', 'current_vel_y', 'current_vel_z', 'current_vel_row', 'current_vel_pitch',
+#                     'current_vel_yaw']]
+#        df_ft = df[['time', 'ft_sensor_x', 'ft_sensor_y', 'ft_sensor_z', 'ft_sensor_row', 'ft_sensor_pitch', 'ft_sensor_yaw']]
+#        df.set_index('time')
+#        # print(dataFrame)
+#        csv_target_file = '/home/jianfeng/robot_projects/learning-control/robolab/data/armar6-motion/recorded_wiping_data_from_mujoco_'
+#        csv_target_file = csv_target_file + datetime.datetime.now().strftime('%Y%m%d_%H-%M-%S')
+#        # Don't forget to add '.csv' at the end of the path
+#        if self.enable_write_csv:
+#            df.to_csv(csv_target_file + '_full.csv', index='time', header=True)
+#            df_vel.to_csv(csv_target_file + '_velocity.csv', index='time', header=True)
+#            df_ft.to_csv(csv_target_file + '_ft.csv', index='time', header=True)
+#            print("save data to ", csv_target_file)
+#        print("Something is wrong or terminated by user ...")
+#
 
 class TaskSpaceExplicitForceImpedanceAdaptiveFrictionConeController:
     def __init__(self, model, sim, config=None, arm_name="RightArm", desired_joints=None):
