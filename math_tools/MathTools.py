@@ -68,12 +68,37 @@ def draw_contour(ax, gmlist):
         i = i + 2
 
 
-def mdn_to_gmm(outdict, fdim=2):
-    mc = outdict['mc'][0]
+def draw_contour_gmm(ax, gmm):
+    means = gmm.means_
+    scales = gmm.covariances_
+
+    N = 60
+    X = np.linspace(-5, 15, N)
+    Y = np.linspace(-5, 15, N)
+    X, Y = np.meshgrid(X, Y)
+    pos = np.empty(X.shape + (2,))
+    pos[:, :, 0] = X
+    pos[:, :, 1] = Y
+
+    i = 0
+    for i in range(np.shape(mean)[0]):
+        mu = means[i,:]
+        scale = scales[i,:]
+        sig = np.array([[scale[0],0], [0,scale[1]]])
+        F = multivariate_normal(mu, sig)
+        Z = F.pdf(pos)
+        ax.contour(X,Y,Z, levels=3)
+
+
+def mdn_to_gmm(outdict, fdim=2, ind=0):
+    if ind >= np.shape(outdict['mean'])[0]:
+        return None
+
+    mc = outdict['mc'][ind]
     n_comp = len(mc)
     print('ncomp is {}'.format(n_comp))
-    mean = np.reshape(outdict['mean'][0], newshape=(-1,fdim))
-    scale = np.reshape(outdict['scale'][0], newshape=(-1,fdim))
+    mean = np.reshape(outdict['mean'][ind], newshape=(-1,fdim))
+    scale = np.reshape(outdict['scale'][ind], newshape=(-1,fdim))
 
     gmm = mixture.GaussianMixture(n_components=n_comp, covariance_type='diag')
     gmm.fit(np.random.uniform(-1.0, 1.0, (10, fdim)))
@@ -83,7 +108,7 @@ def mdn_to_gmm(outdict, fdim=2):
     return gmm
 
 
-def calc_kl_mc(gmm0, gmm1, n_data=1e5):
+def calc_kl_mc(gmm0, gmm1, n_data=1e1):
     samples, _ = gmm0.sample(n_data)
     logprob0 = gmm0.score_samples(samples)
     logprob1 = gmm1.score_samples(samples)

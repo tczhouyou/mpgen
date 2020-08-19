@@ -119,7 +119,7 @@ for expId in range(options.expnum):
 
 
         print(">>>> train oelk")
-        mdnmp.lratio['entropy'] =5
+        mdnmp.lratio['entropy'] =10
         mdnmp.is_orthogonal_cost = True
         mdnmp.is_mce_only = False
         mdnmp.is_normalized_grad = False

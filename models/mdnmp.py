@@ -33,6 +33,7 @@ class MDNMP(basicModel):
         self.nll_lrate = 1e-4
         self.ent_lrate = 1e-4
         self.cross_train = False
+        self.is_scale_scheduled = False
 
     def create_network(self, scope='mdnmp', nn_type='v1'):
         tf.compat.v1.reset_default_graph()
@@ -197,14 +198,14 @@ class MDNMP(basicModel):
                 break
 
             if self.cross_train and self.lratio['entropy'] != 0 and self.is_orthogonal_cost:
-                if i < 0.5 * max_epochs:
+                if i < 0.5 * max_epochs and self.is_scale_scheduled:
                     self.sess.run(self.opt_nll_without_scale, feed_dict=feed_dict)
                 else:
                     self.sess.run(self.opt_nll, feed_dict=feed_dict)
 
                 self.sess.run(self.opt_ent, feed_dict=feed_dict)
             else:
-                if i < 0.5 * max_epochs:
+                if i < 0.5 * max_epochs and self.is_scale_scheduled:
                     self.sess.run(self.opt_all_without_scale, feed_dict=feed_dict)
                 else:
                     self.sess.run(self.opt_all, feed_dict=feed_dict)

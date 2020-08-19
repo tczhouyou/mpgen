@@ -13,7 +13,7 @@ import numpy as np
 from sklearn import mixture
 import matplotlib.pyplot as plt
 import tensorflow as tf
-from math_tools.MathTools import draw_contour, mdn_to_gmm, calc_kl_mc
+from math_tools.MathTools import draw_contour, mdn_to_gmm, calc_kl_mc, draw_contour_gmm
 from sklearn.model_selection import train_test_split
 
 if tf.__version__ < '2.0.0':
@@ -87,18 +87,22 @@ mdnmp_struct = {'d_feat': 5,
 mdnmp = MDNMP(n_comps=options.nmodel, d_input=1, d_output=2, nn_structure=mdnmp_struct, scaling=1, var_init=VAR_INIT)
 
 mdnmp.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0, 'failure': 0, 'eub': 0}
-max_epochs = 20000
+max_epochs = 5000
 lrate = 0.00003
 
 _, axes = plt.subplots(nrows=options.expnum, ncols=4)
 axid = 0
 
 
-angles = np.linspace(0, 2 * np.pi, 100)
-_, outputs, inputs = create_gmm_from_angle(angles)
-trinputs, tinputs, troutputs, toutputs = train_test_split(inputs, outputs, test_size=0.2, random_state=42)
-tgmmlist, _, _ = create_gmm_from_angle(tinputs.squeeze())
+angles = np.linspace(0, 2 * np.pi, 50)
+_, troutputs, trinputs = create_gmm_from_angle(angles)
+# trinputs, tinputs, troutputs, toutputs = train_test_split(inputs, outputs, test_size=0.2, random_state=42)
+
+tangles = np.linspace(0, 2 * np.pi, 5)
+tgmmlist, touputs, tinputs = create_gmm_from_angle(tangles)
 weights = np.ones(shape=(np.shape(troutputs)[0], 1))
+
+
 
 for expId in range(options.expnum):
     print(">>>> train omdn")
@@ -117,6 +121,11 @@ for expId in range(options.expnum):
         cost = compare_gmm(outdict, tgmmlist)
         print('omdn ==> kl: {}'.format(cost))
 
+        for i in range(np.shape(tinputs)[0]):
+            tgmm = tgmmlist[i]
+            cgmm = mdn_to_gmm(outdict, ind=i)
+            draw_contour_gmm(ax, tgmm)
+            draw_contour_gmm(ax, cgmm)
 
     print(">>>> train mce")
     mdnmp.lratio['entropy'] =10
@@ -136,6 +145,11 @@ for expId in range(options.expnum):
 
         cost = compare_gmm(outdict, tgmmlist)
         print('mce ==> kl: {}'.format(cost))
+        for i in range(np.shape(tinputs)[0]):
+            tgmm = tgmmlist[i]
+            cgmm = mdn_to_gmm(outdict, ind=i)
+            draw_contour_gmm(ax, tgmm)
+            draw_contour_gmm(ax, cgmm)
 
     print(">>>> train oelk")
     mdnmp.lratio['entropy'] =3
@@ -157,6 +171,11 @@ for expId in range(options.expnum):
 
         cost = compare_gmm(outdict, tgmmlist)
         print('oelk ==> kl: {}'.format(cost))
+        for i in range(np.shape(tinputs)[0]):
+            tgmm = tgmmlist[i]
+            cgmm = mdn_to_gmm(outdict, ind=i)
+            draw_contour_gmm(ax, tgmm)
+            draw_contour_gmm(ax, cgmm)
 
     print(">>>> train omce")
     mdnmp.lratio['entropy'] =10
@@ -178,12 +197,14 @@ for expId in range(options.expnum):
 
         cost = compare_gmm(outdict, tgmmlist)
         print('omce ==> kl: {}'.format(cost))
+        for i in range(np.shape(tinputs)[0]):
+            tgmm = tgmmlist[i]
+            cgmm = mdn_to_gmm(outdict, ind=i)
+            draw_contour_gmm(ax, tgmm)
+            draw_contour_gmm(ax, cgmm)
 
     print('=======================================')
 
-
-mean_kl = mean_kl / options.expnum
-print(mean_kl)
 plt.show()
 
 
