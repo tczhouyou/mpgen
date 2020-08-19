@@ -23,7 +23,7 @@ dirname = options.dirname + '/'
 
 tnames = ['50']
 #tnames = ['50', '100', '150']
-fnames = ['original_mdn', 'entropy_mdn']#['baselines', 'original_mdn', 'entropy_mdn', 'eub_mdn']
+fnames =['baselines', 'original_mdn', 'entropy_mdn', 'entropy_gmgan']
 
 fig, ax = plt.subplots()
 width = 0.35
@@ -32,11 +32,14 @@ npos = (len(tnames)-1) * (len(fnames) * 0.35 + blank)
 rects = []
 for i in range(len(fnames)):
     fname = fnames[i]
-    data = np.loadtxt(dirname+fname, delimiter=',')
-    if data.ndim == 1:
-        data = np.expand_dims(data, axis=1)
+    rawdata = np.loadtxt(dirname+fname, delimiter=',')
+    if rawdata.ndim == 1:
+        rawdata = np.expand_dims(rawdata, axis=1)
 
-    data = data[np.all(data,axis=1),:]
+    rawdata = rawdata[np.all(rawdata,axis=1),:]
+    rawdata = np.sort(rawdata)
+    data = rawdata
+    data = rawdata[1:-2,:]
     mean = np.mean(data, axis=0)
     std = np.std(data, axis=0)
     x = np.linspace(i*width, npos+i*width, len(tnames))

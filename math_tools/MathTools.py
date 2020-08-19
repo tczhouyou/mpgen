@@ -64,7 +64,7 @@ def draw_contour(ax, gmlist):
         sig = np.array([[scale[i],0], [0,scale[i+1]]])
         F = multivariate_normal(mu, sig)
         Z = F.pdf(pos)
-        ax.contour(X,Y,Z)
+        ax.contour(X,Y,Z, levels=3)
         i = i + 2
 
 
@@ -83,7 +83,7 @@ def mdn_to_gmm(outdict, fdim=2):
     return gmm
 
 
-def calc_kl_mc(gmm0, gmm1, n_data=100000):
+def calc_kl_mc(gmm0, gmm1, n_data=1e5):
     samples, _ = gmm0.sample(n_data)
     logprob0 = gmm0.score_samples(samples)
     logprob1 = gmm1.score_samples(samples)

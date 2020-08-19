@@ -3,11 +3,16 @@ from tensorflow_probability import distributions as tfd
 import numpy as np
 # import tensorflow_addons as tfa
 
-def gmm_nll_cost(samples, vec_mus, vec_scales, mixing_coeffs, sample_valid):
+def gmm_nll_cost(samples, vec_mus, vec_scales, mixing_coeffs, sample_valid, is_constant_scale=False):
     n_comp = mixing_coeffs.get_shape().as_list()[1]
     mus = tf.split(vec_mus, num_or_size_splits=n_comp, axis=1)
     scales = tf.split(vec_scales, num_or_size_splits=n_comp, axis=1)
-    gmm_comps = [tfd.MultivariateNormalDiag(loc=mu, scale_diag=scale) for mu, scale in zip(mus, scales)]
+
+    if is_constant_scale:
+        gmm_comps = [tfd.MultivariateNormalDiag(loc=mu, scale_diag=0 * scale + 0.1) for mu, scale in zip(mus, scales)]
+    else:
+        gmm_comps = [tfd.MultivariateNormalDiag(loc=mu, scale_diag=scale) for mu, scale in zip(mus, scales)]
+
     gmm = tfd.Mixture(cat=tfd.Categorical(probs=mixing_coeffs), components=gmm_comps)
     loss = gmm.log_prob(samples)
     loss = tf.expand_dims(loss, axis=1)

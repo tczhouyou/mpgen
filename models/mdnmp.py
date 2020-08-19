@@ -45,8 +45,7 @@ class MDNMP(basicModel):
     def build_mdn(self, learning_rate=0.001, nn_type='v1'):
         self.create_network(nn_type=nn_type)
         var_list = [v for v in tf.compat.v1.trainable_variables()]
-        #mean_var_list = [v for v in tf.compat.v1.trainable_variables() if 'scale' not in v.name]
-        #scale_var_list = [v for v in tf.compat.v1.trainable_variables() if 'mean' not in v.name]
+        mean_var_list = [v for v in tf.compat.v1.trainable_variables() if 'scale' not in v.name]
 
         reg_loss = [tf.nn.l2_loss(v) for v in tf.compat.v1.trainable_variables()]
         reg_loss = self.lratio['regularization'] * tf.reduce_sum(reg_loss) / len(var_list)
@@ -64,6 +63,7 @@ class MDNMP(basicModel):
         else:
             ent_loss = elk
 
+        self.scale_cost = tf.reduce_mean(tf.reduce_mean(scale))
         nll_cost = self.lratio['likelihood'] * nll + self.lratio['regularization'] * reg_loss
         ent_cost = self.lratio['entropy'] * ent_loss
         g_nll = tf.gradients(nll_cost, var_list)
@@ -76,12 +76,17 @@ class MDNMP(basicModel):
         grad_norm_nll = 0
         grad_norm_mce = 0
         ent_var_list = []
+        grads_without_scale = []
+        grads_nll_without_scale = []
+
         for i in range(len(g_nll)):
             shape = g_nll[i].get_shape().as_list()
-            if g_ent[i] is not None and self.lratio['entropy'] != 0:
+
+            if g_ent[i] is not None and self.lratio['entropy'] != 0 and 'scale' not in var_list[i].name:
                 ent_var_list.append(var_list[i])
                 cg_nll = tf.reshape(g_nll[i], [-1])
                 cg_ent = tf.reshape(g_ent[i], [-1])
+
                 if self.is_orthogonal_cost:
                     sca = tf.reduce_sum(tf.multiply(cg_nll, cg_ent)) / (tf.norm(cg_nll) + 1e-20)
                 else:
@@ -102,10 +107,10 @@ class MDNMP(basicModel):
 
                 grad = tf.reshape(cgrads, shape)
                 grads.append(grad)
-
+                grads_without_scale.append(grad)
                 grads_ent.append(tf.reshape(grad_ent_orth,shape))
                 grads_nll.append(tf.reshape(grad_nll_orth,shape))
-
+                grads_nll_without_scale.append(tf.reshape(grad_nll_orth,shape))
             else:
                 if self.is_normalized_grad:
                     cg_nll = tf.reshape(g_nll[i], [-1])
@@ -113,6 +118,10 @@ class MDNMP(basicModel):
                     gnll = tf.reshape(cg_nll, shape)
                 else:
                     gnll = g_nll[i]
+
+                if 'scale' not in var_list[i].name:
+                    grads_without_scale.append(gnll)
+                    grads_nll_without_scale.append(gnll)
 
                 grads.append(gnll)
                 grads_nll.append(gnll)
@@ -122,16 +131,18 @@ class MDNMP(basicModel):
         else:
             grad_diff = 0
 
-
         self.cent_lrate = tf.keras.optimizers.schedules.ExponentialDecay(self.ent_lrate, 1000, 0.8, staircase=True)
 
         all_optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate, beta_1=0.9)
         nll_optimizer = tf.keras.optimizers.Adam(learning_rate=self.nll_lrate)
         ent_optimizer = tf.keras.optimizers.Adam(learning_rate=self.cent_lrate)
 
-        self.opt_all = all_optimizer.apply_gradients(zip(grads, var_list))
+        self.opt_all_without_scale = all_optimizer.apply_gradients(zip(grads_without_scale, mean_var_list))
+        self.opt_nll_without_scale = nll_optimizer.apply_gradients(zip(grads_nll_without_scale, mean_var_list))
         self.opt_nll = nll_optimizer.apply_gradients(zip(grads_nll, var_list))
         self.opt_ent = ent_optimizer.apply_gradients(zip(grads_ent, ent_var_list))
+
+        self.opt_all =  all_optimizer.apply_gradients(zip(grads, var_list))
         self.saver = tf.compat.v1.train.Saver()
 
         self.loss_dict = {'nll': nll, 'mce': mce, 'elk': elk, 'floss': floss, 'dgrad': grad_diff}
@@ -173,24 +184,30 @@ class MDNMP(basicModel):
             nll, mce, elk, floss = self.sess.run([self.loss_dict['nll'], self.loss_dict['mce'], self.loss_dict['elk'], self.loss_dict['floss']],
                                                         feed_dict=feed_dict)
 
+            scale_cost = self.sess.run(self.scale_cost, feed_dict=feed_dict)
             if self.lratio['entropy'] != 0:
                 dgrad = self.sess.run(self.loss_dict['dgrad'], feed_dict=feed_dict)
             else:
                 dgrad = 0
 
-            #mean, scale, mc = self.sess.run([self.outputs['mean'], self.outputs['scale'], self.outputs['mc']], feed_dict=feed_dict)
-            #print(scale)
+
             if np.isnan(nll) or np.isinf(nll) or np.isnan(elk) or np.isinf(elk) or np.isnan(mce) or np.isinf(mce):
                 print('\n failed trained')
                 isSuccess = False
                 break
 
             if self.cross_train and self.lratio['entropy'] != 0 and self.is_orthogonal_cost:
-                self.sess.run(self.opt_nll, feed_dict=feed_dict)
+                if i < 0.5 * max_epochs:
+                    self.sess.run(self.opt_nll_without_scale, feed_dict=feed_dict)
+                else:
+                    self.sess.run(self.opt_nll, feed_dict=feed_dict)
+
                 self.sess.run(self.opt_ent, feed_dict=feed_dict)
             else:
-                self.sess.run(self.opt_all, feed_dict=feed_dict)
-
+                if i < 0.5 * max_epochs:
+                    self.sess.run(self.opt_all_without_scale, feed_dict=feed_dict)
+                else:
+                    self.sess.run(self.opt_all, feed_dict=feed_dict)
 
             if i != 0 and i % 1000 == 0 and is_save:
                 self.save(self.sess, self.saver, checkpoint_dir, model_dir, model_name)
@@ -205,7 +222,7 @@ class MDNMP(basicModel):
 
                 kind=kind+1
 
-            print("epoch: %1d, nll: %.3f, mce: %.3f, elk: %.3f, dgrad: %.3f" % (i, nll, mce, elk,  dgrad), end='\r', flush=True)
+            print("epoch: %1d, nll: %.3f, mce: %.3f, elk: %.3f, dgrad: %.3f, scale: %.3f" % (i, nll, mce, elk,  dgrad, scale_cost), end='\r', flush=True)
 
         print("epoch: %1d, nll: %.3f, mce: %.3f, elk: %.3f, dgrad: %.3f" % (i, nll, mce, elk,  dgrad), end='\n')
         return isSuccess, nlls, ents
@@ -231,5 +248,5 @@ class MDNMP(basicModel):
             out[i, :, :], idx[i, :] = sample_gmm(n_samples=n_samples, means=means[i, :, :],
                                                  scales=scales[i, :, :] * self.scaling, mixing_coeffs=mc[i, :])
 
-        outdict = {'samples': out, 'compIDs': idx, 'mean': mean, 'scale': scale, 'mc': mc}
+        outdict = {'samples': out, 'compIDs': idx, 'mean': mean, 'scale': scale, 'mc': mc, 'means': means}
         return out, outdict
