@@ -26,7 +26,7 @@ else:
 
 
 parser = OptionParser()
-parser.add_option("-m", "--nmodel", dest="nmodel", type="int", default=3)
+parser.add_option("-m", "--nmodel", dest="nmodel", type="int", default=4)
 parser.add_option("-n", "--num_exp", dest="expnum", type="int", default=1)
 parser.add_option("-r", "--nrow", dest="nrow", type="int", default=2)
 parser.add_option("-c", "--ncol", dest="ncol", type="int", default=2)
@@ -47,22 +47,24 @@ for i in range(len(gridx)):
 
 n_samples = np.array([20])
 
-mdnmp_struct = {'d_feat': 10,
+mdnmp_struct = {'d_feat': 5,
                 'feat_layers': [10],
-                'mean_layers': [20],
-                'scale_layers': [20],
-                'mixing_layers': [10]}
+                'mean_layers': [10],
+                'scale_layers': [10],
+                'mixing_layers': [5]}
 mdnmp = MDNMP(n_comps=options.nmodel, d_input=1, d_output=2, nn_structure=mdnmp_struct, scaling=1, var_init=VAR_INIT)
 
 mdnmp.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0, 'failure': 0, 'eub': 0}
-max_epochs = 2000
-lrate = 0.0005
+max_epochs = 10000
+lrate = 0.0003
 
 
 _, axes = plt.subplots(nrows=options.expnum, ncols=4)
 axid = 0
 
 print('test kl: {}'.format(calc_kl_mc(gmm, gmm)))
+
+mean_kl = np.zeros(shape=(len(n_samples), 4))
 for expId in range(options.expnum):
     for i in range(len(n_samples)):
         outputs, y = gmm.sample(n_samples=n_samples[i])
@@ -73,83 +75,105 @@ for expId in range(options.expnum):
 
         print(">>>> train omdn")
         mdnmp.lratio['entropy'] = 0
-        mdnmp.is_normalized_grad = True
+        mdnmp.is_normalized_grad = False
         mdnmp.build_mdn(learning_rate=lrate)
         mdnmp.init_train()
         isSuccess = mdnmp.train(inputs, outputs, weights, max_epochs=max_epochs, is_load=False, is_save=False)
         if isSuccess:
             _, outdict = mdnmp.predict(ri)
-            ax = axes[expId,0]
+            if options.expnum== 1:
+                ax = axes[0]
+            else:
+                ax = axes[expId,0]
+
             ax.scatter(outputs[:, 0], outputs[:, 1])
             draw_contour(ax, outdict)
             cgmm = mdn_to_gmm(outdict)
-            kl = calc_kl_mc(gmm, cgmm)
-            print('omdn ==> kl: {}'.format(kl))
+            ckl = calc_kl_mc(gmm, cgmm)
+            mean_kl[i, 0] = mean_kl[i, 0] + np.abs(ckl)
+            print('omdn ==> kl: {}'.format(ckl))
 
 
         print(">>>> train mce")
-        mdnmp.lratio['entropy'] = 3
+        mdnmp.lratio['entropy'] =10
         mdnmp.is_orthogonal_cost=False
         mdnmp.is_mce_only=True
-        mdnmp.is_normalized_grad = True
+        mdnmp.is_normalized_grad = False
         mdnmp.cross_train = False
         mdnmp.build_mdn(learning_rate=lrate)
         mdnmp.init_train()
         isSuccess = mdnmp.train(inputs, outputs, weights, max_epochs=max_epochs, is_load=False, is_save=False)
         if isSuccess:
             _, outdict = mdnmp.predict(ri)
-            ax = axes[expId,1]
+            if options.expnum == 1:
+                ax = axes[1]
+            else:
+                ax = axes[expId,1]
+
             ax.scatter(outputs[:, 0], outputs[:, 1])
             draw_contour(ax, outdict)
             cgmm = mdn_to_gmm(outdict)
-            kl = calc_kl_mc(gmm, cgmm)
-            print('mce ==> kl: {}'.format(kl))
+            ckl = calc_kl_mc(gmm, cgmm)
+            mean_kl[i, 1] = mean_kl[i, 1] + np.abs(ckl)
+            print('mce ==> kl: {}'.format(ckl))
 
 
         print(">>>> train oelk")
-        mdnmp.lratio['entropy'] = 3
-        mdnmp.is_orthogonal_cost = False
+        mdnmp.lratio['entropy'] =10
+        mdnmp.is_orthogonal_cost = True
         mdnmp.is_mce_only = False
-        mdnmp.is_normalized_grad = True
+        mdnmp.is_normalized_grad = False
         mdnmp.cross_train = True
         mdnmp.nll_lrate = lrate
-        mdnmp.ent_lrate = lrate
+        mdnmp.ent_lrate =10 * lrate
         mdnmp.build_mdn(learning_rate=lrate)
         mdnmp.init_train()
         isSuccess = mdnmp.train(inputs, outputs, weights, max_epochs=max_epochs, is_load=False, is_save=False)
         if isSuccess:
             _, outdict = mdnmp.predict(ri)
-            ax = axes[expId, 2]
+            if options.expnum == 1:
+                ax = axes[2]
+            else:
+                ax = axes[expId,2]
+
             ax.scatter(outputs[:, 0], outputs[:, 1])
             draw_contour(ax, outdict)
             cgmm = mdn_to_gmm(outdict)
-            kl = calc_kl_mc(gmm, cgmm)
-            print('oelk ==> kl: {}'.format(kl))
+            ckl = calc_kl_mc(gmm, cgmm)
+            mean_kl[i, 2] = mean_kl[i, 2] + np.abs(ckl)
+            print('oelk ==> kl: {}'.format(ckl))
 
 
         print(">>>> train omce")
-        mdnmp.lratio['entropy'] = 3
+        mdnmp.lratio['entropy'] =10
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=True
-        mdnmp.is_normalized_grad = True
+        mdnmp.is_normalized_grad = False
         mdnmp.cross_train = True
         mdnmp.nll_lrate = lrate
-        mdnmp.ent_lrate = lrate
+        mdnmp.ent_lrate = 10 * lrate
         mdnmp.build_mdn(learning_rate=lrate)
         mdnmp.init_train()
         isSuccess = mdnmp.train(inputs, outputs, weights, max_epochs=max_epochs, is_load=False, is_save=False)
         if isSuccess:
             _, outdict = mdnmp.predict(ri)
-            ax = axes[expId, 3]
+            if options.expnum == 1:
+                ax = axes[3]
+            else:
+                ax = axes[expId,3]
+
             ax.scatter(outputs[:, 0], outputs[:, 1])
             draw_contour(ax, outdict)
             cgmm = mdn_to_gmm(outdict)
-            kl = calc_kl_mc(gmm, cgmm)
-            print('omce ==> kl: {}'.format(kl))
+            ckl = calc_kl_mc(gmm, cgmm)
+            mean_kl[i, 3] = mean_kl[i, 3] + np.abs(ckl)
+            print('omce ==> kl: {}'.format(ckl))
 
         print('=======================================')
 
 
+mean_kl = mean_kl / options.expnum
+print(mean_kl)
 plt.show()
 
 

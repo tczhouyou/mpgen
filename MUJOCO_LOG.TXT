@@ -1,0 +1,6 @@
+Thu Apr 23 14:29:22 2020
+ERROR: OpenGL version 1.5 or higher required
+
+Thu Apr 23 14:35:23 2020
+ERROR: OpenGL version 1.5 or higher required
+

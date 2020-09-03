@@ -72,7 +72,7 @@ gmgan = GMGAN(n_comps=options.nmodel, context_dim=6, response_dim=knum, nn_struc
               var_init=VAR_INIT, var_init_dis=VAR_INIT_DIS, batch_size=100)
 
 # start experiment
-num_train_data = np.array([100])
+num_train_data = np.array([50])
 tsize = (np.shape(data)[0] -num_train_data)/np.shape(data)[0]
 print(tsize)
 

@@ -99,7 +99,7 @@ if not os.path.exists(result_dir):
 mdnmp.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0, 'failure': 0, 'eub': 0}
 max_epochs = 30000
 sample_num = 30
-lrate = 0.0001
+lrate = 0.00003
 mdnmp.is_normalized_grad = False
 for expId in range(options.expnum):
     baseline = np.zeros(shape=(1,len(tsize)))
@@ -127,7 +127,7 @@ for expId in range(options.expnum):
                                                             isdraw=options.isdraw, num_test=options.ntest, learning_rate=lrate,
                                                             EXP=Armar6HitBallExpV1)
         print(">>>> train mce")
-        mdnmp.lratio['entropy'] = 3
+        mdnmp.lratio['entropy'] = 10
         mdnmp.is_orthogonal_cost=False
         mdnmp.is_mce_only=True
         mdnmp.is_normalized_grad=False
@@ -138,7 +138,7 @@ for expId in range(options.expnum):
 
 
         print(">>>> train orthogonal mce")
-        mdnmp.lratio['entropy'] = 3
+        mdnmp.lratio['entropy'] = 10
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=True
         mdnmp.is_normalized_grad=False
@@ -153,7 +153,7 @@ for expId in range(options.expnum):
 
 
         print(">>>> train elk")
-        mdnmp.lratio['entropy'] = 3
+        mdnmp.lratio['entropy'] = 2
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=False
         mdnmp.is_normalized_grad=False
