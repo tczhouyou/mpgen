@@ -46,13 +46,9 @@ def rpy2mat(rpy):
     return m
 
 
-def draw_contour(ax, gmlist):
+def draw_contour(ax, gmlist, X = np.linspace(-5, 15, 100), Y = np.linspace(-5, 15, 100), color=None):
     mean = gmlist['mean'][0]
     scale = gmlist['scale'][0]
-
-    N = 60
-    X = np.linspace(-5, 15, N)
-    Y = np.linspace(-5, 15, N)
     X, Y = np.meshgrid(X, Y)
     pos = np.empty(X.shape + (2,))
     pos[:, :, 0] = X
@@ -64,30 +60,35 @@ def draw_contour(ax, gmlist):
         sig = np.array([[scale[i],0], [0,scale[i+1]]])
         F = multivariate_normal(mu, sig)
         Z = F.pdf(pos)
-        ax.contour(X,Y,Z, levels=3)
+        Zmax = np.amax(Z)
+        if color is not None:
+            ax.contour(X,Y,Z, levels=[Zmax/4,Zmax/3,Zmax/2], colors=[color])
+        else:
+            ax.contour(X,Y,Z, levels=[Zmax/4,Zmax/3,Zmax/2])
+
         i = i + 2
 
 
-def draw_contour_gmm(ax, gmm):
+def draw_contour_gmm(ax, gmm, X=np.linspace(-5,15,60), Y=np.linspace(-5,15,60), color=None, linestyle='solid', linewidths=1.0):
     means = gmm.means_
     scales = gmm.covariances_
 
-    N = 60
-    X = np.linspace(-5, 15, N)
-    Y = np.linspace(-5, 15, N)
     X, Y = np.meshgrid(X, Y)
     pos = np.empty(X.shape + (2,))
     pos[:, :, 0] = X
     pos[:, :, 1] = Y
 
-    i = 0
-    for i in range(np.shape(mean)[0]):
+    for i in range(np.shape(means)[0]):
         mu = means[i,:]
         scale = scales[i,:]
         sig = np.array([[scale[0],0], [0,scale[1]]])
         F = multivariate_normal(mu, sig)
         Z = F.pdf(pos)
-        ax.contour(X,Y,Z, levels=3)
+        Zmax = np.amax(Z)
+        if color is not None:
+            ax.contour(X,Y,Z, levels=[Zmax/5,Zmax/2,Zmax/1.2], colors=[color], linestyles=linestyle, linewidths=linewidths)
+        else:
+            ax.contour(X,Y,Z, levels=[Zmax/5,Zmax/2,Zmax/1.2], linestyles=linestyle, linewidths=linewidths)
 
 
 def mdn_to_gmm(outdict, fdim=2, ind=0):
@@ -96,7 +97,6 @@ def mdn_to_gmm(outdict, fdim=2, ind=0):
 
     mc = outdict['mc'][ind]
     n_comp = len(mc)
-    print('ncomp is {}'.format(n_comp))
     mean = np.reshape(outdict['mean'][ind], newshape=(-1,fdim))
     scale = np.reshape(outdict['scale'][ind], newshape=(-1,fdim))
 

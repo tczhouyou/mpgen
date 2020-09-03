@@ -83,7 +83,7 @@ class MDNMP(basicModel):
         for i in range(len(g_nll)):
             shape = g_nll[i].get_shape().as_list()
 
-            if g_ent[i] is not None and self.lratio['entropy'] != 0 and 'scale' not in var_list[i].name:
+            if g_ent[i] is not None and self.lratio['entropy'] != 0:
                 ent_var_list.append(var_list[i])
                 cg_nll = tf.reshape(g_nll[i], [-1])
                 cg_ent = tf.reshape(g_ent[i], [-1])
@@ -108,10 +108,13 @@ class MDNMP(basicModel):
 
                 grad = tf.reshape(cgrads, shape)
                 grads.append(grad)
-                grads_without_scale.append(grad)
                 grads_ent.append(tf.reshape(grad_ent_orth,shape))
                 grads_nll.append(tf.reshape(grad_nll_orth,shape))
-                grads_nll_without_scale.append(tf.reshape(grad_nll_orth,shape))
+
+                if 'scale' not in var_list[i].name:
+                    grads_without_scale.append(grad)
+                    grads_nll_without_scale.append(tf.reshape(grad_nll_orth,shape))
+
             else:
                 if self.is_normalized_grad:
                     cg_nll = tf.reshape(g_nll[i], [-1])
@@ -198,14 +201,14 @@ class MDNMP(basicModel):
                 break
 
             if self.cross_train and self.lratio['entropy'] != 0 and self.is_orthogonal_cost:
-                if i < 0.5 * max_epochs and self.is_scale_scheduled:
+                if i < 0.8 * max_epochs and self.is_scale_scheduled:
                     self.sess.run(self.opt_nll_without_scale, feed_dict=feed_dict)
                 else:
                     self.sess.run(self.opt_nll, feed_dict=feed_dict)
 
                 self.sess.run(self.opt_ent, feed_dict=feed_dict)
             else:
-                if i < 0.5 * max_epochs and self.is_scale_scheduled:
+                if i < 0.8 * max_epochs and self.is_scale_scheduled:
                     self.sess.run(self.opt_all_without_scale, feed_dict=feed_dict)
                 else:
                     self.sess.run(self.opt_all, feed_dict=feed_dict)
@@ -226,7 +229,7 @@ class MDNMP(basicModel):
             print("epoch: %1d, nll: %.3f, mce: %.3f, elk: %.3f, dgrad: %.3f, scale: %.3f" % (i, nll, mce, elk,  dgrad, scale_cost), end='\r', flush=True)
 
         print("epoch: %1d, nll: %.3f, mce: %.3f, elk: %.3f, dgrad: %.3f" % (i, nll, mce, elk,  dgrad), end='\n')
-        return isSuccess, nlls, ents
+        return isSuccess, nlls, ents, scale_cost
 
     def predict(self, cinput, n_samples=1):
         mean, scale, mc = self.sess.run([self.outputs['mean'], self.outputs['scale'], self.outputs['mc']],

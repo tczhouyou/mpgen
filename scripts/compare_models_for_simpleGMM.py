@@ -21,7 +21,7 @@ if tf.__version__ < '2.0.0':
     VAR_INIT_DIS = tflearn.initializations.normal(stddev=0.1, seed=42)
 else:
     from tensorflow.keras import initializers
-    VAR_INIT = initializers.RandomUniform(minval=-0.0003, maxval=0.0003, seed=42)
+    VAR_INIT = initializers.RandomUniform(minval=-0.00003, maxval=0.00003, seed=42)
     VAR_INIT_DIS = initializers.RandomNormal(stddev=0.02, seed=42)
 
 
@@ -33,8 +33,8 @@ parser.add_option("-c", "--ncol", dest="ncol", type="int", default=2)
 (options, args) = parser.parse_args(sys.argv)
 
 ## create a grid of data for GMM
-gridx = np.linspace(0, 10, options.nrow)
-gridy = np.linspace(0, 10, options.ncol)
+gridx = np.linspace(0, 20, options.nrow)
+gridy = np.linspace(0, 20, options.ncol)
 
 gmm = mixture.GaussianMixture(n_components=options.nrow * options.ncol, covariance_type='diag')
 gmm.fit(np.random.uniform(-1.0, 1.0, (10, 2)))
@@ -44,31 +44,38 @@ for i in range(len(gridx)):
         gmm.covariances_[i*options.nrow+j,:] = np.array([1,1])
         gmm.weights_[i*options.nrow+j] = 1/(options.nrow * options.ncol)
 
+# gmm.weights_[0] = 0.8/2
+# gmm.weights_[1] = 0.8/2
+# gmm.weights_[2] = 0.2/2
+# gmm.weights_[3] = 0.2/2
+mixingCoeffs = [[1/4,1/4,1/4,1/4], [0.8, 0.2/3, 0.2/3, 0.2/3]]
+n_samples = 30
 
-n_samples = np.array([20])
-
-mdnmp_struct = {'d_feat': 5,
-                'feat_layers': [10],
-                'mean_layers': [10],
-                'scale_layers': [10],
-                'mixing_layers': [5]}
+mdnmp_struct = {'d_feat': 10,
+                'feat_layers': [40],
+                'mean_layers': [40],
+                'scale_layers': [40],
+                'mixing_layers': [20]}
 mdnmp = MDNMP(n_comps=options.nmodel, d_input=1, d_output=2, nn_structure=mdnmp_struct, scaling=1, var_init=VAR_INIT)
+mdnmp.is_scale_scheduled = True
 
-mdnmp.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0, 'failure': 0, 'eub': 0}
-max_epochs = 10000
-lrate = 0.0003
+mdnmp.lratio = {'likelihood': 1, 'mce': 0, 'regularization': 0.00001, 'failure': 0, 'eub': 0}
+max_epochs = 30000
+lrate = 0.00003
 
 
-_, axes = plt.subplots(nrows=options.expnum, ncols=4)
-axid = 0
+X=np.linspace(-5,25,60)
+Y=np.linspace(-5,25,60),
 
 print('test kl: {}'.format(calc_kl_mc(gmm, gmm)))
-
-mean_kl = np.zeros(shape=(len(n_samples), 4))
+mean_kl = np.zeros(shape=(len(mixingCoeffs), 4))
 for expId in range(options.expnum):
-    for i in range(len(n_samples)):
-        outputs, y = gmm.sample(n_samples=n_samples[i])
-        inputs = np.ones(shape=[n_samples[i], 1])
+    _, axes = plt.subplots(nrows=len(mixingCoeffs), ncols=4)
+    axid = 0
+    for i in range(len(mixingCoeffs)):
+        gmm.weights_ = mixingCoeffs[i]
+        outputs, y = gmm.sample(n_samples=n_samples)
+        inputs = np.ones(shape=[n_samples, 1])
         ri = inputs[0, :]
         ri = np.expand_dims(ri, axis=1)
         weights = np.ones(shape=(np.shape(outputs)[0], 1))
@@ -81,13 +88,13 @@ for expId in range(options.expnum):
         isSuccess = mdnmp.train(inputs, outputs, weights, max_epochs=max_epochs, is_load=False, is_save=False)
         if isSuccess:
             _, outdict = mdnmp.predict(ri)
-            if options.expnum== 1:
+            if len(mixingCoeffs)== 1:
                 ax = axes[0]
             else:
-                ax = axes[expId,0]
+                ax = axes[i,0]
 
             ax.scatter(outputs[:, 0], outputs[:, 1])
-            draw_contour(ax, outdict)
+            draw_contour(ax, outdict, X=X, Y=Y, color='red')
             cgmm = mdn_to_gmm(outdict)
             ckl = calc_kl_mc(gmm, cgmm)
             mean_kl[i, 0] = mean_kl[i, 0] + np.abs(ckl)
@@ -105,13 +112,13 @@ for expId in range(options.expnum):
         isSuccess = mdnmp.train(inputs, outputs, weights, max_epochs=max_epochs, is_load=False, is_save=False)
         if isSuccess:
             _, outdict = mdnmp.predict(ri)
-            if options.expnum == 1:
+            if len(mixingCoeffs) == 1:
                 ax = axes[1]
             else:
-                ax = axes[expId,1]
+                ax = axes[i,1]
 
             ax.scatter(outputs[:, 0], outputs[:, 1])
-            draw_contour(ax, outdict)
+            draw_contour(ax, outdict, X=X, Y=Y, color='red')
             cgmm = mdn_to_gmm(outdict)
             ckl = calc_kl_mc(gmm, cgmm)
             mean_kl[i, 1] = mean_kl[i, 1] + np.abs(ckl)
@@ -125,19 +132,19 @@ for expId in range(options.expnum):
         mdnmp.is_normalized_grad = False
         mdnmp.cross_train = True
         mdnmp.nll_lrate = lrate
-        mdnmp.ent_lrate =10 * lrate
+        mdnmp.ent_lrate =20 * lrate
         mdnmp.build_mdn(learning_rate=lrate)
         mdnmp.init_train()
         isSuccess = mdnmp.train(inputs, outputs, weights, max_epochs=max_epochs, is_load=False, is_save=False)
         if isSuccess:
             _, outdict = mdnmp.predict(ri)
-            if options.expnum == 1:
+            if len(mixingCoeffs) == 1:
                 ax = axes[2]
             else:
-                ax = axes[expId,2]
+                ax = axes[i,2]
 
             ax.scatter(outputs[:, 0], outputs[:, 1])
-            draw_contour(ax, outdict)
+            draw_contour(ax, outdict, X=X, Y=Y, color='red')
             cgmm = mdn_to_gmm(outdict)
             ckl = calc_kl_mc(gmm, cgmm)
             mean_kl[i, 2] = mean_kl[i, 2] + np.abs(ckl)
@@ -151,25 +158,26 @@ for expId in range(options.expnum):
         mdnmp.is_normalized_grad = False
         mdnmp.cross_train = True
         mdnmp.nll_lrate = lrate
-        mdnmp.ent_lrate = 10 * lrate
+        mdnmp.ent_lrate = 20 * lrate
         mdnmp.build_mdn(learning_rate=lrate)
         mdnmp.init_train()
         isSuccess = mdnmp.train(inputs, outputs, weights, max_epochs=max_epochs, is_load=False, is_save=False)
         if isSuccess:
             _, outdict = mdnmp.predict(ri)
-            if options.expnum == 1:
+            if len(mixingCoeffs) == 1:
                 ax = axes[3]
             else:
-                ax = axes[expId,3]
+                ax = axes[i,3]
 
             ax.scatter(outputs[:, 0], outputs[:, 1])
-            draw_contour(ax, outdict)
+            draw_contour(ax, outdict, X=X, Y=Y, color='red')
             cgmm = mdn_to_gmm(outdict)
             ckl = calc_kl_mc(gmm, cgmm)
             mean_kl[i, 3] = mean_kl[i, 3] + np.abs(ckl)
             print('omce ==> kl: {}'.format(ckl))
 
         print('=======================================')
+
 
 
 mean_kl = mean_kl / options.expnum

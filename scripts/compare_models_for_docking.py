@@ -85,6 +85,7 @@ max_epochs = 30000
 lrate = 0.00003
 sample_num = 10
 mdnmp.is_normalized_grad = False
+mdnmp.is_scale_scheduled = True
 for expId in range(options.expnum):
     baseline = np.zeros(shape=(1,len(tsize)))
     omdn = np.zeros(shape=(1, len(tsize)))
@@ -106,7 +107,7 @@ for expId in range(options.expnum):
 
 
         print(">>>> train elk MDN")
-        mdnmp.lratio['entropy'] = 3
+        mdnmp.lratio['entropy'] = 10
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=False
         mdnmp.cross_train=True
@@ -118,7 +119,7 @@ for expId in range(options.expnum):
 
 
         print(">>>> train orthognal mce MDN")
-        mdnmp.lratio['entropy'] = 3
+        mdnmp.lratio['entropy'] = 10
         mdnmp.is_orthogonal_cost=True
         mdnmp.is_mce_only=True
         mdnmp.cross_train=True
@@ -128,7 +129,7 @@ for expId in range(options.expnum):
                                                             max_epochs=max_epochs,
                                                             sample_num=sample_num, learning_rate=lrate)
         print(">>>> train mce MDN")
-        mdnmp.lratio['entropy'] = 3
+        mdnmp.lratio['entropy'] = 10
         mdnmp.is_orthogonal_cost=False
         mdnmp.is_mce_only=True
         mdnmp.is_normalized_grad=False
