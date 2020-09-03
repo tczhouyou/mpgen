@@ -229,7 +229,7 @@ class MDNMP(basicModel):
             print("epoch: %1d, nll: %.3f, mce: %.3f, elk: %.3f, dgrad: %.3f, scale: %.3f" % (i, nll, mce, elk,  dgrad, scale_cost), end='\r', flush=True)
 
         print("epoch: %1d, nll: %.3f, mce: %.3f, elk: %.3f, dgrad: %.3f" % (i, nll, mce, elk,  dgrad), end='\n')
-        return isSuccess, nlls, ents, scale_cost
+        return isSuccess, nlls, ents
 
     def predict(self, cinput, n_samples=1):
         mean, scale, mc = self.sess.run([self.outputs['mean'], self.outputs['scale'], self.outputs['mc']],
