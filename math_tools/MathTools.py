@@ -69,7 +69,7 @@ def draw_contour(ax, gmlist, X = np.linspace(-5, 15, 100), Y = np.linspace(-5, 1
         i = i + 2
 
 
-def draw_contour_gmm(ax, gmm, X=np.linspace(-5,15,60), Y=np.linspace(-5,15,60), color=None, linestyle='solid', linewidths=1.0):
+def draw_contour_gmm(ax, gmm, X=np.linspace(-5,15,60), Y=np.linspace(-5,15,60), color=None, linestyle='solid', linewidths=1.0, rescale=1):
     means = gmm.means_
     scales = gmm.covariances_
 
@@ -80,7 +80,7 @@ def draw_contour_gmm(ax, gmm, X=np.linspace(-5,15,60), Y=np.linspace(-5,15,60), 
 
     for i in range(np.shape(means)[0]):
         mu = means[i,:]
-        scale = scales[i,:]
+        scale = scales[i,:] * rescale
         sig = np.array([[scale[0],0], [0,scale[1]]])
         F = multivariate_normal(mu, sig)
         Z = F.pdf(pos)
